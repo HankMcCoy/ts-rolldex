@@ -1,6 +1,7 @@
 import { createFileRoute, getRouteApi, Link, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { getNoun, deleteNoun } from "@/server/nouns";
+import { MarkdownRenderer } from "@/components/MarkdownRenderer";
 import { RelatedEntities } from "@/components/RelatedEntities";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -83,8 +84,8 @@ function NounPage() {
 					{noun.notes && (
 						<section className="mb-8">
 							<h2 className="island-kicker mb-2">Notes</h2>
-							<div className="island-shell max-w-2xl whitespace-pre-wrap rounded-xl p-4 text-sm">
-								{noun.notes}
+							<div className="island-shell max-w-2xl rounded-xl p-4">
+								<MarkdownRenderer content={noun.notes} />
 							</div>
 						</section>
 					)}
@@ -94,8 +95,8 @@ function NounPage() {
 							<Separator className="mb-8" />
 							<section className="mb-8">
 								<h2 className="island-kicker mb-2">Private notes</h2>
-								<div className="island-shell max-w-2xl whitespace-pre-wrap rounded-xl p-4 text-sm">
-									{noun.privateNotes}
+								<div className="island-shell max-w-2xl rounded-xl p-4">
+									<MarkdownRenderer content={noun.privateNotes} />
 								</div>
 							</section>
 						</>

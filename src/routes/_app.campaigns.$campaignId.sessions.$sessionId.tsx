@@ -1,6 +1,7 @@
 import { createFileRoute, getRouteApi, Link, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { getSession, deleteSession } from "@/server/sessions";
+import { MarkdownRenderer } from "@/components/MarkdownRenderer";
 import { RelatedEntities } from "@/components/RelatedEntities";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -84,8 +85,8 @@ function SessionPage() {
 					{session.notes && (
 						<section className="mb-8">
 							<h2 className="island-kicker mb-2">Notes</h2>
-							<div className="island-shell max-w-2xl whitespace-pre-wrap rounded-xl p-4 text-sm">
-								{session.notes}
+							<div className="island-shell max-w-2xl rounded-xl p-4">
+								<MarkdownRenderer content={session.notes} />
 							</div>
 						</section>
 					)}
@@ -95,8 +96,8 @@ function SessionPage() {
 							<Separator className="mb-8" />
 							<section className="mb-8">
 								<h2 className="island-kicker mb-2">Private notes</h2>
-								<div className="island-shell max-w-2xl whitespace-pre-wrap rounded-xl p-4 text-sm">
-									{session.privateNotes}
+								<div className="island-shell max-w-2xl rounded-xl p-4">
+									<MarkdownRenderer content={session.privateNotes} />
 								</div>
 							</section>
 						</>
