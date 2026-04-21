@@ -4,6 +4,10 @@ import { z } from "zod";
 import { db } from "@/db/index";
 import { nouns } from "@/db/schema/index";
 import { requireCampaignAccess, requireSession } from "@/lib/access";
+import {
+	computeRelatedEntities,
+	type CandidateEntity,
+} from "@/lib/relationships";
 
 const nounTypeSchema = z.enum(["PERSON", "PLACE", "THING", "FACTION"]);
 
@@ -56,7 +60,38 @@ export const getNoun = createServerFn()
 			result.privateNotes = "";
 		}
 
-		return { noun: result, accessLevel };
+		// Fetch all visible entities for relationship computation
+		const [allNouns, allSessions] = await Promise.all([
+			db.query.nouns.findMany({
+				where: (n, { and, eq }) =>
+					and(
+						eq(n.campaignId, data.campaignId),
+						accessLevel === "READ_ONLY" ? eq(n.isSecret, false) : undefined,
+					),
+				columns: { id: true, name: true, nounType: true },
+			}),
+			db.query.gameSessions.findMany({
+				where: (s, { and, eq }) =>
+					and(
+						eq(s.campaignId, data.campaignId),
+						accessLevel === "READ_ONLY" ? eq(s.isSecret, false) : undefined,
+					),
+				columns: { id: true, name: true },
+			}),
+		]);
+
+		const candidates: CandidateEntity[] = [
+			...allNouns.map((n) => ({
+				id: n.id,
+				name: n.name,
+				entityType: n.nounType as CandidateEntity["entityType"],
+			})),
+			...allSessions.map((s) => ({ id: s.id, name: s.name, entityType: "SESSION" as const })),
+		];
+
+		const related = computeRelatedEntities(noun.id, result, candidates);
+
+		return { noun: result, accessLevel, related };
 	});
 
 export const createNoun = createServerFn()
