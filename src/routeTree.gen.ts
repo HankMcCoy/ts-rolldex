@@ -17,6 +17,19 @@ import { Route as AuthRegisterRouteImport } from './routes/_auth.register'
 import { Route as AuthLoginRouteImport } from './routes/_auth.login'
 import { Route as AppCampaignsRouteImport } from './routes/_app.campaigns'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
+import { Route as AppCampaignsNewRouteImport } from './routes/_app.campaigns.new'
+import { Route as AppCampaignsCampaignIdRouteImport } from './routes/_app.campaigns.$campaignId'
+import { Route as AppCampaignsCampaignIdIndexRouteImport } from './routes/_app.campaigns.$campaignId.index'
+import { Route as AppCampaignsCampaignIdSessionsRouteImport } from './routes/_app.campaigns.$campaignId.sessions'
+import { Route as AppCampaignsCampaignIdNounsRouteImport } from './routes/_app.campaigns.$campaignId.nouns'
+import { Route as AppCampaignsCampaignIdEditRouteImport } from './routes/_app.campaigns.$campaignId.edit'
+import { Route as AppCampaignsCampaignIdSessionsNewRouteImport } from './routes/_app.campaigns.$campaignId.sessions.new'
+import { Route as AppCampaignsCampaignIdSessionsSessionIdRouteImport } from './routes/_app.campaigns.$campaignId.sessions.$sessionId'
+import { Route as AppCampaignsCampaignIdNounsNewRouteImport } from './routes/_app.campaigns.$campaignId.nouns.new'
+import { Route as AppCampaignsCampaignIdNounsNounIdRouteImport } from './routes/_app.campaigns.$campaignId.nouns.$nounId'
+import { Route as AppCampaignsCampaignIdMembersInviteRouteImport } from './routes/_app.campaigns.$campaignId.members.invite'
+import { Route as AppCampaignsCampaignIdSessionsSessionIdEditRouteImport } from './routes/_app.campaigns.$campaignId.sessions.$sessionId.edit'
+import { Route as AppCampaignsCampaignIdNounsNounIdEditRouteImport } from './routes/_app.campaigns.$campaignId.nouns.$nounId.edit'
 
 const AboutRoute = AboutRouteImport.update({
   id: '/about',
@@ -56,22 +69,123 @@ const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
   path: '/api/auth/$',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AppCampaignsNewRoute = AppCampaignsNewRouteImport.update({
+  id: '/new',
+  path: '/new',
+  getParentRoute: () => AppCampaignsRoute,
+} as any)
+const AppCampaignsCampaignIdRoute = AppCampaignsCampaignIdRouteImport.update({
+  id: '/$campaignId',
+  path: '/$campaignId',
+  getParentRoute: () => AppCampaignsRoute,
+} as any)
+const AppCampaignsCampaignIdIndexRoute =
+  AppCampaignsCampaignIdIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => AppCampaignsCampaignIdRoute,
+  } as any)
+const AppCampaignsCampaignIdSessionsRoute =
+  AppCampaignsCampaignIdSessionsRouteImport.update({
+    id: '/sessions',
+    path: '/sessions',
+    getParentRoute: () => AppCampaignsCampaignIdRoute,
+  } as any)
+const AppCampaignsCampaignIdNounsRoute =
+  AppCampaignsCampaignIdNounsRouteImport.update({
+    id: '/nouns',
+    path: '/nouns',
+    getParentRoute: () => AppCampaignsCampaignIdRoute,
+  } as any)
+const AppCampaignsCampaignIdEditRoute =
+  AppCampaignsCampaignIdEditRouteImport.update({
+    id: '/edit',
+    path: '/edit',
+    getParentRoute: () => AppCampaignsCampaignIdRoute,
+  } as any)
+const AppCampaignsCampaignIdSessionsNewRoute =
+  AppCampaignsCampaignIdSessionsNewRouteImport.update({
+    id: '/new',
+    path: '/new',
+    getParentRoute: () => AppCampaignsCampaignIdSessionsRoute,
+  } as any)
+const AppCampaignsCampaignIdSessionsSessionIdRoute =
+  AppCampaignsCampaignIdSessionsSessionIdRouteImport.update({
+    id: '/$sessionId',
+    path: '/$sessionId',
+    getParentRoute: () => AppCampaignsCampaignIdSessionsRoute,
+  } as any)
+const AppCampaignsCampaignIdNounsNewRoute =
+  AppCampaignsCampaignIdNounsNewRouteImport.update({
+    id: '/new',
+    path: '/new',
+    getParentRoute: () => AppCampaignsCampaignIdNounsRoute,
+  } as any)
+const AppCampaignsCampaignIdNounsNounIdRoute =
+  AppCampaignsCampaignIdNounsNounIdRouteImport.update({
+    id: '/$nounId',
+    path: '/$nounId',
+    getParentRoute: () => AppCampaignsCampaignIdNounsRoute,
+  } as any)
+const AppCampaignsCampaignIdMembersInviteRoute =
+  AppCampaignsCampaignIdMembersInviteRouteImport.update({
+    id: '/members/invite',
+    path: '/members/invite',
+    getParentRoute: () => AppCampaignsCampaignIdRoute,
+  } as any)
+const AppCampaignsCampaignIdSessionsSessionIdEditRoute =
+  AppCampaignsCampaignIdSessionsSessionIdEditRouteImport.update({
+    id: '/edit',
+    path: '/edit',
+    getParentRoute: () => AppCampaignsCampaignIdSessionsSessionIdRoute,
+  } as any)
+const AppCampaignsCampaignIdNounsNounIdEditRoute =
+  AppCampaignsCampaignIdNounsNounIdEditRouteImport.update({
+    id: '/edit',
+    path: '/edit',
+    getParentRoute: () => AppCampaignsCampaignIdNounsNounIdRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
-  '/campaigns': typeof AppCampaignsRoute
+  '/campaigns': typeof AppCampaignsRouteWithChildren
   '/login': typeof AuthLoginRoute
   '/register': typeof AuthRegisterRoute
+  '/campaigns/$campaignId': typeof AppCampaignsCampaignIdRouteWithChildren
+  '/campaigns/new': typeof AppCampaignsNewRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/campaigns/$campaignId/edit': typeof AppCampaignsCampaignIdEditRoute
+  '/campaigns/$campaignId/nouns': typeof AppCampaignsCampaignIdNounsRouteWithChildren
+  '/campaigns/$campaignId/sessions': typeof AppCampaignsCampaignIdSessionsRouteWithChildren
+  '/campaigns/$campaignId/': typeof AppCampaignsCampaignIdIndexRoute
+  '/campaigns/$campaignId/members/invite': typeof AppCampaignsCampaignIdMembersInviteRoute
+  '/campaigns/$campaignId/nouns/$nounId': typeof AppCampaignsCampaignIdNounsNounIdRouteWithChildren
+  '/campaigns/$campaignId/nouns/new': typeof AppCampaignsCampaignIdNounsNewRoute
+  '/campaigns/$campaignId/sessions/$sessionId': typeof AppCampaignsCampaignIdSessionsSessionIdRouteWithChildren
+  '/campaigns/$campaignId/sessions/new': typeof AppCampaignsCampaignIdSessionsNewRoute
+  '/campaigns/$campaignId/nouns/$nounId/edit': typeof AppCampaignsCampaignIdNounsNounIdEditRoute
+  '/campaigns/$campaignId/sessions/$sessionId/edit': typeof AppCampaignsCampaignIdSessionsSessionIdEditRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
-  '/campaigns': typeof AppCampaignsRoute
+  '/campaigns': typeof AppCampaignsRouteWithChildren
   '/login': typeof AuthLoginRoute
   '/register': typeof AuthRegisterRoute
+  '/campaigns/new': typeof AppCampaignsNewRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/campaigns/$campaignId/edit': typeof AppCampaignsCampaignIdEditRoute
+  '/campaigns/$campaignId/nouns': typeof AppCampaignsCampaignIdNounsRouteWithChildren
+  '/campaigns/$campaignId/sessions': typeof AppCampaignsCampaignIdSessionsRouteWithChildren
+  '/campaigns/$campaignId': typeof AppCampaignsCampaignIdIndexRoute
+  '/campaigns/$campaignId/members/invite': typeof AppCampaignsCampaignIdMembersInviteRoute
+  '/campaigns/$campaignId/nouns/$nounId': typeof AppCampaignsCampaignIdNounsNounIdRouteWithChildren
+  '/campaigns/$campaignId/nouns/new': typeof AppCampaignsCampaignIdNounsNewRoute
+  '/campaigns/$campaignId/sessions/$sessionId': typeof AppCampaignsCampaignIdSessionsSessionIdRouteWithChildren
+  '/campaigns/$campaignId/sessions/new': typeof AppCampaignsCampaignIdSessionsNewRoute
+  '/campaigns/$campaignId/nouns/$nounId/edit': typeof AppCampaignsCampaignIdNounsNounIdEditRoute
+  '/campaigns/$campaignId/sessions/$sessionId/edit': typeof AppCampaignsCampaignIdSessionsSessionIdEditRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -79,10 +193,23 @@ export interface FileRoutesById {
   '/_app': typeof AppRouteWithChildren
   '/_auth': typeof AuthRouteWithChildren
   '/about': typeof AboutRoute
-  '/_app/campaigns': typeof AppCampaignsRoute
+  '/_app/campaigns': typeof AppCampaignsRouteWithChildren
   '/_auth/login': typeof AuthLoginRoute
   '/_auth/register': typeof AuthRegisterRoute
+  '/_app/campaigns/$campaignId': typeof AppCampaignsCampaignIdRouteWithChildren
+  '/_app/campaigns/new': typeof AppCampaignsNewRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/_app/campaigns/$campaignId/edit': typeof AppCampaignsCampaignIdEditRoute
+  '/_app/campaigns/$campaignId/nouns': typeof AppCampaignsCampaignIdNounsRouteWithChildren
+  '/_app/campaigns/$campaignId/sessions': typeof AppCampaignsCampaignIdSessionsRouteWithChildren
+  '/_app/campaigns/$campaignId/': typeof AppCampaignsCampaignIdIndexRoute
+  '/_app/campaigns/$campaignId/members/invite': typeof AppCampaignsCampaignIdMembersInviteRoute
+  '/_app/campaigns/$campaignId/nouns/$nounId': typeof AppCampaignsCampaignIdNounsNounIdRouteWithChildren
+  '/_app/campaigns/$campaignId/nouns/new': typeof AppCampaignsCampaignIdNounsNewRoute
+  '/_app/campaigns/$campaignId/sessions/$sessionId': typeof AppCampaignsCampaignIdSessionsSessionIdRouteWithChildren
+  '/_app/campaigns/$campaignId/sessions/new': typeof AppCampaignsCampaignIdSessionsNewRoute
+  '/_app/campaigns/$campaignId/nouns/$nounId/edit': typeof AppCampaignsCampaignIdNounsNounIdEditRoute
+  '/_app/campaigns/$campaignId/sessions/$sessionId/edit': typeof AppCampaignsCampaignIdSessionsSessionIdEditRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -92,9 +219,40 @@ export interface FileRouteTypes {
     | '/campaigns'
     | '/login'
     | '/register'
+    | '/campaigns/$campaignId'
+    | '/campaigns/new'
     | '/api/auth/$'
+    | '/campaigns/$campaignId/edit'
+    | '/campaigns/$campaignId/nouns'
+    | '/campaigns/$campaignId/sessions'
+    | '/campaigns/$campaignId/'
+    | '/campaigns/$campaignId/members/invite'
+    | '/campaigns/$campaignId/nouns/$nounId'
+    | '/campaigns/$campaignId/nouns/new'
+    | '/campaigns/$campaignId/sessions/$sessionId'
+    | '/campaigns/$campaignId/sessions/new'
+    | '/campaigns/$campaignId/nouns/$nounId/edit'
+    | '/campaigns/$campaignId/sessions/$sessionId/edit'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/about' | '/campaigns' | '/login' | '/register' | '/api/auth/$'
+  to:
+    | '/'
+    | '/about'
+    | '/campaigns'
+    | '/login'
+    | '/register'
+    | '/campaigns/new'
+    | '/api/auth/$'
+    | '/campaigns/$campaignId/edit'
+    | '/campaigns/$campaignId/nouns'
+    | '/campaigns/$campaignId/sessions'
+    | '/campaigns/$campaignId'
+    | '/campaigns/$campaignId/members/invite'
+    | '/campaigns/$campaignId/nouns/$nounId'
+    | '/campaigns/$campaignId/nouns/new'
+    | '/campaigns/$campaignId/sessions/$sessionId'
+    | '/campaigns/$campaignId/sessions/new'
+    | '/campaigns/$campaignId/nouns/$nounId/edit'
+    | '/campaigns/$campaignId/sessions/$sessionId/edit'
   id:
     | '__root__'
     | '/'
@@ -104,7 +262,20 @@ export interface FileRouteTypes {
     | '/_app/campaigns'
     | '/_auth/login'
     | '/_auth/register'
+    | '/_app/campaigns/$campaignId'
+    | '/_app/campaigns/new'
     | '/api/auth/$'
+    | '/_app/campaigns/$campaignId/edit'
+    | '/_app/campaigns/$campaignId/nouns'
+    | '/_app/campaigns/$campaignId/sessions'
+    | '/_app/campaigns/$campaignId/'
+    | '/_app/campaigns/$campaignId/members/invite'
+    | '/_app/campaigns/$campaignId/nouns/$nounId'
+    | '/_app/campaigns/$campaignId/nouns/new'
+    | '/_app/campaigns/$campaignId/sessions/$sessionId'
+    | '/_app/campaigns/$campaignId/sessions/new'
+    | '/_app/campaigns/$campaignId/nouns/$nounId/edit'
+    | '/_app/campaigns/$campaignId/sessions/$sessionId/edit'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -173,15 +344,210 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAuthSplatRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_app/campaigns/new': {
+      id: '/_app/campaigns/new'
+      path: '/new'
+      fullPath: '/campaigns/new'
+      preLoaderRoute: typeof AppCampaignsNewRouteImport
+      parentRoute: typeof AppCampaignsRoute
+    }
+    '/_app/campaigns/$campaignId': {
+      id: '/_app/campaigns/$campaignId'
+      path: '/$campaignId'
+      fullPath: '/campaigns/$campaignId'
+      preLoaderRoute: typeof AppCampaignsCampaignIdRouteImport
+      parentRoute: typeof AppCampaignsRoute
+    }
+    '/_app/campaigns/$campaignId/': {
+      id: '/_app/campaigns/$campaignId/'
+      path: '/'
+      fullPath: '/campaigns/$campaignId/'
+      preLoaderRoute: typeof AppCampaignsCampaignIdIndexRouteImport
+      parentRoute: typeof AppCampaignsCampaignIdRoute
+    }
+    '/_app/campaigns/$campaignId/sessions': {
+      id: '/_app/campaigns/$campaignId/sessions'
+      path: '/sessions'
+      fullPath: '/campaigns/$campaignId/sessions'
+      preLoaderRoute: typeof AppCampaignsCampaignIdSessionsRouteImport
+      parentRoute: typeof AppCampaignsCampaignIdRoute
+    }
+    '/_app/campaigns/$campaignId/nouns': {
+      id: '/_app/campaigns/$campaignId/nouns'
+      path: '/nouns'
+      fullPath: '/campaigns/$campaignId/nouns'
+      preLoaderRoute: typeof AppCampaignsCampaignIdNounsRouteImport
+      parentRoute: typeof AppCampaignsCampaignIdRoute
+    }
+    '/_app/campaigns/$campaignId/edit': {
+      id: '/_app/campaigns/$campaignId/edit'
+      path: '/edit'
+      fullPath: '/campaigns/$campaignId/edit'
+      preLoaderRoute: typeof AppCampaignsCampaignIdEditRouteImport
+      parentRoute: typeof AppCampaignsCampaignIdRoute
+    }
+    '/_app/campaigns/$campaignId/sessions/new': {
+      id: '/_app/campaigns/$campaignId/sessions/new'
+      path: '/new'
+      fullPath: '/campaigns/$campaignId/sessions/new'
+      preLoaderRoute: typeof AppCampaignsCampaignIdSessionsNewRouteImport
+      parentRoute: typeof AppCampaignsCampaignIdSessionsRoute
+    }
+    '/_app/campaigns/$campaignId/sessions/$sessionId': {
+      id: '/_app/campaigns/$campaignId/sessions/$sessionId'
+      path: '/$sessionId'
+      fullPath: '/campaigns/$campaignId/sessions/$sessionId'
+      preLoaderRoute: typeof AppCampaignsCampaignIdSessionsSessionIdRouteImport
+      parentRoute: typeof AppCampaignsCampaignIdSessionsRoute
+    }
+    '/_app/campaigns/$campaignId/nouns/new': {
+      id: '/_app/campaigns/$campaignId/nouns/new'
+      path: '/new'
+      fullPath: '/campaigns/$campaignId/nouns/new'
+      preLoaderRoute: typeof AppCampaignsCampaignIdNounsNewRouteImport
+      parentRoute: typeof AppCampaignsCampaignIdNounsRoute
+    }
+    '/_app/campaigns/$campaignId/nouns/$nounId': {
+      id: '/_app/campaigns/$campaignId/nouns/$nounId'
+      path: '/$nounId'
+      fullPath: '/campaigns/$campaignId/nouns/$nounId'
+      preLoaderRoute: typeof AppCampaignsCampaignIdNounsNounIdRouteImport
+      parentRoute: typeof AppCampaignsCampaignIdNounsRoute
+    }
+    '/_app/campaigns/$campaignId/members/invite': {
+      id: '/_app/campaigns/$campaignId/members/invite'
+      path: '/members/invite'
+      fullPath: '/campaigns/$campaignId/members/invite'
+      preLoaderRoute: typeof AppCampaignsCampaignIdMembersInviteRouteImport
+      parentRoute: typeof AppCampaignsCampaignIdRoute
+    }
+    '/_app/campaigns/$campaignId/sessions/$sessionId/edit': {
+      id: '/_app/campaigns/$campaignId/sessions/$sessionId/edit'
+      path: '/edit'
+      fullPath: '/campaigns/$campaignId/sessions/$sessionId/edit'
+      preLoaderRoute: typeof AppCampaignsCampaignIdSessionsSessionIdEditRouteImport
+      parentRoute: typeof AppCampaignsCampaignIdSessionsSessionIdRoute
+    }
+    '/_app/campaigns/$campaignId/nouns/$nounId/edit': {
+      id: '/_app/campaigns/$campaignId/nouns/$nounId/edit'
+      path: '/edit'
+      fullPath: '/campaigns/$campaignId/nouns/$nounId/edit'
+      preLoaderRoute: typeof AppCampaignsCampaignIdNounsNounIdEditRouteImport
+      parentRoute: typeof AppCampaignsCampaignIdNounsNounIdRoute
+    }
   }
 }
 
+interface AppCampaignsCampaignIdNounsNounIdRouteChildren {
+  AppCampaignsCampaignIdNounsNounIdEditRoute: typeof AppCampaignsCampaignIdNounsNounIdEditRoute
+}
+
+const AppCampaignsCampaignIdNounsNounIdRouteChildren: AppCampaignsCampaignIdNounsNounIdRouteChildren =
+  {
+    AppCampaignsCampaignIdNounsNounIdEditRoute:
+      AppCampaignsCampaignIdNounsNounIdEditRoute,
+  }
+
+const AppCampaignsCampaignIdNounsNounIdRouteWithChildren =
+  AppCampaignsCampaignIdNounsNounIdRoute._addFileChildren(
+    AppCampaignsCampaignIdNounsNounIdRouteChildren,
+  )
+
+interface AppCampaignsCampaignIdNounsRouteChildren {
+  AppCampaignsCampaignIdNounsNounIdRoute: typeof AppCampaignsCampaignIdNounsNounIdRouteWithChildren
+  AppCampaignsCampaignIdNounsNewRoute: typeof AppCampaignsCampaignIdNounsNewRoute
+}
+
+const AppCampaignsCampaignIdNounsRouteChildren: AppCampaignsCampaignIdNounsRouteChildren =
+  {
+    AppCampaignsCampaignIdNounsNounIdRoute:
+      AppCampaignsCampaignIdNounsNounIdRouteWithChildren,
+    AppCampaignsCampaignIdNounsNewRoute: AppCampaignsCampaignIdNounsNewRoute,
+  }
+
+const AppCampaignsCampaignIdNounsRouteWithChildren =
+  AppCampaignsCampaignIdNounsRoute._addFileChildren(
+    AppCampaignsCampaignIdNounsRouteChildren,
+  )
+
+interface AppCampaignsCampaignIdSessionsSessionIdRouteChildren {
+  AppCampaignsCampaignIdSessionsSessionIdEditRoute: typeof AppCampaignsCampaignIdSessionsSessionIdEditRoute
+}
+
+const AppCampaignsCampaignIdSessionsSessionIdRouteChildren: AppCampaignsCampaignIdSessionsSessionIdRouteChildren =
+  {
+    AppCampaignsCampaignIdSessionsSessionIdEditRoute:
+      AppCampaignsCampaignIdSessionsSessionIdEditRoute,
+  }
+
+const AppCampaignsCampaignIdSessionsSessionIdRouteWithChildren =
+  AppCampaignsCampaignIdSessionsSessionIdRoute._addFileChildren(
+    AppCampaignsCampaignIdSessionsSessionIdRouteChildren,
+  )
+
+interface AppCampaignsCampaignIdSessionsRouteChildren {
+  AppCampaignsCampaignIdSessionsSessionIdRoute: typeof AppCampaignsCampaignIdSessionsSessionIdRouteWithChildren
+  AppCampaignsCampaignIdSessionsNewRoute: typeof AppCampaignsCampaignIdSessionsNewRoute
+}
+
+const AppCampaignsCampaignIdSessionsRouteChildren: AppCampaignsCampaignIdSessionsRouteChildren =
+  {
+    AppCampaignsCampaignIdSessionsSessionIdRoute:
+      AppCampaignsCampaignIdSessionsSessionIdRouteWithChildren,
+    AppCampaignsCampaignIdSessionsNewRoute:
+      AppCampaignsCampaignIdSessionsNewRoute,
+  }
+
+const AppCampaignsCampaignIdSessionsRouteWithChildren =
+  AppCampaignsCampaignIdSessionsRoute._addFileChildren(
+    AppCampaignsCampaignIdSessionsRouteChildren,
+  )
+
+interface AppCampaignsCampaignIdRouteChildren {
+  AppCampaignsCampaignIdEditRoute: typeof AppCampaignsCampaignIdEditRoute
+  AppCampaignsCampaignIdNounsRoute: typeof AppCampaignsCampaignIdNounsRouteWithChildren
+  AppCampaignsCampaignIdSessionsRoute: typeof AppCampaignsCampaignIdSessionsRouteWithChildren
+  AppCampaignsCampaignIdIndexRoute: typeof AppCampaignsCampaignIdIndexRoute
+  AppCampaignsCampaignIdMembersInviteRoute: typeof AppCampaignsCampaignIdMembersInviteRoute
+}
+
+const AppCampaignsCampaignIdRouteChildren: AppCampaignsCampaignIdRouteChildren =
+  {
+    AppCampaignsCampaignIdEditRoute: AppCampaignsCampaignIdEditRoute,
+    AppCampaignsCampaignIdNounsRoute:
+      AppCampaignsCampaignIdNounsRouteWithChildren,
+    AppCampaignsCampaignIdSessionsRoute:
+      AppCampaignsCampaignIdSessionsRouteWithChildren,
+    AppCampaignsCampaignIdIndexRoute: AppCampaignsCampaignIdIndexRoute,
+    AppCampaignsCampaignIdMembersInviteRoute:
+      AppCampaignsCampaignIdMembersInviteRoute,
+  }
+
+const AppCampaignsCampaignIdRouteWithChildren =
+  AppCampaignsCampaignIdRoute._addFileChildren(
+    AppCampaignsCampaignIdRouteChildren,
+  )
+
+interface AppCampaignsRouteChildren {
+  AppCampaignsCampaignIdRoute: typeof AppCampaignsCampaignIdRouteWithChildren
+  AppCampaignsNewRoute: typeof AppCampaignsNewRoute
+}
+
+const AppCampaignsRouteChildren: AppCampaignsRouteChildren = {
+  AppCampaignsCampaignIdRoute: AppCampaignsCampaignIdRouteWithChildren,
+  AppCampaignsNewRoute: AppCampaignsNewRoute,
+}
+
+const AppCampaignsRouteWithChildren = AppCampaignsRoute._addFileChildren(
+  AppCampaignsRouteChildren,
+)
+
 interface AppRouteChildren {
-  AppCampaignsRoute: typeof AppCampaignsRoute
+  AppCampaignsRoute: typeof AppCampaignsRouteWithChildren
 }
 
 const AppRouteChildren: AppRouteChildren = {
-  AppCampaignsRoute: AppCampaignsRoute,
+  AppCampaignsRoute: AppCampaignsRouteWithChildren,
 }
 
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
