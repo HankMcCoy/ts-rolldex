@@ -3,6 +3,7 @@ import { useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { quickFind } from "@/server/search";
 import {
+	Command,
 	CommandDialog,
 	CommandEmpty,
 	CommandGroup,
@@ -68,50 +69,52 @@ export function QuickFindDialog({ campaignId }: Props) {
 
 	return (
 		<CommandDialog open={open} onOpenChange={setOpen} title="Quick find">
-			<CommandInput
-				placeholder="Search entities and sessions…"
-				value={query}
-				onValueChange={handleQueryChange}
-			/>
-			<CommandList>
-				{query && !hasResults && (
-					<CommandEmpty>No results found.</CommandEmpty>
-				)}
-				{results.nouns.length > 0 && (
-					<CommandGroup heading="Entities">
-						{results.nouns.map((n) => (
-							<CommandItem
-								key={n.id}
-								onSelect={() =>
-									handleSelect(`/campaigns/${campaignId}/nouns/${n.id}`)
-								}
-							>
-								<span>{n.name}</span>
-								<span className="ml-auto text-xs text-muted-foreground">
-									{n.nounType.charAt(0) + n.nounType.slice(1).toLowerCase()}
-								</span>
-							</CommandItem>
-						))}
-					</CommandGroup>
-				)}
-				{results.nouns.length > 0 && results.sessions.length > 0 && (
-					<CommandSeparator />
-				)}
-				{results.sessions.length > 0 && (
-					<CommandGroup heading="Sessions">
-						{results.sessions.map((s) => (
-							<CommandItem
-								key={s.id}
-								onSelect={() =>
-									handleSelect(`/campaigns/${campaignId}/sessions/${s.id}`)
-								}
-							>
-								{s.name}
-							</CommandItem>
-						))}
-					</CommandGroup>
-				)}
-			</CommandList>
+			<Command shouldFilter={false}>
+				<CommandInput
+					placeholder="Search entities and sessions…"
+					value={query}
+					onValueChange={handleQueryChange}
+				/>
+				<CommandList>
+					{query && !hasResults && (
+						<CommandEmpty>No results found.</CommandEmpty>
+					)}
+					{results.nouns.length > 0 && (
+						<CommandGroup heading="Entities">
+							{results.nouns.map((n) => (
+								<CommandItem
+									key={n.id}
+									onSelect={() =>
+										handleSelect(`/campaigns/${campaignId}/nouns/${n.id}`)
+									}
+								>
+									<span>{n.name}</span>
+									<span className="ml-auto text-xs text-muted-foreground">
+										{n.nounType.charAt(0) + n.nounType.slice(1).toLowerCase()}
+									</span>
+								</CommandItem>
+							))}
+						</CommandGroup>
+					)}
+					{results.nouns.length > 0 && results.sessions.length > 0 && (
+						<CommandSeparator />
+					)}
+					{results.sessions.length > 0 && (
+						<CommandGroup heading="Sessions">
+							{results.sessions.map((s) => (
+								<CommandItem
+									key={s.id}
+									onSelect={() =>
+										handleSelect(`/campaigns/${campaignId}/sessions/${s.id}`)
+									}
+								>
+									{s.name}
+								</CommandItem>
+							))}
+						</CommandGroup>
+					)}
+				</CommandList>
+			</Command>
 		</CommandDialog>
 	);
 }
