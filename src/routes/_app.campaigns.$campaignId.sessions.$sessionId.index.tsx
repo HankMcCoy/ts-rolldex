@@ -1,4 +1,4 @@
-import { createFileRoute, getRouteApi, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, getRouteApi, Link, useNavigate, useRouter } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { deleteSession } from "@/server/sessions";
 import { MarkdownRenderer } from "@/components/MarkdownRenderer";
@@ -22,6 +22,7 @@ function SessionPage() {
 	const { session, accessLevel, related } = sessionRoute.useLoaderData();
 	const { campaign } = parentRoute.useLoaderData();
 	const navigate = useNavigate();
+	const router = useRouter();
 	const remove = useServerFn(deleteSession);
 
 	const isAdmin = accessLevel === "ADMIN";
@@ -31,6 +32,7 @@ function SessionPage() {
 		await remove({
 			data: { campaignId: campaign.id, sessionId: session.id },
 		});
+		await router.invalidate();
 		await navigate({
 			to: "/campaigns/$campaignId/sessions",
 			params: { campaignId: campaign.id },

@@ -1,4 +1,4 @@
-import { createFileRoute, getRouteApi, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, getRouteApi, Link, useNavigate, useRouter } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { deleteNoun } from "@/server/nouns";
 import { MarkdownRenderer } from "@/components/MarkdownRenderer";
@@ -20,6 +20,7 @@ function NounPage() {
 	const { noun, accessLevel, related } = nounRoute.useLoaderData();
 	const { campaign } = parentRoute.useLoaderData();
 	const navigate = useNavigate();
+	const router = useRouter();
 	const remove = useServerFn(deleteNoun);
 
 	const isAdmin = accessLevel === "ADMIN";
@@ -27,6 +28,7 @@ function NounPage() {
 	async function handleDelete() {
 		if (!confirm(`Delete "${noun.name}"? This cannot be undone.`)) return;
 		await remove({ data: { campaignId: campaign.id, nounId: noun.id } });
+		await router.invalidate();
 		await navigate({
 			to: "/campaigns/$campaignId/nouns",
 			params: { campaignId: campaign.id },

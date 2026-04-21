@@ -1,4 +1,4 @@
-import { createFileRoute, getRouteApi, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, getRouteApi, useNavigate, useRouter } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -45,6 +45,7 @@ function EditNounPage() {
 	const { noun, accessLevel } = nounRoute.useLoaderData();
 	const { campaign } = parentRoute.useLoaderData();
 	const navigate = useNavigate();
+	const router = useRouter();
 	const update = useServerFn(updateNoun);
 
 	if (accessLevel !== "ADMIN") {
@@ -75,6 +76,7 @@ function EditNounPage() {
 			form.setError("name", { message: result.error });
 			return;
 		}
+		await router.invalidate();
 		await navigate({
 			to: "/campaigns/$campaignId/nouns/$nounId",
 			params: { campaignId: campaign.id, nounId: noun.id },

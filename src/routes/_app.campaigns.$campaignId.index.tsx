@@ -1,4 +1,4 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate, useRouter } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { getCampaignDashboard } from "@/server/campaigns";
 import { removeMember } from "@/server/members";
@@ -18,6 +18,7 @@ function CampaignDashboard() {
 	const { campaign, accessLevel, nounCounts, recentSessions, members } =
 		Route.useLoaderData();
 	const navigate = useNavigate();
+	const router = useRouter();
 	const remove = useServerFn(removeMember);
 
 	const isAdmin = accessLevel === "ADMIN";
@@ -177,6 +178,7 @@ function CampaignDashboard() {
 													memberId: m.id,
 												},
 											});
+											await router.invalidate();
 											navigate({ to: "." });
 										}}
 										className="text-sm text-destructive hover:underline"

@@ -1,4 +1,4 @@
-import { createFileRoute, getRouteApi, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, getRouteApi, useNavigate, useRouter } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -41,6 +41,7 @@ function EditSessionPage() {
 	const { session, accessLevel } = sessionRoute.useLoaderData();
 	const { campaign } = parentRoute.useLoaderData();
 	const navigate = useNavigate();
+	const router = useRouter();
 	const update = useServerFn(updateSession);
 
 	if (accessLevel !== "ADMIN") {
@@ -70,6 +71,7 @@ function EditSessionPage() {
 			form.setError("name", { message: result.error });
 			return;
 		}
+		await router.invalidate();
 		await navigate({
 			to: "/campaigns/$campaignId/sessions/$sessionId",
 			params: { campaignId: campaign.id, sessionId: session.id },
