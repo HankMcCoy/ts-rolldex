@@ -1,6 +1,16 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, redirect } from "@tanstack/react-router";
+import { createServerFn } from "@tanstack/react-start";
+import { getOptionalSession } from "@/lib/access";
 
-export const Route = createFileRoute("/")({ component: App });
+const checkSession = createServerFn().handler(async () => {
+	const session = await getOptionalSession();
+	if (session) throw redirect({ href: "/campaigns" });
+});
+
+export const Route = createFileRoute("/")({
+	loader: () => checkSession(),
+	component: App,
+});
 
 function App() {
 	return (
