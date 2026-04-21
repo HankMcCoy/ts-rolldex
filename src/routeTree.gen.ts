@@ -31,6 +31,8 @@ import { Route as AppCampaignsCampaignIdSessionsSessionIdRouteImport } from './r
 import { Route as AppCampaignsCampaignIdNounsNewRouteImport } from './routes/_app.campaigns.$campaignId.nouns.new'
 import { Route as AppCampaignsCampaignIdNounsNounIdRouteImport } from './routes/_app.campaigns.$campaignId.nouns.$nounId'
 import { Route as AppCampaignsCampaignIdMembersInviteRouteImport } from './routes/_app.campaigns.$campaignId.members.invite'
+import { Route as AppCampaignsCampaignIdSessionsSessionIdIndexRouteImport } from './routes/_app.campaigns.$campaignId.sessions.$sessionId.index'
+import { Route as AppCampaignsCampaignIdNounsNounIdIndexRouteImport } from './routes/_app.campaigns.$campaignId.nouns.$nounId.index'
 import { Route as AppCampaignsCampaignIdSessionsSessionIdEditRouteImport } from './routes/_app.campaigns.$campaignId.sessions.$sessionId.edit'
 import { Route as AppCampaignsCampaignIdNounsNounIdEditRouteImport } from './routes/_app.campaigns.$campaignId.nouns.$nounId.edit'
 
@@ -153,6 +155,18 @@ const AppCampaignsCampaignIdMembersInviteRoute =
     path: '/members/invite',
     getParentRoute: () => AppCampaignsCampaignIdRoute,
   } as any)
+const AppCampaignsCampaignIdSessionsSessionIdIndexRoute =
+  AppCampaignsCampaignIdSessionsSessionIdIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => AppCampaignsCampaignIdSessionsSessionIdRoute,
+  } as any)
+const AppCampaignsCampaignIdNounsNounIdIndexRoute =
+  AppCampaignsCampaignIdNounsNounIdIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => AppCampaignsCampaignIdNounsNounIdRoute,
+  } as any)
 const AppCampaignsCampaignIdSessionsSessionIdEditRoute =
   AppCampaignsCampaignIdSessionsSessionIdEditRouteImport.update({
     id: '/edit',
@@ -189,6 +203,8 @@ export interface FileRoutesByFullPath {
   '/campaigns/$campaignId/sessions/': typeof AppCampaignsCampaignIdSessionsIndexRoute
   '/campaigns/$campaignId/nouns/$nounId/edit': typeof AppCampaignsCampaignIdNounsNounIdEditRoute
   '/campaigns/$campaignId/sessions/$sessionId/edit': typeof AppCampaignsCampaignIdSessionsSessionIdEditRoute
+  '/campaigns/$campaignId/nouns/$nounId/': typeof AppCampaignsCampaignIdNounsNounIdIndexRoute
+  '/campaigns/$campaignId/sessions/$sessionId/': typeof AppCampaignsCampaignIdSessionsSessionIdIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -201,14 +217,14 @@ export interface FileRoutesByTo {
   '/campaigns/$campaignId/edit': typeof AppCampaignsCampaignIdEditRoute
   '/campaigns/$campaignId': typeof AppCampaignsCampaignIdIndexRoute
   '/campaigns/$campaignId/members/invite': typeof AppCampaignsCampaignIdMembersInviteRoute
-  '/campaigns/$campaignId/nouns/$nounId': typeof AppCampaignsCampaignIdNounsNounIdRouteWithChildren
   '/campaigns/$campaignId/nouns/new': typeof AppCampaignsCampaignIdNounsNewRoute
-  '/campaigns/$campaignId/sessions/$sessionId': typeof AppCampaignsCampaignIdSessionsSessionIdRouteWithChildren
   '/campaigns/$campaignId/sessions/new': typeof AppCampaignsCampaignIdSessionsNewRoute
   '/campaigns/$campaignId/nouns': typeof AppCampaignsCampaignIdNounsIndexRoute
   '/campaigns/$campaignId/sessions': typeof AppCampaignsCampaignIdSessionsIndexRoute
   '/campaigns/$campaignId/nouns/$nounId/edit': typeof AppCampaignsCampaignIdNounsNounIdEditRoute
   '/campaigns/$campaignId/sessions/$sessionId/edit': typeof AppCampaignsCampaignIdSessionsSessionIdEditRoute
+  '/campaigns/$campaignId/nouns/$nounId': typeof AppCampaignsCampaignIdNounsNounIdIndexRoute
+  '/campaigns/$campaignId/sessions/$sessionId': typeof AppCampaignsCampaignIdSessionsSessionIdIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -236,6 +252,8 @@ export interface FileRoutesById {
   '/_app/campaigns/$campaignId/sessions/': typeof AppCampaignsCampaignIdSessionsIndexRoute
   '/_app/campaigns/$campaignId/nouns/$nounId/edit': typeof AppCampaignsCampaignIdNounsNounIdEditRoute
   '/_app/campaigns/$campaignId/sessions/$sessionId/edit': typeof AppCampaignsCampaignIdSessionsSessionIdEditRoute
+  '/_app/campaigns/$campaignId/nouns/$nounId/': typeof AppCampaignsCampaignIdNounsNounIdIndexRoute
+  '/_app/campaigns/$campaignId/sessions/$sessionId/': typeof AppCampaignsCampaignIdSessionsSessionIdIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -262,6 +280,8 @@ export interface FileRouteTypes {
     | '/campaigns/$campaignId/sessions/'
     | '/campaigns/$campaignId/nouns/$nounId/edit'
     | '/campaigns/$campaignId/sessions/$sessionId/edit'
+    | '/campaigns/$campaignId/nouns/$nounId/'
+    | '/campaigns/$campaignId/sessions/$sessionId/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -274,14 +294,14 @@ export interface FileRouteTypes {
     | '/campaigns/$campaignId/edit'
     | '/campaigns/$campaignId'
     | '/campaigns/$campaignId/members/invite'
-    | '/campaigns/$campaignId/nouns/$nounId'
     | '/campaigns/$campaignId/nouns/new'
-    | '/campaigns/$campaignId/sessions/$sessionId'
     | '/campaigns/$campaignId/sessions/new'
     | '/campaigns/$campaignId/nouns'
     | '/campaigns/$campaignId/sessions'
     | '/campaigns/$campaignId/nouns/$nounId/edit'
     | '/campaigns/$campaignId/sessions/$sessionId/edit'
+    | '/campaigns/$campaignId/nouns/$nounId'
+    | '/campaigns/$campaignId/sessions/$sessionId'
   id:
     | '__root__'
     | '/'
@@ -308,6 +328,8 @@ export interface FileRouteTypes {
     | '/_app/campaigns/$campaignId/sessions/'
     | '/_app/campaigns/$campaignId/nouns/$nounId/edit'
     | '/_app/campaigns/$campaignId/sessions/$sessionId/edit'
+    | '/_app/campaigns/$campaignId/nouns/$nounId/'
+    | '/_app/campaigns/$campaignId/sessions/$sessionId/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -474,6 +496,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppCampaignsCampaignIdMembersInviteRouteImport
       parentRoute: typeof AppCampaignsCampaignIdRoute
     }
+    '/_app/campaigns/$campaignId/sessions/$sessionId/': {
+      id: '/_app/campaigns/$campaignId/sessions/$sessionId/'
+      path: '/'
+      fullPath: '/campaigns/$campaignId/sessions/$sessionId/'
+      preLoaderRoute: typeof AppCampaignsCampaignIdSessionsSessionIdIndexRouteImport
+      parentRoute: typeof AppCampaignsCampaignIdSessionsSessionIdRoute
+    }
+    '/_app/campaigns/$campaignId/nouns/$nounId/': {
+      id: '/_app/campaigns/$campaignId/nouns/$nounId/'
+      path: '/'
+      fullPath: '/campaigns/$campaignId/nouns/$nounId/'
+      preLoaderRoute: typeof AppCampaignsCampaignIdNounsNounIdIndexRouteImport
+      parentRoute: typeof AppCampaignsCampaignIdNounsNounIdRoute
+    }
     '/_app/campaigns/$campaignId/sessions/$sessionId/edit': {
       id: '/_app/campaigns/$campaignId/sessions/$sessionId/edit'
       path: '/edit'
@@ -493,12 +529,15 @@ declare module '@tanstack/react-router' {
 
 interface AppCampaignsCampaignIdNounsNounIdRouteChildren {
   AppCampaignsCampaignIdNounsNounIdEditRoute: typeof AppCampaignsCampaignIdNounsNounIdEditRoute
+  AppCampaignsCampaignIdNounsNounIdIndexRoute: typeof AppCampaignsCampaignIdNounsNounIdIndexRoute
 }
 
 const AppCampaignsCampaignIdNounsNounIdRouteChildren: AppCampaignsCampaignIdNounsNounIdRouteChildren =
   {
     AppCampaignsCampaignIdNounsNounIdEditRoute:
       AppCampaignsCampaignIdNounsNounIdEditRoute,
+    AppCampaignsCampaignIdNounsNounIdIndexRoute:
+      AppCampaignsCampaignIdNounsNounIdIndexRoute,
   }
 
 const AppCampaignsCampaignIdNounsNounIdRouteWithChildren =
@@ -528,12 +567,15 @@ const AppCampaignsCampaignIdNounsRouteWithChildren =
 
 interface AppCampaignsCampaignIdSessionsSessionIdRouteChildren {
   AppCampaignsCampaignIdSessionsSessionIdEditRoute: typeof AppCampaignsCampaignIdSessionsSessionIdEditRoute
+  AppCampaignsCampaignIdSessionsSessionIdIndexRoute: typeof AppCampaignsCampaignIdSessionsSessionIdIndexRoute
 }
 
 const AppCampaignsCampaignIdSessionsSessionIdRouteChildren: AppCampaignsCampaignIdSessionsSessionIdRouteChildren =
   {
     AppCampaignsCampaignIdSessionsSessionIdEditRoute:
       AppCampaignsCampaignIdSessionsSessionIdEditRoute,
+    AppCampaignsCampaignIdSessionsSessionIdIndexRoute:
+      AppCampaignsCampaignIdSessionsSessionIdIndexRoute,
   }
 
 const AppCampaignsCampaignIdSessionsSessionIdRouteWithChildren =

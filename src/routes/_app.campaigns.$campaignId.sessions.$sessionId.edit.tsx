@@ -3,7 +3,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@/lib/form-resolver";
-import { getSession, updateSession } from "@/server/sessions";
+import { updateSession } from "@/server/sessions";
 import { Button } from "@/components/ui/button";
 import {
 	Form,
@@ -20,14 +20,13 @@ import { Switch } from "@/components/ui/switch";
 export const Route = createFileRoute(
 	"/_app/campaigns/$campaignId/sessions/$sessionId/edit",
 )({
-	loader: ({ params }) =>
-		getSession({
-			data: { campaignId: params.campaignId, sessionId: params.sessionId },
-		}),
 	component: EditSessionPage,
 });
 
 const parentRoute = getRouteApi("/_app/campaigns/$campaignId");
+const sessionRoute = getRouteApi(
+	"/_app/campaigns/$campaignId/sessions/$sessionId",
+);
 
 const schema = z.object({
 	name: z.string().min(1, "Name is required").max(200),
@@ -39,7 +38,7 @@ const schema = z.object({
 type Values = z.infer<typeof schema>;
 
 function EditSessionPage() {
-	const { session, accessLevel } = Route.useLoaderData();
+	const { session, accessLevel } = sessionRoute.useLoaderData();
 	const { campaign } = parentRoute.useLoaderData();
 	const navigate = useNavigate();
 	const update = useServerFn(updateSession);

@@ -3,7 +3,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@/lib/form-resolver";
-import { getNoun, updateNoun } from "@/server/nouns";
+import { updateNoun } from "@/server/nouns";
 import { Button } from "@/components/ui/button";
 import {
 	Form,
@@ -23,12 +23,11 @@ type NounType = z.infer<typeof nounTypeSchema>;
 export const Route = createFileRoute(
 	"/_app/campaigns/$campaignId/nouns/$nounId/edit",
 )({
-	loader: ({ params }) =>
-		getNoun({ data: { campaignId: params.campaignId, nounId: params.nounId } }),
 	component: EditNounPage,
 });
 
 const parentRoute = getRouteApi("/_app/campaigns/$campaignId");
+const nounRoute = getRouteApi("/_app/campaigns/$campaignId/nouns/$nounId");
 
 const schema = z.object({
 	name: z.string().min(1, "Name is required").max(200),
@@ -43,7 +42,7 @@ type Values = z.infer<typeof schema>;
 const NOUN_TYPES: NounType[] = ["PERSON", "PLACE", "THING", "FACTION"];
 
 function EditNounPage() {
-	const { noun, accessLevel } = Route.useLoaderData();
+	const { noun, accessLevel } = nounRoute.useLoaderData();
 	const { campaign } = parentRoute.useLoaderData();
 	const navigate = useNavigate();
 	const update = useServerFn(updateNoun);
@@ -84,9 +83,7 @@ function EditNounPage() {
 
 	return (
 		<main className="page-wrap px-4 py-10">
-			<h1 className="display-title mb-6 text-3xl font-bold">
-				Edit {noun.name}
-			</h1>
+			<h1 className="display-title mb-6 text-3xl font-bold">Edit {noun.name}</h1>
 			<div className="island-shell max-w-2xl rounded-2xl p-6">
 				<Form {...form}>
 					<form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
