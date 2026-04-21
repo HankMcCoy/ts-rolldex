@@ -1,6 +1,4 @@
-import { TanStackDevtools } from "@tanstack/react-devtools";
 import { createRootRoute, HeadContent, Link, Scripts } from "@tanstack/react-router";
-import { TanStackRouterDevtoolsPanel } from "@tanstack/react-router-devtools";
 import Footer from "../components/Footer";
 import Header from "../components/Header";
 
@@ -11,41 +9,15 @@ const THEME_INIT_SCRIPT = `(function(){try{var stored=window.localStorage.getIte
 export const Route = createRootRoute({
 	head: () => ({
 		meta: [
-			{
-				charSet: "utf-8",
-			},
-			{
-				name: "viewport",
-				content: "width=device-width, initial-scale=1",
-			},
-			{
-				title: "Rolldex",
-			},
+			{ charSet: "utf-8" },
+			{ name: "viewport", content: "width=device-width, initial-scale=1" },
+			{ title: "Rolldex" },
 		],
-		links: [
-			{
-				rel: "stylesheet",
-				href: appCss,
-			},
-		],
+		links: [{ rel: "stylesheet", href: appCss }],
 	}),
 	shellComponent: RootDocument,
 	notFoundComponent: NotFound,
 });
-
-function NotFound() {
-	return (
-		<main className="page-wrap px-4 py-20 text-center">
-			<h1 className="display-title mb-4 text-4xl font-bold">404</h1>
-			<p className="mb-6 text-[var(--sea-ink-soft)]">
-				This page doesn't exist.
-			</p>
-			<Link to="/" className="text-sm underline">
-				Go home
-			</Link>
-		</main>
-	);
-}
 
 function RootDocument({ children }: { children: React.ReactNode }) {
 	return (
@@ -55,23 +27,24 @@ function RootDocument({ children }: { children: React.ReactNode }) {
 				<script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
 				<HeadContent />
 			</head>
-			<body className="font-sans antialiased [overflow-wrap:anywhere] selection:bg-[rgba(79,184,178,0.24)]">
+			<body className="font-sans antialiased [overflow-wrap:anywhere]">
 				<Header />
 				{children}
 				<Footer />
-				<TanStackDevtools
-					config={{
-						position: "bottom-right",
-					}}
-					plugins={[
-						{
-							name: "Tanstack Router",
-							render: <TanStackRouterDevtoolsPanel />,
-						},
-					]}
-				/>
 				<Scripts />
 			</body>
 		</html>
+	);
+}
+
+function NotFound() {
+	return (
+		<main className="page-wrap px-4 py-20 text-center">
+			<h1 className="display-title mb-4 text-4xl font-bold">404</h1>
+			<p className="mb-6 text-[var(--sea-ink-soft)]">This page doesn't exist.</p>
+			<Link to="/" className="text-sm underline">
+				Go home
+			</Link>
+		</main>
 	);
 }

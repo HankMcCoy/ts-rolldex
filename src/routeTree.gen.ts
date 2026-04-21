@@ -16,6 +16,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthRegisterRouteImport } from './routes/_auth.register'
 import { Route as AuthLoginRouteImport } from './routes/_auth.login'
 import { Route as AppCampaignsRouteImport } from './routes/_app.campaigns'
+import { Route as AppCampaignsIndexRouteImport } from './routes/_app.campaigns.index'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 import { Route as AppCampaignsNewRouteImport } from './routes/_app.campaigns.new'
 import { Route as AppCampaignsCampaignIdRouteImport } from './routes/_app.campaigns.$campaignId'
@@ -63,6 +64,11 @@ const AppCampaignsRoute = AppCampaignsRouteImport.update({
   id: '/campaigns',
   path: '/campaigns',
   getParentRoute: () => AppRoute,
+} as any)
+const AppCampaignsIndexRoute = AppCampaignsIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AppCampaignsRoute,
 } as any)
 const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
   id: '/api/auth/$',
@@ -155,6 +161,7 @@ export interface FileRoutesByFullPath {
   '/campaigns/$campaignId': typeof AppCampaignsCampaignIdRouteWithChildren
   '/campaigns/new': typeof AppCampaignsNewRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/campaigns/': typeof AppCampaignsIndexRoute
   '/campaigns/$campaignId/edit': typeof AppCampaignsCampaignIdEditRoute
   '/campaigns/$campaignId/nouns': typeof AppCampaignsCampaignIdNounsRouteWithChildren
   '/campaigns/$campaignId/sessions': typeof AppCampaignsCampaignIdSessionsRouteWithChildren
@@ -170,11 +177,11 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
-  '/campaigns': typeof AppCampaignsRouteWithChildren
   '/login': typeof AuthLoginRoute
   '/register': typeof AuthRegisterRoute
   '/campaigns/new': typeof AppCampaignsNewRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/campaigns': typeof AppCampaignsIndexRoute
   '/campaigns/$campaignId/edit': typeof AppCampaignsCampaignIdEditRoute
   '/campaigns/$campaignId/nouns': typeof AppCampaignsCampaignIdNounsRouteWithChildren
   '/campaigns/$campaignId/sessions': typeof AppCampaignsCampaignIdSessionsRouteWithChildren
@@ -199,6 +206,7 @@ export interface FileRoutesById {
   '/_app/campaigns/$campaignId': typeof AppCampaignsCampaignIdRouteWithChildren
   '/_app/campaigns/new': typeof AppCampaignsNewRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/_app/campaigns/': typeof AppCampaignsIndexRoute
   '/_app/campaigns/$campaignId/edit': typeof AppCampaignsCampaignIdEditRoute
   '/_app/campaigns/$campaignId/nouns': typeof AppCampaignsCampaignIdNounsRouteWithChildren
   '/_app/campaigns/$campaignId/sessions': typeof AppCampaignsCampaignIdSessionsRouteWithChildren
@@ -222,6 +230,7 @@ export interface FileRouteTypes {
     | '/campaigns/$campaignId'
     | '/campaigns/new'
     | '/api/auth/$'
+    | '/campaigns/'
     | '/campaigns/$campaignId/edit'
     | '/campaigns/$campaignId/nouns'
     | '/campaigns/$campaignId/sessions'
@@ -237,11 +246,11 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/about'
-    | '/campaigns'
     | '/login'
     | '/register'
     | '/campaigns/new'
     | '/api/auth/$'
+    | '/campaigns'
     | '/campaigns/$campaignId/edit'
     | '/campaigns/$campaignId/nouns'
     | '/campaigns/$campaignId/sessions'
@@ -265,6 +274,7 @@ export interface FileRouteTypes {
     | '/_app/campaigns/$campaignId'
     | '/_app/campaigns/new'
     | '/api/auth/$'
+    | '/_app/campaigns/'
     | '/_app/campaigns/$campaignId/edit'
     | '/_app/campaigns/$campaignId/nouns'
     | '/_app/campaigns/$campaignId/sessions'
@@ -336,6 +346,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/campaigns'
       preLoaderRoute: typeof AppCampaignsRouteImport
       parentRoute: typeof AppRoute
+    }
+    '/_app/campaigns/': {
+      id: '/_app/campaigns/'
+      path: '/'
+      fullPath: '/campaigns/'
+      preLoaderRoute: typeof AppCampaignsIndexRouteImport
+      parentRoute: typeof AppCampaignsRoute
     }
     '/api/auth/$': {
       id: '/api/auth/$'
@@ -531,11 +548,13 @@ const AppCampaignsCampaignIdRouteWithChildren =
 interface AppCampaignsRouteChildren {
   AppCampaignsCampaignIdRoute: typeof AppCampaignsCampaignIdRouteWithChildren
   AppCampaignsNewRoute: typeof AppCampaignsNewRoute
+  AppCampaignsIndexRoute: typeof AppCampaignsIndexRoute
 }
 
 const AppCampaignsRouteChildren: AppCampaignsRouteChildren = {
   AppCampaignsCampaignIdRoute: AppCampaignsCampaignIdRouteWithChildren,
   AppCampaignsNewRoute: AppCampaignsNewRoute,
+  AppCampaignsIndexRoute: AppCampaignsIndexRoute,
 }
 
 const AppCampaignsRouteWithChildren = AppCampaignsRoute._addFileChildren(
