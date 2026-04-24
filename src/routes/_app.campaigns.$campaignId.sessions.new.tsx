@@ -43,14 +43,6 @@ function NewSessionPage() {
 	const navigate = useNavigate();
 	const create = useServerFn(createSession);
 
-	if (accessLevel !== "ADMIN") {
-		return (
-			<main className="page-wrap px-4 py-10">
-				<p>You don't have permission to create sessions.</p>
-			</main>
-		);
-	}
-
 	const form = useForm<Values>({
 		resolver: zodResolver(schema),
 		defaultValues: {
@@ -74,6 +66,14 @@ function NewSessionPage() {
 			to: "/campaigns/$campaignId/sessions/$sessionId",
 			params: { campaignId: campaign.id, sessionId: result.session.id },
 		});
+	}
+
+	if (accessLevel !== "ADMIN") {
+		return (
+			<main className="page-wrap px-4 py-10">
+				<p>You don't have permission to create sessions.</p>
+			</main>
+		);
 	}
 
 	return (

@@ -53,14 +53,6 @@ function EditNounPage() {
 	const router = useRouter();
 	const update = useServerFn(updateNoun);
 
-	if (accessLevel !== "ADMIN") {
-		return (
-			<main className="page-wrap px-4 py-10">
-				<p>You don't have permission to edit entities.</p>
-			</main>
-		);
-	}
-
 	const form = useForm<Values>({
 		resolver: zodResolver(schema),
 		defaultValues: {
@@ -86,6 +78,14 @@ function EditNounPage() {
 			to: "/campaigns/$campaignId/nouns/$nounId",
 			params: { campaignId: campaign.id, nounId: noun.id },
 		});
+	}
+
+	if (accessLevel !== "ADMIN") {
+		return (
+			<main className="page-wrap px-4 py-10">
+				<p>You don't have permission to edit entities.</p>
+			</main>
+		);
 	}
 
 	return (

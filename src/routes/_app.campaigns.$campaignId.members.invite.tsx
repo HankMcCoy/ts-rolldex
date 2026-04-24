@@ -35,14 +35,6 @@ function InviteMemberPage() {
 	const navigate = useNavigate();
 	const invite = useServerFn(inviteMember);
 
-	if (accessLevel !== "ADMIN") {
-		return (
-			<main className="page-wrap px-4 py-10">
-				<p>You don't have permission to invite members.</p>
-			</main>
-		);
-	}
-
 	const form = useForm<Values>({
 		resolver: zodResolver(schema),
 		defaultValues: { email: "" },
@@ -60,6 +52,14 @@ function InviteMemberPage() {
 			to: "/campaigns/$campaignId",
 			params: { campaignId: campaign.id },
 		});
+	}
+
+	if (accessLevel !== "ADMIN") {
+		return (
+			<main className="page-wrap px-4 py-10">
+				<p>You don't have permission to invite members.</p>
+			</main>
+		);
 	}
 
 	return (

@@ -49,14 +49,6 @@ function EditSessionPage() {
 	const router = useRouter();
 	const update = useServerFn(updateSession);
 
-	if (accessLevel !== "ADMIN") {
-		return (
-			<main className="page-wrap px-4 py-10">
-				<p>You don't have permission to edit sessions.</p>
-			</main>
-		);
-	}
-
 	const form = useForm<Values>({
 		resolver: zodResolver(schema),
 		defaultValues: {
@@ -81,6 +73,14 @@ function EditSessionPage() {
 			to: "/campaigns/$campaignId/sessions/$sessionId",
 			params: { campaignId: campaign.id, sessionId: session.id },
 		});
+	}
+
+	if (accessLevel !== "ADMIN") {
+		return (
+			<main className="page-wrap px-4 py-10">
+				<p>You don't have permission to edit sessions.</p>
+			</main>
+		);
 	}
 
 	return (

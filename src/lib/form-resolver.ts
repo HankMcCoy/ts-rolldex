@@ -9,6 +9,5 @@ import type { ZodType } from "zod";
 export function zodResolver<T extends FieldValues>(
 	schema: ZodType,
 ): Resolver<T> {
-	// biome-ignore lint/suspicious/noExplicitAny: version mismatch workaround
 	return baseResolver(schema as never) as Resolver<T>;
 }

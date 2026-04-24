@@ -39,14 +39,6 @@ function EditCampaignPage() {
 	const router = useRouter();
 	const update = useServerFn(updateCampaign);
 
-	if (accessLevel !== "ADMIN") {
-		return (
-			<main className="page-wrap px-4 py-10">
-				<p>You don't have permission to edit this campaign.</p>
-			</main>
-		);
-	}
-
 	const form = useForm<Values>({
 		resolver: zodResolver(schema),
 		defaultValues: { name: campaign.name, summary: campaign.summary },
@@ -65,6 +57,14 @@ function EditCampaignPage() {
 			to: "/campaigns/$campaignId",
 			params: { campaignId: campaign.id },
 		});
+	}
+
+	if (accessLevel !== "ADMIN") {
+		return (
+			<main className="page-wrap px-4 py-10">
+				<p>You don't have permission to edit this campaign.</p>
+			</main>
+		);
 	}
 
 	return (

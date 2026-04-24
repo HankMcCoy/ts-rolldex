@@ -49,14 +49,6 @@ function NewNounPage() {
 	const navigate = useNavigate();
 	const create = useServerFn(createNoun);
 
-	if (accessLevel !== "ADMIN") {
-		return (
-			<main className="page-wrap px-4 py-10">
-				<p>You don't have permission to create entities.</p>
-			</main>
-		);
-	}
-
 	const form = useForm<Values>({
 		resolver: zodResolver(schema),
 		defaultValues: {
@@ -81,6 +73,14 @@ function NewNounPage() {
 			to: "/campaigns/$campaignId/nouns/$nounId",
 			params: { campaignId: campaign.id, nounId: result.noun.id },
 		});
+	}
+
+	if (accessLevel !== "ADMIN") {
+		return (
+			<main className="page-wrap px-4 py-10">
+				<p>You don't have permission to create entities.</p>
+			</main>
+		);
 	}
 
 	return (

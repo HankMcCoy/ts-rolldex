@@ -26,7 +26,7 @@ function NounsPage() {
 
 	const isAdmin = accessLevel === "ADMIN";
 	const label = type
-		? type.charAt(0) + type.slice(1).toLowerCase() + "s"
+		? `${type.charAt(0)}${type.slice(1).toLowerCase()}s`
 		: "All entities";
 
 	return (
