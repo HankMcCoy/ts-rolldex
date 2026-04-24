@@ -1,5 +1,5 @@
 import { Link, useNavigate } from "@tanstack/react-router";
-import { useSession, signOut } from "@/lib/auth-client";
+import { signOut, useSession } from "@/lib/auth-client";
 import ThemeToggle from "./ThemeToggle";
 
 export default function Header() {

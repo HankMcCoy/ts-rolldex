@@ -5,8 +5,8 @@ import { db } from "@/db/index";
 import { nouns } from "@/db/schema/index";
 import { requireCampaignAccess, requireSession } from "@/lib/access";
 import {
-	computeRelatedEntities,
 	type CandidateEntity,
+	computeRelatedEntities,
 } from "@/lib/relationships";
 
 const nounTypeSchema = z.enum(["PERSON", "PLACE", "THING", "FACTION"]);
@@ -48,7 +48,10 @@ export const getNoun = createServerFn()
 		);
 
 		const noun = await db.query.nouns.findFirst({
-			where: and(eq(nouns.id, data.nounId), eq(nouns.campaignId, data.campaignId)),
+			where: and(
+				eq(nouns.id, data.nounId),
+				eq(nouns.campaignId, data.campaignId),
+			),
 		});
 
 		if (!noun) throw new Response("Not Found", { status: 404 });
@@ -86,7 +89,11 @@ export const getNoun = createServerFn()
 				name: n.name,
 				entityType: n.nounType as CandidateEntity["entityType"],
 			})),
-			...allSessions.map((s) => ({ id: s.id, name: s.name, entityType: "SESSION" as const })),
+			...allSessions.map((s) => ({
+				id: s.id,
+				name: s.name,
+				entityType: "SESSION" as const,
+			})),
 		];
 
 		const related = computeRelatedEntities(noun.id, result, candidates);
@@ -117,7 +124,9 @@ export const createNoun = createServerFn()
 			),
 		});
 		if (existing) {
-			return { error: "A noun with this name already exists in this campaign." };
+			return {
+				error: "A noun with this name already exists in this campaign.",
+			};
 		}
 
 		const [noun] = await db
@@ -160,7 +169,9 @@ export const updateNoun = createServerFn()
 			),
 		});
 		if (existing) {
-			return { error: "A noun with this name already exists in this campaign." };
+			return {
+				error: "A noun with this name already exists in this campaign.",
+			};
 		}
 
 		const [noun] = await db
@@ -174,7 +185,9 @@ export const updateNoun = createServerFn()
 				isSecret: data.isSecret,
 				updatedAt: new Date(),
 			})
-			.where(and(eq(nouns.id, data.nounId), eq(nouns.campaignId, data.campaignId)))
+			.where(
+				and(eq(nouns.id, data.nounId), eq(nouns.campaignId, data.campaignId)),
+			)
 			.returning();
 		return { noun };
 	});
@@ -186,6 +199,8 @@ export const deleteNoun = createServerFn()
 		await requireCampaignAccess(data.campaignId, user.id, user.email, "ADMIN");
 		await db
 			.delete(nouns)
-			.where(and(eq(nouns.id, data.nounId), eq(nouns.campaignId, data.campaignId)));
+			.where(
+				and(eq(nouns.id, data.nounId), eq(nouns.campaignId, data.campaignId)),
+			);
 		return { success: true };
 	});

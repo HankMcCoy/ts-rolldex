@@ -70,10 +70,7 @@ export const gameSessions = pgTable(
 		updatedAt: timestamp("updated_at").notNull().defaultNow(),
 	},
 	(t) => [
-		uniqueIndex("game_sessions_campaign_name_unique").on(
-			t.campaignId,
-			t.name,
-		),
+		uniqueIndex("game_sessions_campaign_name_unique").on(t.campaignId, t.name),
 	],
 );
 

@@ -1,9 +1,6 @@
-import { zodResolver } from "@/lib/form-resolver";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-import { authClient } from "@/lib/auth-client";
-import { linkMemberAccounts } from "@/server/members";
 import { Button } from "@/components/ui/button";
 import {
 	Form,
@@ -14,6 +11,9 @@ import {
 	FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { authClient } from "@/lib/auth-client";
+import { zodResolver } from "@/lib/form-resolver";
+import { linkMemberAccounts } from "@/server/members";
 
 export const Route = createFileRoute("/_auth/register")({
 	component: RegisterPage,
@@ -87,7 +87,11 @@ function RegisterPage() {
 							<FormItem>
 								<FormLabel>Name</FormLabel>
 								<FormControl>
-									<Input placeholder="Your name" autoComplete="name" {...field} />
+									<Input
+										placeholder="Your name"
+										autoComplete="name"
+										{...field}
+									/>
 								</FormControl>
 								<FormMessage />
 							</FormItem>
@@ -156,7 +160,9 @@ function RegisterPage() {
 						className="w-full"
 						disabled={form.formState.isSubmitting}
 					>
-						{form.formState.isSubmitting ? "Creating account…" : "Create account"}
+						{form.formState.isSubmitting
+							? "Creating account…"
+							: "Create account"}
 					</Button>
 				</form>
 			</Form>

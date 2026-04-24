@@ -1,9 +1,11 @@
-import { createFileRoute, getRouteApi, useNavigate } from "@tanstack/react-router";
+import {
+	createFileRoute,
+	getRouteApi,
+	useNavigate,
+} from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-import { zodResolver } from "@/lib/form-resolver";
-import { createNoun } from "@/server/nouns";
 import { Button } from "@/components/ui/button";
 import {
 	Form,
@@ -14,8 +16,10 @@ import {
 	FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
+import { Textarea } from "@/components/ui/textarea";
+import { zodResolver } from "@/lib/form-resolver";
+import { createNoun } from "@/server/nouns";
 
 const nounTypeSchema = z.enum(["PERSON", "PLACE", "THING", "FACTION"]);
 type NounType = z.infer<typeof nounTypeSchema>;
@@ -172,7 +176,9 @@ function NewNounPage() {
 											onCheckedChange={field.onChange}
 										/>
 									</FormControl>
-									<FormLabel className="!mt-0">Secret (hidden from players)</FormLabel>
+									<FormLabel className="!mt-0">
+										Secret (hidden from players)
+									</FormLabel>
 								</FormItem>
 							)}
 						/>

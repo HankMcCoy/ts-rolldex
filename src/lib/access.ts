@@ -1,9 +1,9 @@
 import { redirect } from "@tanstack/react-router";
 import { getRequest } from "@tanstack/react-start/server";
-import { eq, or, and, isNull } from "drizzle-orm";
-import { auth } from "@/lib/auth";
+import { and, eq, isNull, or } from "drizzle-orm";
 import { db } from "@/db/index";
 import { campaigns, members } from "@/db/schema/index";
+import { auth } from "@/lib/auth";
 
 export type AccessLevel = "ADMIN" | "READ_ONLY" | "NONE";
 
@@ -36,7 +36,9 @@ export async function requireSession(): Promise<{ user: SessionUser }> {
  * Gets the current session without throwing.
  * Returns null if no session.
  */
-export async function getOptionalSession(): Promise<{ user: SessionUser } | null> {
+export async function getOptionalSession(): Promise<{
+	user: SessionUser;
+} | null> {
 	const request = getRequest();
 	const session = await auth.api.getSession({ headers: request.headers });
 	if (!session) return null;

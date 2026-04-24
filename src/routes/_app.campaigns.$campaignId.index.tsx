@@ -1,10 +1,15 @@
-import { createFileRoute, Link, useNavigate, useRouter } from "@tanstack/react-router";
+import {
+	createFileRoute,
+	Link,
+	useNavigate,
+	useRouter,
+} from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { getCampaignDashboard } from "@/server/campaigns";
-import { removeMember } from "@/server/members";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
+import { getCampaignDashboard } from "@/server/campaigns";
+import { removeMember } from "@/server/members";
 
 export const Route = createFileRoute("/_app/campaigns/$campaignId/")({
 	loader: ({ params }) =>
@@ -157,9 +162,7 @@ function CampaignDashboard() {
 							className="flex items-center justify-between gap-4 rounded-xl border border-[var(--line)] px-4 py-2"
 						>
 							<div>
-								<span className="font-medium">
-									{m.user?.name ?? m.email}
-								</span>
+								<span className="font-medium">{m.user?.name ?? m.email}</span>
 								{m.user?.name && (
 									<span className="ml-2 text-sm text-[var(--sea-ink-soft)]">
 										{m.email}

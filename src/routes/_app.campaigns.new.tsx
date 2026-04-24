@@ -2,8 +2,6 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-import { zodResolver } from "@/lib/form-resolver";
-import { createCampaign } from "@/server/campaigns";
 import { Button } from "@/components/ui/button";
 import {
 	Form,
@@ -15,6 +13,8 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { zodResolver } from "@/lib/form-resolver";
+import { createCampaign } from "@/server/campaigns";
 
 export const Route = createFileRoute("/_app/campaigns/new")({
 	component: NewCampaignPage,
@@ -60,7 +60,10 @@ function NewCampaignPage() {
 								<FormItem>
 									<FormLabel>Name</FormLabel>
 									<FormControl>
-										<Input placeholder="The Lost Mines of Phandelver" {...field} />
+										<Input
+											placeholder="The Lost Mines of Phandelver"
+											{...field}
+										/>
 									</FormControl>
 									<FormMessage />
 								</FormItem>

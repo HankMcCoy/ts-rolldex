@@ -1,8 +1,6 @@
-import { zodResolver } from "@/lib/form-resolver";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-import { authClient } from "@/lib/auth-client";
 import { Button } from "@/components/ui/button";
 import {
 	Form,
@@ -13,6 +11,8 @@ import {
 	FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { authClient } from "@/lib/auth-client";
+import { zodResolver } from "@/lib/form-resolver";
 
 export const Route = createFileRoute("/_auth/login")({
 	component: LoginPage,

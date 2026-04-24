@@ -1,12 +1,12 @@
-import { Label as LabelPrimitive } from "radix-ui";
+import type { Label as LabelPrimitive } from "radix-ui";
 import * as React from "react";
 import {
+	Controller,
 	type ControllerProps,
 	type FieldPath,
 	type FieldValues,
 	FormProvider,
 	useFormContext,
-	Controller,
 } from "react-hook-form";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
@@ -105,10 +105,7 @@ function FormControl({ ...props }: React.ComponentProps<"div">) {
 	);
 }
 
-function FormDescription({
-	className,
-	...props
-}: React.ComponentProps<"p">) {
+function FormDescription({ className, ...props }: React.ComponentProps<"p">) {
 	const { formDescriptionId } = useFormField();
 	return (
 		<p
@@ -139,12 +136,12 @@ function FormMessage({
 }
 
 export {
-	useFormField,
 	Form,
-	FormItem,
-	FormLabel,
 	FormControl,
 	FormDescription,
-	FormMessage,
 	FormField,
+	FormItem,
+	FormLabel,
+	FormMessage,
+	useFormField,
 };

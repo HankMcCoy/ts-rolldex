@@ -1,8 +1,8 @@
 import { createFileRoute, getRouteApi, Link } from "@tanstack/react-router";
 import { z } from "zod";
-import { getNouns } from "@/server/nouns";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { getNouns } from "@/server/nouns";
 
 const nounTypeSchema = z.enum(["PERSON", "PLACE", "THING", "FACTION"]);
 type NounType = z.infer<typeof nounTypeSchema>;
@@ -102,11 +102,10 @@ function NounsPage() {
 									)}
 								</div>
 								<div className="flex items-center gap-2">
-									{noun.isSecret && (
-										<Badge variant="secondary">Secret</Badge>
-									)}
+									{noun.isSecret && <Badge variant="secondary">Secret</Badge>}
 									<Badge variant="outline">
-										{noun.nounType.charAt(0) + noun.nounType.slice(1).toLowerCase()}
+										{noun.nounType.charAt(0) +
+											noun.nounType.slice(1).toLowerCase()}
 									</Badge>
 								</div>
 							</Link>

@@ -1,11 +1,17 @@
-import { createFileRoute, getRouteApi, Link, useNavigate, useRouter } from "@tanstack/react-router";
+import {
+	createFileRoute,
+	getRouteApi,
+	Link,
+	useNavigate,
+	useRouter,
+} from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { deleteSession } from "@/server/sessions";
 import { MarkdownRenderer } from "@/components/MarkdownRenderer";
 import { RelatedEntities } from "@/components/RelatedEntities";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
+import { deleteSession } from "@/server/sessions";
 
 export const Route = createFileRoute(
 	"/_app/campaigns/$campaignId/sessions/$sessionId/",
@@ -52,7 +58,9 @@ function SessionPage() {
 							>
 								← Sessions
 							</Link>
-							<h1 className="display-title text-3xl font-bold">{session.name}</h1>
+							<h1 className="display-title text-3xl font-bold">
+								{session.name}
+							</h1>
 						</div>
 						{isAdmin && (
 							<div className="flex gap-2">

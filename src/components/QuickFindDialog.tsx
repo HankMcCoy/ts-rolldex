@@ -1,7 +1,6 @@
-import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { quickFind } from "@/server/search";
+import { useEffect, useRef, useState } from "react";
 import {
 	Command,
 	CommandDialog,
@@ -12,6 +11,7 @@ import {
 	CommandList,
 	CommandSeparator,
 } from "@/components/ui/command";
+import { quickFind } from "@/server/search";
 
 interface Props {
 	campaignId: string;

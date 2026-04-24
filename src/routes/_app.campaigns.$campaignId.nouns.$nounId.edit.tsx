@@ -1,9 +1,12 @@
-import { createFileRoute, getRouteApi, useNavigate, useRouter } from "@tanstack/react-router";
+import {
+	createFileRoute,
+	getRouteApi,
+	useNavigate,
+	useRouter,
+} from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-import { zodResolver } from "@/lib/form-resolver";
-import { updateNoun } from "@/server/nouns";
 import { Button } from "@/components/ui/button";
 import {
 	Form,
@@ -14,8 +17,10 @@ import {
 	FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
+import { Textarea } from "@/components/ui/textarea";
+import { zodResolver } from "@/lib/form-resolver";
+import { updateNoun } from "@/server/nouns";
 
 const nounTypeSchema = z.enum(["PERSON", "PLACE", "THING", "FACTION"]);
 type NounType = z.infer<typeof nounTypeSchema>;
@@ -85,7 +90,9 @@ function EditNounPage() {
 
 	return (
 		<main className="page-wrap px-4 py-10">
-			<h1 className="display-title mb-6 text-3xl font-bold">Edit {noun.name}</h1>
+			<h1 className="display-title mb-6 text-3xl font-bold">
+				Edit {noun.name}
+			</h1>
 			<div className="island-shell max-w-2xl rounded-2xl p-6">
 				<Form {...form}>
 					<form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
@@ -176,7 +183,9 @@ function EditNounPage() {
 											onCheckedChange={field.onChange}
 										/>
 									</FormControl>
-									<FormLabel className="!mt-0">Secret (hidden from players)</FormLabel>
+									<FormLabel className="!mt-0">
+										Secret (hidden from players)
+									</FormLabel>
 								</FormItem>
 							)}
 						/>

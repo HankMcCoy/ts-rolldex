@@ -1,4 +1,9 @@
-import { createRootRoute, HeadContent, Link, Scripts } from "@tanstack/react-router";
+import {
+	createRootRoute,
+	HeadContent,
+	Link,
+	Scripts,
+} from "@tanstack/react-router";
 import Footer from "../components/Footer";
 import Header from "../components/Header";
 
@@ -41,7 +46,9 @@ function NotFound() {
 	return (
 		<main className="page-wrap px-4 py-20 text-center">
 			<h1 className="display-title mb-4 text-4xl font-bold">404</h1>
-			<p className="mb-6 text-[var(--sea-ink-soft)]">This page doesn't exist.</p>
+			<p className="mb-6 text-[var(--sea-ink-soft)]">
+				This page doesn't exist.
+			</p>
 			<Link to="/" className="text-sm underline">
 				Go home
 			</Link>

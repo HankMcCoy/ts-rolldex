@@ -5,8 +5,8 @@ import { db } from "@/db/index";
 import { gameSessions } from "@/db/schema/index";
 import { requireCampaignAccess, requireSession } from "@/lib/access";
 import {
-	computeRelatedEntities,
 	type CandidateEntity,
+	computeRelatedEntities,
 } from "@/lib/relationships";
 
 export const getSessions = createServerFn()
@@ -30,9 +30,7 @@ export const getSessions = createServerFn()
 	});
 
 export const getSession = createServerFn()
-	.inputValidator(
-		z.object({ campaignId: z.string(), sessionId: z.string() }),
-	)
+	.inputValidator(z.object({ campaignId: z.string(), sessionId: z.string() }))
 	.handler(async ({ data }) => {
 		const { user } = await requireSession();
 		const accessLevel = await requireCampaignAccess(
@@ -83,7 +81,11 @@ export const getSession = createServerFn()
 				name: n.name,
 				entityType: n.nounType as CandidateEntity["entityType"],
 			})),
-			...allSessions.map((s) => ({ id: s.id, name: s.name, entityType: "SESSION" as const })),
+			...allSessions.map((s) => ({
+				id: s.id,
+				name: s.name,
+				entityType: "SESSION" as const,
+			})),
 		];
 
 		const related = computeRelatedEntities(session.id, result, candidates);
@@ -182,9 +184,7 @@ export const updateSession = createServerFn()
 	});
 
 export const deleteSession = createServerFn()
-	.inputValidator(
-		z.object({ campaignId: z.string(), sessionId: z.string() }),
-	)
+	.inputValidator(z.object({ campaignId: z.string(), sessionId: z.string() }))
 	.handler(async ({ data }) => {
 		const { user } = await requireSession();
 		await requireCampaignAccess(data.campaignId, user.id, user.email, "ADMIN");

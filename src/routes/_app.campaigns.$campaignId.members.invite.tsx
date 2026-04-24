@@ -1,9 +1,11 @@
-import { createFileRoute, getRouteApi, useNavigate } from "@tanstack/react-router";
+import {
+	createFileRoute,
+	getRouteApi,
+	useNavigate,
+} from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-import { zodResolver } from "@/lib/form-resolver";
-import { inviteMember } from "@/server/members";
 import { Button } from "@/components/ui/button";
 import {
 	Form,
@@ -14,6 +16,8 @@ import {
 	FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { zodResolver } from "@/lib/form-resolver";
+import { inviteMember } from "@/server/members";
 
 export const Route = createFileRoute(
 	"/_app/campaigns/$campaignId/members/invite",

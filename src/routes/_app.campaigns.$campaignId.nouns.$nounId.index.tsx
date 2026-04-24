@@ -1,11 +1,17 @@
-import { createFileRoute, getRouteApi, Link, useNavigate, useRouter } from "@tanstack/react-router";
+import {
+	createFileRoute,
+	getRouteApi,
+	Link,
+	useNavigate,
+	useRouter,
+} from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { deleteNoun } from "@/server/nouns";
 import { MarkdownRenderer } from "@/components/MarkdownRenderer";
 import { RelatedEntities } from "@/components/RelatedEntities";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
+import { deleteNoun } from "@/server/nouns";
 
 export const Route = createFileRoute(
 	"/_app/campaigns/$campaignId/nouns/$nounId/",
@@ -48,7 +54,9 @@ function NounPage() {
 								search={{ type: noun.nounType }}
 								className="text-sm text-[var(--sea-ink-soft)] hover:underline"
 							>
-								← {noun.nounType.charAt(0) + noun.nounType.slice(1).toLowerCase()}s
+								←{" "}
+								{noun.nounType.charAt(0) + noun.nounType.slice(1).toLowerCase()}
+								s
 							</Link>
 							<h1 className="display-title text-3xl font-bold">{noun.name}</h1>
 						</div>

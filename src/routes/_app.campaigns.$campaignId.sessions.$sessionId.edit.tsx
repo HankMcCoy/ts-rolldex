@@ -1,9 +1,12 @@
-import { createFileRoute, getRouteApi, useNavigate, useRouter } from "@tanstack/react-router";
+import {
+	createFileRoute,
+	getRouteApi,
+	useNavigate,
+	useRouter,
+} from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-import { zodResolver } from "@/lib/form-resolver";
-import { updateSession } from "@/server/sessions";
 import { Button } from "@/components/ui/button";
 import {
 	Form,
@@ -14,8 +17,10 @@ import {
 	FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
+import { Textarea } from "@/components/ui/textarea";
+import { zodResolver } from "@/lib/form-resolver";
+import { updateSession } from "@/server/sessions";
 
 export const Route = createFileRoute(
 	"/_app/campaigns/$campaignId/sessions/$sessionId/edit",
@@ -149,7 +154,9 @@ function EditSessionPage() {
 											onCheckedChange={field.onChange}
 										/>
 									</FormControl>
-									<FormLabel className="!mt-0">Secret (hidden from players)</FormLabel>
+									<FormLabel className="!mt-0">
+										Secret (hidden from players)
+									</FormLabel>
 								</FormItem>
 							)}
 						/>

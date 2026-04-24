@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { getCampaigns } from "@/server/campaigns";
 import { Button } from "@/components/ui/button";
+import { getCampaigns } from "@/server/campaigns";
 
 export const Route = createFileRoute("/_app/campaigns/")({
 	loader: () => getCampaigns(),

@@ -132,7 +132,10 @@ export const updateCampaign = createServerFn()
 		await requireCampaignAccess(data.campaignId, user.id, user.email, "ADMIN");
 
 		const existing = await db.query.campaigns.findFirst({
-			where: and(eq(campaigns.name, data.name), ne(campaigns.id, data.campaignId)),
+			where: and(
+				eq(campaigns.name, data.name),
+				ne(campaigns.id, data.campaignId),
+			),
 		});
 		if (existing) {
 			return { error: "A campaign with this name already exists." };

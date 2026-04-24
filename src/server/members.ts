@@ -19,7 +19,9 @@ export const linkMemberAccounts = createServerFn()
 	});
 
 export const inviteMember = createServerFn()
-	.inputValidator(z.object({ campaignId: z.string(), email: z.string().email() }))
+	.inputValidator(
+		z.object({ campaignId: z.string(), email: z.string().email() }),
+	)
 	.handler(async ({ data }) => {
 		const { user } = await requireSession();
 		await requireCampaignAccess(data.campaignId, user.id, user.email, "ADMIN");
