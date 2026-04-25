@@ -4,12 +4,11 @@ import { z } from "zod";
 import { db } from "@/db/index";
 import { nouns } from "@/db/schema/index";
 import { requireCampaignAccess, requireSession } from "@/lib/access";
+import { nounTypeSchema } from "@/lib/noun-types";
 import {
 	type CandidateEntity,
 	computeRelatedEntities,
 } from "@/lib/relationships";
-
-const nounTypeSchema = z.enum(["PERSON", "PLACE", "THING", "FACTION"]);
 
 export const getNouns = createServerFn()
 	.inputValidator(

@@ -2,10 +2,8 @@ import { createFileRoute, getRouteApi, Link } from "@tanstack/react-router";
 import { z } from "zod";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { NOUN_TYPES, nounTypeSchema } from "@/lib/noun-types";
 import { getNouns } from "@/server/nouns";
-
-const nounTypeSchema = z.enum(["PERSON", "PLACE", "THING", "FACTION"]);
-type NounType = z.infer<typeof nounTypeSchema>;
 
 export const Route = createFileRoute("/_app/campaigns/$campaignId/nouns/")({
 	validateSearch: z.object({ type: nounTypeSchema.optional() }),
@@ -16,8 +14,6 @@ export const Route = createFileRoute("/_app/campaigns/$campaignId/nouns/")({
 });
 
 const parentRoute = getRouteApi("/_app/campaigns/$campaignId");
-
-const NOUN_TYPES: NounType[] = ["PERSON", "PLACE", "THING", "FACTION"];
 
 function NounsPage() {
 	const { campaign, accessLevel } = parentRoute.useLoaderData();

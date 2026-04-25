@@ -19,10 +19,8 @@ import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { zodResolver } from "@/lib/form-resolver";
+import { NOUN_TYPES, nounTypeSchema } from "@/lib/noun-types";
 import { createNoun } from "@/server/nouns";
-
-const nounTypeSchema = z.enum(["PERSON", "PLACE", "THING", "FACTION"]);
-type NounType = z.infer<typeof nounTypeSchema>;
 
 export const Route = createFileRoute("/_app/campaigns/$campaignId/nouns/new")({
 	validateSearch: z.object({ type: nounTypeSchema.optional() }),
@@ -40,8 +38,6 @@ const schema = z.object({
 	isSecret: z.boolean(),
 });
 type Values = z.infer<typeof schema>;
-
-const NOUN_TYPES: NounType[] = ["PERSON", "PLACE", "THING", "FACTION"];
 
 function NewNounPage() {
 	const { campaign, accessLevel } = parentRoute.useLoaderData();

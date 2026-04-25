@@ -1,4 +1,6 @@
-export type EntityType = "PERSON" | "PLACE" | "THING" | "FACTION" | "SESSION";
+import type { NounType } from "@/lib/noun-types";
+
+export type EntityType = NounType | "SESSION";
 
 export interface CandidateEntity {
 	id: string;
