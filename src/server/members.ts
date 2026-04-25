@@ -1,5 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
-import { and, eq, isNull, or } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/db/index";
 import { members } from "@/db/schema/index";
@@ -52,21 +52,4 @@ export const removeMember = createServerFn()
 		await requireCampaignAccess(data.campaignId, user.id, user.email, "ADMIN");
 		await db.delete(members).where(eq(members.id, data.memberId));
 		return { success: true };
-	});
-
-export const getMembers = createServerFn()
-	.inputValidator(z.object({ campaignId: z.string() }))
-	.handler(async ({ data }) => {
-		const { user } = await requireSession();
-		await requireCampaignAccess(data.campaignId, user.id, user.email);
-		return db.query.members.findMany({
-			where: and(
-				eq(members.campaignId, data.campaignId),
-				or(
-					eq(members.userId, user.id),
-					and(eq(members.email, user.email), isNull(members.userId)),
-				),
-			),
-			with: { user: true },
-		});
 	});
