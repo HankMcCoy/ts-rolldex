@@ -15,7 +15,7 @@ export const quickFind = createServerFn()
 			user.email,
 		);
 
-		const q = `%${data.query}%`;
+		const q = `%${data.query.replace(/[\\%_]/g, "\\$&")}%`;
 
 		const [matchedNouns, matchedSessions] = await Promise.all([
 			db.query.nouns.findMany({
