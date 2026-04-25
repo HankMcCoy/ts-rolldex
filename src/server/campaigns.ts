@@ -1,3 +1,4 @@
+import { notFound } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 import { and, eq, isNull, ne, or } from "drizzle-orm";
 import { z } from "zod";
@@ -47,7 +48,7 @@ export const getCampaign = createServerFn()
 		const campaign = await db.query.campaigns.findFirst({
 			where: eq(campaigns.id, data.campaignId),
 		});
-		if (!campaign) throw new Response("Not Found", { status: 404 });
+		if (!campaign) throw notFound();
 		return { campaign, accessLevel };
 	});
 
@@ -89,7 +90,7 @@ export const getCampaignDashboard = createServerFn()
 			}),
 		]);
 
-		if (!campaign) throw new Response("Not Found", { status: 404 });
+		if (!campaign) throw notFound();
 
 		const nounCounts = {
 			PERSON: allNouns.filter((n) => n.nounType === "PERSON").length,

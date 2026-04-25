@@ -30,7 +30,7 @@ All data access goes through `createServerFn()` in `src/server/`. Every handler 
 Three levels, checked in `src/lib/access.ts`:
 - **ADMIN** — campaign creator. Sees everything, can edit/delete.
 - **READ_ONLY** — invited member. No edits, `privateNotes` stripped, `isSecret` entities hidden.
-- **NONE** — everyone else → `notFound()`.
+- **NONE** — everyone else → `throw notFound()` (from `@tanstack/react-router`). Admin-required check throws `new Response("Forbidden", { status: 403 })` since TanStack Router has no built-in forbidden helper.
 
 Member rows can be created by email invite before the invitee registers. The `userId IS NULL` state represents an unlinked invite; `linkMemberAccounts` binds it to a real user on registration. When checking membership, always use `userId = $id OR (email = $email AND userId IS NULL)` — never match email unconditionally.
 

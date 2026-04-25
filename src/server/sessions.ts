@@ -1,3 +1,4 @@
+import { notFound } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 import { and, eq, ne } from "drizzle-orm";
 import { z } from "zod";
@@ -46,9 +47,8 @@ export const getSession = createServerFn()
 			),
 		});
 
-		if (!session) throw new Response("Not Found", { status: 404 });
-		if (accessLevel === "READ_ONLY" && session.isSecret)
-			throw new Response("Not Found", { status: 404 });
+		if (!session) throw notFound();
+		if (accessLevel === "READ_ONLY" && session.isSecret) throw notFound();
 
 		const result = { ...session };
 		if (accessLevel === "READ_ONLY") {

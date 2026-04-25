@@ -1,4 +1,4 @@
-import { redirect } from "@tanstack/react-router";
+import { notFound, redirect } from "@tanstack/react-router";
 import { getRequest } from "@tanstack/react-start/server";
 import { and, eq, isNull, or } from "drizzle-orm";
 import { db } from "@/db/index";
@@ -95,7 +95,7 @@ export async function requireCampaignAccess(
 	const access = await getCampaignAccess(campaignId, userId, userEmail);
 
 	if (access === "NONE") {
-		throw new Response("Not Found", { status: 404 });
+		throw notFound();
 	}
 
 	if (minimumLevel === "ADMIN" && access !== "ADMIN") {

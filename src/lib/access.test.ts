@@ -183,14 +183,14 @@ describe("requireCampaignAccess", () => {
 		expect(access).toBe("READ_ONLY");
 	});
 
-	it("throws 404 for NONE access", async () => {
+	it("throws notFound() for NONE access", async () => {
 		await expect(
 			requireCampaignAccess(
 				campaignId,
 				outsiderId,
 				`${outsiderId}@test.invalid`,
 			),
-		).rejects.toMatchObject({ status: 404 });
+		).rejects.toMatchObject({ isNotFound: true });
 	});
 
 	it("throws 403 when ADMIN is required but user is READ_ONLY", async () => {

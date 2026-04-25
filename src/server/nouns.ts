@@ -1,3 +1,4 @@
+import { notFound } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 import { and, eq, ne } from "drizzle-orm";
 import { z } from "zod";
@@ -53,9 +54,8 @@ export const getNoun = createServerFn()
 			),
 		});
 
-		if (!noun) throw new Response("Not Found", { status: 404 });
-		if (accessLevel === "READ_ONLY" && noun.isSecret)
-			throw new Response("Not Found", { status: 404 });
+		if (!noun) throw notFound();
+		if (accessLevel === "READ_ONLY" && noun.isSecret) throw notFound();
 
 		const result = { ...noun };
 		if (accessLevel === "READ_ONLY") {
