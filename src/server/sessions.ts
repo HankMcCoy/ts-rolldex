@@ -69,6 +69,7 @@ export const getSession = createServerFn()
 					nounType: true,
 					summary: true,
 					notes: true,
+					privateNotes: true,
 				},
 			}),
 			db.query.gameSessions.findMany({
@@ -77,22 +78,33 @@ export const getSession = createServerFn()
 						eq(s.campaignId, data.campaignId),
 						accessLevel === "READ_ONLY" ? eq(s.isSecret, false) : undefined,
 					),
-				columns: { id: true, name: true, summary: true, notes: true },
+				columns: {
+					id: true,
+					name: true,
+					summary: true,
+					notes: true,
+					privateNotes: true,
+				},
 			}),
 		]);
 
+		const includePrivate = accessLevel !== "READ_ONLY";
 		const candidates: CandidateEntity[] = [
 			...allNouns.map((n) => ({
 				id: n.id,
 				name: n.name,
 				entityType: n.nounType as CandidateEntity["entityType"],
-				text: `${n.summary} ${n.notes}`,
+				text: includePrivate
+					? `${n.summary} ${n.notes} ${n.privateNotes}`
+					: `${n.summary} ${n.notes}`,
 			})),
 			...allSessions.map((s) => ({
 				id: s.id,
 				name: s.name,
 				entityType: "SESSION" as const,
-				text: `${s.summary} ${s.notes}`,
+				text: includePrivate
+					? `${s.summary} ${s.notes} ${s.privateNotes}`
+					: `${s.summary} ${s.notes}`,
 			})),
 		];
 
