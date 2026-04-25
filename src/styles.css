@@ -297,6 +297,10 @@ pre code {
   transform: scaleX(1);
 }
 
+button {
+  cursor: pointer;
+}
+
 button,
 .island-shell,
 a {
