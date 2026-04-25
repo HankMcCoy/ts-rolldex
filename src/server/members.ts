@@ -4,6 +4,7 @@ import { z } from "zod";
 import { db } from "@/db/index";
 import { members } from "@/db/schema/index";
 import { requireCampaignAccess, requireSession } from "@/lib/access";
+import { err, ok } from "@/lib/result";
 
 /**
  * Called after a new user registers to backfill member rows
@@ -38,7 +39,7 @@ export const inviteMember = createServerFn()
 		});
 
 		if (existing) {
-			return { error: "This email has already been invited." };
+			return err("This email has already been invited.");
 		}
 
 		await db.insert(members).values({
@@ -46,7 +47,7 @@ export const inviteMember = createServerFn()
 			email: normalizedEmail,
 		});
 
-		return { success: true };
+		return ok(null);
 	});
 
 export const removeMember = createServerFn()

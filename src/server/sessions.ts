@@ -6,6 +6,7 @@ import { db } from "@/db/index";
 import { gameSessions } from "@/db/schema/index";
 import { requireCampaignAccess, requireSession } from "@/lib/access";
 import { computeRelatedEntities } from "@/lib/relationships";
+import { err, ok } from "@/lib/result";
 import {
 	loadCampaignCandidates,
 	visibilityFilter,
@@ -83,9 +84,7 @@ export const createSession = createServerFn()
 			),
 		});
 		if (existing) {
-			return {
-				error: "A session with this name already exists in this campaign.",
-			};
+			return err("A session with this name already exists in this campaign.");
 		}
 
 		const [session] = await db
@@ -99,7 +98,7 @@ export const createSession = createServerFn()
 				isSecret: data.isSecret,
 			})
 			.returning();
-		return { session };
+		return ok(session);
 	});
 
 export const updateSession = createServerFn()
@@ -126,9 +125,7 @@ export const updateSession = createServerFn()
 			),
 		});
 		if (existing) {
-			return {
-				error: "A session with this name already exists in this campaign.",
-			};
+			return err("A session with this name already exists in this campaign.");
 		}
 
 		const [session] = await db
@@ -148,7 +145,7 @@ export const updateSession = createServerFn()
 				),
 			)
 			.returning();
-		return { session };
+		return ok(session);
 	});
 
 export const deleteSession = createServerFn()

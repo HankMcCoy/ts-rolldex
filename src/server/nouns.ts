@@ -7,6 +7,7 @@ import { nouns } from "@/db/schema/index";
 import { requireCampaignAccess, requireSession } from "@/lib/access";
 import { nounTypeSchema } from "@/lib/noun-types";
 import { computeRelatedEntities } from "@/lib/relationships";
+import { err, ok } from "@/lib/result";
 import { loadCampaignCandidates, visibilityFilter } from "@/server/query-helpers";
 
 export const getNouns = createServerFn()
@@ -72,7 +73,7 @@ export const createNoun = createServerFn()
 			where: and(eq(nouns.campaignId, data.campaignId), eq(nouns.name, data.name)),
 		});
 		if (existing) {
-			return { error: "A noun with this name already exists in this campaign." };
+			return err("A noun with this name already exists in this campaign.");
 		}
 
 		const [noun] = await db
@@ -87,7 +88,7 @@ export const createNoun = createServerFn()
 				isSecret: data.isSecret,
 			})
 			.returning();
-		return { noun };
+		return ok(noun);
 	});
 
 export const updateNoun = createServerFn()
@@ -115,7 +116,7 @@ export const updateNoun = createServerFn()
 			),
 		});
 		if (existing) {
-			return { error: "A noun with this name already exists in this campaign." };
+			return err("A noun with this name already exists in this campaign.");
 		}
 
 		const [noun] = await db
@@ -131,7 +132,7 @@ export const updateNoun = createServerFn()
 			})
 			.where(and(eq(nouns.id, data.nounId), eq(nouns.campaignId, data.campaignId)))
 			.returning();
-		return { noun };
+		return ok(noun);
 	});
 
 export const deleteNoun = createServerFn()

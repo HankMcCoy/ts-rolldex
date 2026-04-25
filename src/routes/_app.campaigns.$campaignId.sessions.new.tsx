@@ -58,13 +58,13 @@ function NewSessionPage() {
 		const result = await create({
 			data: { campaignId: campaign.id, ...values },
 		});
-		if ("error" in result) {
+		if (!result.ok) {
 			form.setError("name", { message: result.error });
 			return;
 		}
 		await navigate({
 			to: "/campaigns/$campaignId/sessions/$sessionId",
-			params: { campaignId: campaign.id, sessionId: result.session.id },
+			params: { campaignId: campaign.id, sessionId: result.value.id },
 		});
 	}
 

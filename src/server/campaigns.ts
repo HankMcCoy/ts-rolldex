@@ -5,6 +5,7 @@ import { z } from "zod";
 import { db } from "@/db/index";
 import { campaigns, gameSessions, members, nouns } from "@/db/schema/index";
 import { requireCampaignAccess, requireSession } from "@/lib/access";
+import { err, ok } from "@/lib/result";
 import { visibilityFilter } from "@/server/query-helpers";
 
 export const getCampaigns = createServerFn().handler(async () => {
@@ -113,14 +114,14 @@ export const createCampaign = createServerFn()
 			),
 		});
 		if (existing) {
-			return { error: "You already have a campaign with this name." };
+			return err("You already have a campaign with this name.");
 		}
 
 		const [campaign] = await db
 			.insert(campaigns)
 			.values({ name: data.name, summary: data.summary, createdById: user.id })
 			.returning();
-		return { campaign };
+		return ok(campaign);
 	});
 
 export const updateCampaign = createServerFn()
@@ -143,7 +144,7 @@ export const updateCampaign = createServerFn()
 			),
 		});
 		if (existing) {
-			return { error: "You already have a campaign with this name." };
+			return err("You already have a campaign with this name.");
 		}
 
 		const [campaign] = await db
@@ -155,7 +156,7 @@ export const updateCampaign = createServerFn()
 			})
 			.where(eq(campaigns.id, data.campaignId))
 			.returning();
-		return { campaign };
+		return ok(campaign);
 	});
 
 export const deleteCampaign = createServerFn()

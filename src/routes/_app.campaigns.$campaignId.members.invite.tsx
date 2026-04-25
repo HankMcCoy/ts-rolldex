@@ -44,7 +44,7 @@ function InviteMemberPage() {
 		const result = await invite({
 			data: { campaignId: campaign.id, email: values.email },
 		});
-		if ("error" in result) {
+		if (!result.ok) {
 			form.setError("email", { message: result.error });
 			return;
 		}

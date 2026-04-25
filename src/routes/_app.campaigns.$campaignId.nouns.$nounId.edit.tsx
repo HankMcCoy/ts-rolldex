@@ -65,7 +65,7 @@ function EditNounPage() {
 		const result = await update({
 			data: { campaignId: campaign.id, nounId: noun.id, ...values },
 		});
-		if ("error" in result) {
+		if (!result.ok) {
 			form.setError("name", { message: result.error });
 			return;
 		}

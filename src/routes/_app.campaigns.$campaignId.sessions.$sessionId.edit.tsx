@@ -64,7 +64,7 @@ function EditSessionPage() {
 		const result = await update({
 			data: { campaignId: campaign.id, sessionId: session.id, ...values },
 		});
-		if ("error" in result) {
+		if (!result.ok) {
 			form.setError("name", { message: result.error });
 			return;
 		}

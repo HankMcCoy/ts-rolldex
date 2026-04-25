@@ -37,13 +37,13 @@ function NewCampaignPage() {
 
 	async function onSubmit(values: Values) {
 		const result = await create({ data: values });
-		if ("error" in result) {
+		if (!result.ok) {
 			form.setError("name", { message: result.error });
 			return;
 		}
 		await navigate({
 			to: "/campaigns/$campaignId",
-			params: { campaignId: result.campaign.id },
+			params: { campaignId: result.value.id },
 		});
 	}
 
