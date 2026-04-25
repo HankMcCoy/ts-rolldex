@@ -155,42 +155,46 @@ function CampaignDashboard() {
 				</div>
 
 				<ul className="space-y-2">
-					{members.map((m) => (
-						<li
-							key={m.id}
-							className="flex items-center justify-between gap-4 rounded-xl border border-[var(--line)] px-4 py-2"
-						>
-							<div>
-								<span className="font-medium">{m.user?.name ?? m.email}</span>
-								{m.user?.name && (
-									<span className="ml-2 text-sm text-[var(--sea-ink-soft)]">
-										{m.email}
-									</span>
-								)}
-							</div>
-							<div className="flex items-center gap-2">
-								<Badge variant="secondary">Read only</Badge>
-								{isAdmin && (
-									<button
-										type="button"
-										onClick={async () => {
-											await remove({
-												data: {
-													campaignId: campaign.id,
-													memberId: m.id,
-												},
-											});
-											await router.invalidate();
-											navigate({ to: "." });
-										}}
-										className="text-sm text-destructive hover:underline"
-									>
-										Remove
-									</button>
-								)}
-							</div>
-						</li>
-					))}
+					{members.map((m) => {
+						const email = "email" in m ? m.email : null;
+						const displayName = m.user?.name ?? email ?? "Pending invite";
+						return (
+							<li
+								key={m.id}
+								className="flex items-center justify-between gap-4 rounded-xl border border-[var(--line)] px-4 py-2"
+							>
+								<div>
+									<span className="font-medium">{displayName}</span>
+									{m.user?.name && email && (
+										<span className="ml-2 text-sm text-[var(--sea-ink-soft)]">
+											{email}
+										</span>
+									)}
+								</div>
+								<div className="flex items-center gap-2">
+									<Badge variant="secondary">Read only</Badge>
+									{isAdmin && (
+										<button
+											type="button"
+											onClick={async () => {
+												await remove({
+													data: {
+														campaignId: campaign.id,
+														memberId: m.id,
+													},
+												});
+												await router.invalidate();
+												navigate({ to: "." });
+											}}
+											className="text-sm text-destructive hover:underline"
+										>
+											Remove
+										</button>
+									)}
+								</div>
+							</li>
+						);
+					})}
 				</ul>
 			</section>
 		</main>

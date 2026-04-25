@@ -1,9 +1,11 @@
 import { createServerFn } from "@tanstack/react-start";
-import { and, eq, isNull } from "drizzle-orm";
+import { and, eq, isNull, sql } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/db/index";
+import { users } from "@/db/schema/auth";
 import { members } from "@/db/schema/index";
 import { requireCampaignAccess, requireSession } from "@/lib/access";
+import { isUniqueViolation } from "@/lib/db-errors";
 import { err, ok } from "@/lib/result";
 
 /**
@@ -42,10 +44,25 @@ export const inviteMember = createServerFn()
 			return err("This email has already been invited.");
 		}
 
-		await db.insert(members).values({
-			campaignId: data.campaignId,
-			email: normalizedEmail,
+		// If a user with this email already exists, link them now so the
+		// dashboard renders their name instead of the raw email.
+		const existingUser = await db.query.users.findFirst({
+			where: sql`lower(${users.email}) = ${normalizedEmail}`,
+			columns: { id: true },
 		});
+
+		try {
+			await db.insert(members).values({
+				campaignId: data.campaignId,
+				email: normalizedEmail,
+				userId: existingUser?.id,
+			});
+		} catch (e) {
+			if (isUniqueViolation(e)) {
+				return err("This email has already been invited.");
+			}
+			throw e;
+		}
 
 		return ok(null);
 	});

@@ -7,6 +7,8 @@ import { auth } from "@/lib/auth";
 
 export type AccessLevel = "ADMIN" | "READ_ONLY" | "NONE";
 
+type Campaign = typeof campaigns.$inferSelect;
+
 export interface SessionUser {
 	id: string;
 	email: string;
@@ -73,7 +75,10 @@ export async function getCampaignAccess(
 			eq(members.campaignId, campaignId),
 			or(
 				eq(members.userId, user.id),
-				and(eq(members.email, user.email.toLowerCase()), isNull(members.userId)),
+				and(
+					eq(members.email, user.email.toLowerCase()),
+					isNull(members.userId),
+				),
 			),
 		),
 	});
@@ -101,4 +106,47 @@ export async function requireCampaignAccess(
 	}
 
 	return access as "ADMIN" | "READ_ONLY";
+}
+
+/**
+ * Loads a campaign row alongside the caller's access level in a single query.
+ * Use this when the caller needs the campaign body itself (avoids the second
+ * findFirst that requireCampaignAccess + a follow-up query would do).
+ */
+export async function requireCampaign(
+	campaignId: string,
+	user: Pick<SessionUser, "id" | "email">,
+	minimumLevel: "ADMIN" | "READ_ONLY" = "READ_ONLY",
+): Promise<{ campaign: Campaign; accessLevel: "ADMIN" | "READ_ONLY" }> {
+	const campaign = await db.query.campaigns.findFirst({
+		where: eq(campaigns.id, campaignId),
+	});
+
+	if (!campaign) throw notFound();
+
+	let accessLevel: AccessLevel;
+	if (campaign.createdById === user.id) {
+		accessLevel = "ADMIN";
+	} else {
+		const member = await db.query.members.findFirst({
+			where: and(
+				eq(members.campaignId, campaignId),
+				or(
+					eq(members.userId, user.id),
+					and(
+						eq(members.email, user.email.toLowerCase()),
+						isNull(members.userId),
+					),
+				),
+			),
+		});
+		accessLevel = member ? "READ_ONLY" : "NONE";
+	}
+
+	if (accessLevel === "NONE") throw notFound();
+	if (minimumLevel === "ADMIN" && accessLevel !== "ADMIN") {
+		throw new Response("Forbidden", { status: 403 });
+	}
+
+	return { campaign, accessLevel };
 }

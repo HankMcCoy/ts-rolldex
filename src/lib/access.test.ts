@@ -84,20 +84,31 @@ afterEach(async () => {
 
 describe("getCampaignAccess", () => {
 	it("returns ADMIN for the campaign creator", async () => {
-		const access = await getCampaignAccess(campaignId, { id: dmId, email: `${dmId}@test.invalid` });
+		const access = await getCampaignAccess(campaignId, {
+			id: dmId,
+			email: `${dmId}@test.invalid`,
+		});
 		expect(access).toBe("ADMIN");
 	});
 
 	it("returns READ_ONLY for a member matched by userId", async () => {
-		const access = await getCampaignAccess(campaignId, { id: memberId, email: `${memberId}@test.invalid` });
+		const access = await getCampaignAccess(campaignId, {
+			id: memberId,
+			email: `${memberId}@test.invalid`,
+		});
 		expect(access).toBe("READ_ONLY");
 	});
 
 	it("returns READ_ONLY for an unlinked invite matched by email", async () => {
 		const inviteEmail = `invite-${uid()}@test.invalid`;
-		await db.insert(members).values({ campaignId, email: inviteEmail, userId: null });
+		await db
+			.insert(members)
+			.values({ campaignId, email: inviteEmail, userId: null });
 
-		const access = await getCampaignAccess(campaignId, { id: outsiderId, email: inviteEmail });
+		const access = await getCampaignAccess(campaignId, {
+			id: outsiderId,
+			email: inviteEmail,
+		});
 		expect(access).toBe("READ_ONLY");
 
 		await db.delete(members).where(eq(members.email, inviteEmail));
@@ -106,26 +117,40 @@ describe("getCampaignAccess", () => {
 	it("matches unlinked invite case-insensitively (invite stored lowercase, query uppercased)", async () => {
 		const base = `invite-${uid()}`;
 		const storedEmail = `${base}@test.invalid`;
-		await db.insert(members).values({ campaignId, email: storedEmail, userId: null });
+		await db
+			.insert(members)
+			.values({ campaignId, email: storedEmail, userId: null });
 
-		const access = await getCampaignAccess(campaignId, { id: outsiderId, email: storedEmail.toUpperCase() });
+		const access = await getCampaignAccess(campaignId, {
+			id: outsiderId,
+			email: storedEmail.toUpperCase(),
+		});
 		expect(access).toBe("READ_ONLY");
 
 		await db.delete(members).where(eq(members.email, storedEmail));
 	});
 
 	it("returns NONE when email matches but member row belongs to a different userId", async () => {
-		const access = await getCampaignAccess(campaignId, { id: outsiderId, email: `${memberId}@test.invalid` });
+		const access = await getCampaignAccess(campaignId, {
+			id: outsiderId,
+			email: `${memberId}@test.invalid`,
+		});
 		expect(access).toBe("NONE");
 	});
 
 	it("returns NONE for a non-member", async () => {
-		const access = await getCampaignAccess(campaignId, { id: outsiderId, email: `${outsiderId}@test.invalid` });
+		const access = await getCampaignAccess(campaignId, {
+			id: outsiderId,
+			email: `${outsiderId}@test.invalid`,
+		});
 		expect(access).toBe("NONE");
 	});
 
 	it("returns NONE for a non-existent campaign", async () => {
-		const access = await getCampaignAccess("no-such-campaign", { id: dmId, email: `${dmId}@test.invalid` });
+		const access = await getCampaignAccess("no-such-campaign", {
+			id: dmId,
+			email: `${dmId}@test.invalid`,
+		});
 		expect(access).toBe("NONE");
 	});
 });
@@ -136,29 +161,46 @@ describe("getCampaignAccess", () => {
 
 describe("requireCampaignAccess", () => {
 	it("returns ADMIN for the creator with no minimum specified", async () => {
-		const access = await requireCampaignAccess(campaignId, { id: dmId, email: `${dmId}@test.invalid` });
+		const access = await requireCampaignAccess(campaignId, {
+			id: dmId,
+			email: `${dmId}@test.invalid`,
+		});
 		expect(access).toBe("ADMIN");
 	});
 
 	it("returns READ_ONLY for a member with no minimum specified", async () => {
-		const access = await requireCampaignAccess(campaignId, { id: memberId, email: `${memberId}@test.invalid` });
+		const access = await requireCampaignAccess(campaignId, {
+			id: memberId,
+			email: `${memberId}@test.invalid`,
+		});
 		expect(access).toBe("READ_ONLY");
 	});
 
 	it("throws notFound() for NONE access", async () => {
 		await expect(
-			requireCampaignAccess(campaignId, { id: outsiderId, email: `${outsiderId}@test.invalid` }),
+			requireCampaignAccess(campaignId, {
+				id: outsiderId,
+				email: `${outsiderId}@test.invalid`,
+			}),
 		).rejects.toMatchObject({ isNotFound: true });
 	});
 
 	it("throws 403 when ADMIN is required but user is READ_ONLY", async () => {
 		await expect(
-			requireCampaignAccess(campaignId, { id: memberId, email: `${memberId}@test.invalid` }, "ADMIN"),
+			requireCampaignAccess(
+				campaignId,
+				{ id: memberId, email: `${memberId}@test.invalid` },
+				"ADMIN",
+			),
 		).rejects.toMatchObject({ status: 403 });
 	});
 
 	it("returns ADMIN when ADMIN is required and user is creator", async () => {
-		const access = await requireCampaignAccess(campaignId, { id: dmId, email: `${dmId}@test.invalid` }, "ADMIN");
+		const access = await requireCampaignAccess(
+			campaignId,
+			{ id: dmId, email: `${dmId}@test.invalid` },
+			"ADMIN",
+		);
 		expect(access).toBe("ADMIN");
 	});
 });

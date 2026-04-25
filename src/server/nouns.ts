@@ -5,10 +5,14 @@ import { z } from "zod";
 import { db } from "@/db/index";
 import { nouns } from "@/db/schema/index";
 import { requireCampaignAccess, requireSession } from "@/lib/access";
+import { isUniqueViolation } from "@/lib/db-errors";
 import { nounTypeSchema } from "@/lib/noun-types";
 import { computeRelatedEntities } from "@/lib/relationships";
 import { err, ok } from "@/lib/result";
-import { loadCampaignCandidates, visibilityFilter } from "@/server/query-helpers";
+import {
+	loadCampaignCandidates,
+	visibilityFilter,
+} from "@/server/query-helpers";
 
 export const getNouns = createServerFn()
 	.inputValidator(
@@ -38,7 +42,10 @@ export const getNoun = createServerFn()
 		const accessLevel = await requireCampaignAccess(data.campaignId, user);
 
 		const noun = await db.query.nouns.findFirst({
-			where: and(eq(nouns.id, data.nounId), eq(nouns.campaignId, data.campaignId)),
+			where: and(
+				eq(nouns.id, data.nounId),
+				eq(nouns.campaignId, data.campaignId),
+			),
 		});
 
 		if (!noun) throw notFound();
@@ -47,8 +54,16 @@ export const getNoun = createServerFn()
 		const result = { ...noun };
 		if (accessLevel === "READ_ONLY") result.privateNotes = "";
 
-		const candidates = await loadCampaignCandidates(data.campaignId, accessLevel);
-		const related = computeRelatedEntities(noun.id, noun.name, result, candidates);
+		const candidates = await loadCampaignCandidates(
+			data.campaignId,
+			accessLevel,
+		);
+		const related = computeRelatedEntities(
+			noun.id,
+			noun.name,
+			result,
+			candidates,
+		);
 
 		return { noun: result, accessLevel, related };
 	});
@@ -59,9 +74,9 @@ export const createNoun = createServerFn()
 			campaignId: z.string(),
 			name: z.string().min(1).max(200),
 			nounType: nounTypeSchema,
-			summary: z.string(),
-			notes: z.string(),
-			privateNotes: z.string(),
+			summary: z.string().max(5_000),
+			notes: z.string().max(50_000),
+			privateNotes: z.string().max(50_000),
 			isSecret: z.boolean(),
 		}),
 	)
@@ -70,25 +85,35 @@ export const createNoun = createServerFn()
 		await requireCampaignAccess(data.campaignId, user, "ADMIN");
 
 		const existing = await db.query.nouns.findFirst({
-			where: and(eq(nouns.campaignId, data.campaignId), eq(nouns.name, data.name)),
+			where: and(
+				eq(nouns.campaignId, data.campaignId),
+				eq(nouns.name, data.name),
+			),
 		});
 		if (existing) {
 			return err("A noun with this name already exists in this campaign.");
 		}
 
-		const [noun] = await db
-			.insert(nouns)
-			.values({
-				campaignId: data.campaignId,
-				name: data.name,
-				nounType: data.nounType,
-				summary: data.summary,
-				notes: data.notes,
-				privateNotes: data.privateNotes,
-				isSecret: data.isSecret,
-			})
-			.returning();
-		return ok(noun);
+		try {
+			const [noun] = await db
+				.insert(nouns)
+				.values({
+					campaignId: data.campaignId,
+					name: data.name,
+					nounType: data.nounType,
+					summary: data.summary,
+					notes: data.notes,
+					privateNotes: data.privateNotes,
+					isSecret: data.isSecret,
+				})
+				.returning();
+			return ok(noun);
+		} catch (e) {
+			if (isUniqueViolation(e)) {
+				return err("A noun with this name already exists in this campaign.");
+			}
+			throw e;
+		}
 	});
 
 export const updateNoun = createServerFn()
@@ -98,9 +123,9 @@ export const updateNoun = createServerFn()
 			nounId: z.string(),
 			name: z.string().min(1).max(200),
 			nounType: nounTypeSchema,
-			summary: z.string(),
-			notes: z.string(),
-			privateNotes: z.string(),
+			summary: z.string().max(5_000),
+			notes: z.string().max(50_000),
+			privateNotes: z.string().max(50_000),
 			isSecret: z.boolean(),
 		}),
 	)
@@ -119,20 +144,29 @@ export const updateNoun = createServerFn()
 			return err("A noun with this name already exists in this campaign.");
 		}
 
-		const [noun] = await db
-			.update(nouns)
-			.set({
-				name: data.name,
-				nounType: data.nounType,
-				summary: data.summary,
-				notes: data.notes,
-				privateNotes: data.privateNotes,
-				isSecret: data.isSecret,
-				updatedAt: new Date(),
-			})
-			.where(and(eq(nouns.id, data.nounId), eq(nouns.campaignId, data.campaignId)))
-			.returning();
-		return ok(noun);
+		try {
+			const [noun] = await db
+				.update(nouns)
+				.set({
+					name: data.name,
+					nounType: data.nounType,
+					summary: data.summary,
+					notes: data.notes,
+					privateNotes: data.privateNotes,
+					isSecret: data.isSecret,
+					updatedAt: new Date(),
+				})
+				.where(
+					and(eq(nouns.id, data.nounId), eq(nouns.campaignId, data.campaignId)),
+				)
+				.returning();
+			return ok(noun);
+		} catch (e) {
+			if (isUniqueViolation(e)) {
+				return err("A noun with this name already exists in this campaign.");
+			}
+			throw e;
+		}
 	});
 
 export const deleteNoun = createServerFn()
@@ -142,6 +176,8 @@ export const deleteNoun = createServerFn()
 		await requireCampaignAccess(data.campaignId, user, "ADMIN");
 		await db
 			.delete(nouns)
-			.where(and(eq(nouns.id, data.nounId), eq(nouns.campaignId, data.campaignId)));
+			.where(
+				and(eq(nouns.id, data.nounId), eq(nouns.campaignId, data.campaignId)),
+			);
 		return { success: true };
 	});

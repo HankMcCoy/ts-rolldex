@@ -5,6 +5,7 @@ import { z } from "zod";
 import { db } from "@/db/index";
 import { gameSessions } from "@/db/schema/index";
 import { requireCampaignAccess, requireSession } from "@/lib/access";
+import { isUniqueViolation } from "@/lib/db-errors";
 import { computeRelatedEntities } from "@/lib/relationships";
 import { err, ok } from "@/lib/result";
 import {
@@ -67,9 +68,9 @@ export const createSession = createServerFn()
 		z.object({
 			campaignId: z.string(),
 			name: z.string().min(1).max(200),
-			summary: z.string(),
-			notes: z.string(),
-			privateNotes: z.string(),
+			summary: z.string().max(5_000),
+			notes: z.string().max(50_000),
+			privateNotes: z.string().max(50_000),
 			isSecret: z.boolean(),
 		}),
 	)
@@ -87,18 +88,25 @@ export const createSession = createServerFn()
 			return err("A session with this name already exists in this campaign.");
 		}
 
-		const [session] = await db
-			.insert(gameSessions)
-			.values({
-				campaignId: data.campaignId,
-				name: data.name,
-				summary: data.summary,
-				notes: data.notes,
-				privateNotes: data.privateNotes,
-				isSecret: data.isSecret,
-			})
-			.returning();
-		return ok(session);
+		try {
+			const [session] = await db
+				.insert(gameSessions)
+				.values({
+					campaignId: data.campaignId,
+					name: data.name,
+					summary: data.summary,
+					notes: data.notes,
+					privateNotes: data.privateNotes,
+					isSecret: data.isSecret,
+				})
+				.returning();
+			return ok(session);
+		} catch (e) {
+			if (isUniqueViolation(e)) {
+				return err("A session with this name already exists in this campaign.");
+			}
+			throw e;
+		}
 	});
 
 export const updateSession = createServerFn()
@@ -107,9 +115,9 @@ export const updateSession = createServerFn()
 			campaignId: z.string(),
 			sessionId: z.string(),
 			name: z.string().min(1).max(200),
-			summary: z.string(),
-			notes: z.string(),
-			privateNotes: z.string(),
+			summary: z.string().max(5_000),
+			notes: z.string().max(50_000),
+			privateNotes: z.string().max(50_000),
 			isSecret: z.boolean(),
 		}),
 	)
@@ -128,24 +136,31 @@ export const updateSession = createServerFn()
 			return err("A session with this name already exists in this campaign.");
 		}
 
-		const [session] = await db
-			.update(gameSessions)
-			.set({
-				name: data.name,
-				summary: data.summary,
-				notes: data.notes,
-				privateNotes: data.privateNotes,
-				isSecret: data.isSecret,
-				updatedAt: new Date(),
-			})
-			.where(
-				and(
-					eq(gameSessions.id, data.sessionId),
-					eq(gameSessions.campaignId, data.campaignId),
-				),
-			)
-			.returning();
-		return ok(session);
+		try {
+			const [session] = await db
+				.update(gameSessions)
+				.set({
+					name: data.name,
+					summary: data.summary,
+					notes: data.notes,
+					privateNotes: data.privateNotes,
+					isSecret: data.isSecret,
+					updatedAt: new Date(),
+				})
+				.where(
+					and(
+						eq(gameSessions.id, data.sessionId),
+						eq(gameSessions.campaignId, data.campaignId),
+					),
+				)
+				.returning();
+			return ok(session);
+		} catch (e) {
+			if (isUniqueViolation(e)) {
+				return err("A session with this name already exists in this campaign.");
+			}
+			throw e;
+		}
 	});
 
 export const deleteSession = createServerFn()

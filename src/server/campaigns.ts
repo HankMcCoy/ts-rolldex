@@ -1,10 +1,14 @@
-import { notFound } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 import { and, eq, isNull, ne, or } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/db/index";
 import { campaigns, gameSessions, members, nouns } from "@/db/schema/index";
-import { requireCampaignAccess, requireSession } from "@/lib/access";
+import {
+	requireCampaign,
+	requireCampaignAccess,
+	requireSession,
+} from "@/lib/access";
+import { isUniqueViolation } from "@/lib/db-errors";
 import { err, ok } from "@/lib/result";
 import { visibilityFilter } from "@/server/query-helpers";
 
@@ -42,24 +46,19 @@ export const getCampaign = createServerFn()
 	.inputValidator(z.object({ campaignId: z.string() }))
 	.handler(async ({ data }) => {
 		const { user } = await requireSession();
-		const accessLevel = await requireCampaignAccess(data.campaignId, user);
-		const campaign = await db.query.campaigns.findFirst({
-			where: eq(campaigns.id, data.campaignId),
-		});
-		if (!campaign) throw notFound();
-		return { campaign, accessLevel };
+		return requireCampaign(data.campaignId, user);
 	});
 
 export const getCampaignDashboard = createServerFn()
 	.inputValidator(z.object({ campaignId: z.string() }))
 	.handler(async ({ data }) => {
 		const { user } = await requireSession();
-		const accessLevel = await requireCampaignAccess(data.campaignId, user);
+		const { campaign, accessLevel } = await requireCampaign(
+			data.campaignId,
+			user,
+		);
 
-		const [campaign, allNouns, recentSessions, allMembers] = await Promise.all([
-			db.query.campaigns.findFirst({
-				where: eq(campaigns.id, data.campaignId),
-			}),
+		const [allNouns, recentSessions, allMembers] = await Promise.all([
 			db.query.nouns.findMany({
 				where: and(
 					eq(nouns.campaignId, data.campaignId),
@@ -82,8 +81,6 @@ export const getCampaignDashboard = createServerFn()
 			}),
 		]);
 
-		if (!campaign) throw notFound();
-
 		const nounCounts = {
 			PERSON: allNouns.filter((n) => n.nounType === "PERSON").length,
 			PLACE: allNouns.filter((n) => n.nounType === "PLACE").length,
@@ -91,18 +88,29 @@ export const getCampaignDashboard = createServerFn()
 			FACTION: allNouns.filter((n) => n.nounType === "FACTION").length,
 		};
 
+		// Hide pending invites and member emails from non-admin viewers.
+		const visibleMembers =
+			accessLevel === "ADMIN"
+				? allMembers
+				: allMembers
+						.filter((m) => m.user)
+						.map((m) => ({ id: m.id, user: { name: m.user?.name ?? "" } }));
+
 		return {
 			campaign,
 			accessLevel,
 			nounCounts,
 			recentSessions,
-			members: allMembers,
+			members: visibleMembers,
 		};
 	});
 
 export const createCampaign = createServerFn()
 	.inputValidator(
-		z.object({ name: z.string().min(1).max(100), summary: z.string() }),
+		z.object({
+			name: z.string().min(1).max(100),
+			summary: z.string().max(5_000),
+		}),
 	)
 	.handler(async ({ data }) => {
 		const { user } = await requireSession();
@@ -117,11 +125,22 @@ export const createCampaign = createServerFn()
 			return err("You already have a campaign with this name.");
 		}
 
-		const [campaign] = await db
-			.insert(campaigns)
-			.values({ name: data.name, summary: data.summary, createdById: user.id })
-			.returning();
-		return ok(campaign);
+		try {
+			const [campaign] = await db
+				.insert(campaigns)
+				.values({
+					name: data.name,
+					summary: data.summary,
+					createdById: user.id,
+				})
+				.returning();
+			return ok(campaign);
+		} catch (e) {
+			if (isUniqueViolation(e)) {
+				return err("You already have a campaign with this name.");
+			}
+			throw e;
+		}
 	});
 
 export const updateCampaign = createServerFn()
@@ -129,7 +148,7 @@ export const updateCampaign = createServerFn()
 		z.object({
 			campaignId: z.string(),
 			name: z.string().min(1).max(100),
-			summary: z.string(),
+			summary: z.string().max(5_000),
 		}),
 	)
 	.handler(async ({ data }) => {
@@ -147,16 +166,23 @@ export const updateCampaign = createServerFn()
 			return err("You already have a campaign with this name.");
 		}
 
-		const [campaign] = await db
-			.update(campaigns)
-			.set({
-				name: data.name,
-				summary: data.summary,
-				updatedAt: new Date(),
-			})
-			.where(eq(campaigns.id, data.campaignId))
-			.returning();
-		return ok(campaign);
+		try {
+			const [campaign] = await db
+				.update(campaigns)
+				.set({
+					name: data.name,
+					summary: data.summary,
+					updatedAt: new Date(),
+				})
+				.where(eq(campaigns.id, data.campaignId))
+				.returning();
+			return ok(campaign);
+		} catch (e) {
+			if (isUniqueViolation(e)) {
+				return err("You already have a campaign with this name.");
+			}
+			throw e;
+		}
 	});
 
 export const deleteCampaign = createServerFn()

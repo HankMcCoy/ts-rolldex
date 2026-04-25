@@ -88,62 +88,44 @@ describe("computeRelatedEntities — apostrophe-s normalization", () => {
 	});
 
 	it("matches the current entity's name in possessive form (reverse direction)", () => {
-		const result = computeRelatedEntities(
-			"current",
-			"Hero",
-			empty,
-			[
-				candidate({
-					id: "c",
-					name: "Castle",
-					text: "Hero's banner flies above.",
-				}),
-			],
-		);
+		const result = computeRelatedEntities("current", "Hero", empty, [
+			candidate({
+				id: "c",
+				name: "Castle",
+				text: "Hero's banner flies above.",
+			}),
+		]);
 		expect(result.map((r) => r.id)).toEqual(["c"]);
 	});
 });
 
 describe("computeRelatedEntities — reverse direction", () => {
 	it("matches when a candidate's text mentions the current entity", () => {
-		const result = computeRelatedEntities(
-			"current",
-			"Hero",
-			empty,
-			[
-				candidate({
-					id: "v",
-					name: "Villain",
-					text: "Defeated by Hero in the final battle.",
-				}),
-			],
-		);
+		const result = computeRelatedEntities("current", "Hero", empty, [
+			candidate({
+				id: "v",
+				name: "Villain",
+				text: "Defeated by Hero in the final battle.",
+			}),
+		]);
 		expect(result.map((r) => r.id)).toEqual(["v"]);
 	});
 
 	it("does not match in reverse when candidate has no text", () => {
-		const result = computeRelatedEntities(
-			"current",
-			"Hero",
-			empty,
-			[candidate({ id: "v", name: "Villain" })],
-		);
+		const result = computeRelatedEntities("current", "Hero", empty, [
+			candidate({ id: "v", name: "Villain" }),
+		]);
 		expect(result).toEqual([]);
 	});
 
 	it("respects word boundaries in reverse direction", () => {
-		const result = computeRelatedEntities(
-			"current",
-			"Cat",
-			empty,
-			[
-				candidate({
-					id: "p",
-					name: "Place",
-					text: "He went to the catacombs.",
-				}),
-			],
-		);
+		const result = computeRelatedEntities("current", "Cat", empty, [
+			candidate({
+				id: "p",
+				name: "Place",
+				text: "He went to the catacombs.",
+			}),
+		]);
 		expect(result).toEqual([]);
 	});
 });
@@ -183,12 +165,9 @@ describe("computeRelatedEntities — regex-special characters", () => {
 	});
 
 	it("does not interpret current name with regex chars as a pattern (reverse)", () => {
-		const result = computeRelatedEntities(
-			"current",
-			"A.B",
-			empty,
-			[candidate({ id: "x", name: "X", text: "AxB was here." })],
-		);
+		const result = computeRelatedEntities("current", "A.B", empty, [
+			candidate({ id: "x", name: "X", text: "AxB was here." }),
+		]);
 		expect(result).toEqual([]);
 	});
 });
@@ -205,19 +184,14 @@ describe("computeRelatedEntities — output shape", () => {
 	});
 
 	it("strips the internal text field from returned entities", () => {
-		const result = computeRelatedEntities(
-			"current",
-			"Hero",
-			empty,
-			[
-				candidate({
-					id: "v",
-					name: "Villain",
-					text: "Hero defeated me.",
-					summary: "The bad guy",
-				}),
-			],
-		);
+		const result = computeRelatedEntities("current", "Hero", empty, [
+			candidate({
+				id: "v",
+				name: "Villain",
+				text: "Hero defeated me.",
+				summary: "The bad guy",
+			}),
+		]);
 		expect(result).toEqual([
 			{
 				id: "v",
