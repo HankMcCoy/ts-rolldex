@@ -24,15 +24,6 @@ export default function Header() {
 					>
 						ROLLDEX
 					</div>
-					<div
-						className="text-[9px] tracking-[0.2em] text-white/40"
-						style={{
-							fontFamily: "ui-monospace, monospace",
-							textTransform: "uppercase",
-						}}
-					>
-						Campaign Compendium
-					</div>
 				</Link>
 
 				<div className="flex items-center gap-5 text-sm font-medium">
