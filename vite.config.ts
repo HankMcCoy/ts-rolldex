@@ -19,14 +19,10 @@ const stripRouteTreeTypeImports = {
   name: 'strip-routetree-type-imports',
   transform(code: string, id: string) {
     if (!id.includes('routeTree.gen')) return
-    if (!ROUTE_TREE_TYPE_IMPORT_RE.test(code)) {
-      // The generated format changed — this plugin may no longer be needed
-      // or may need updating. Remove it if the HMR cycle is gone upstream.
-      throw new Error(
-        '[strip-routetree-type-imports] Expected import type pattern not found in routeTree.gen.ts. ' +
-        'The TanStack Router code-gen format may have changed. Check if this plugin is still needed.'
-      )
-    }
+    // No-op if the pattern is absent (e.g. stale file before codegen runs on startup).
+    // The regex is stateful (g flag) so reset lastIndex before each use.
+    ROUTE_TREE_TYPE_IMPORT_RE.lastIndex = 0
+    if (!ROUTE_TREE_TYPE_IMPORT_RE.test(code)) return
     ROUTE_TREE_TYPE_IMPORT_RE.lastIndex = 0
     return {
       code: code.replace(ROUTE_TREE_TYPE_IMPORT_RE, ''),
