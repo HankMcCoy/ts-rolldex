@@ -2,10 +2,7 @@
   "name": "rolldex",
   "private": true,
   "type": "module",
-  "imports": {
-    "#/*": "./src/*"
-  },
-  "scripts": {
+"scripts": {
     "dev": "vite dev --port 3000",
     "build": "vite build",
     "preview": "vite preview",
