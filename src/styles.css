@@ -168,14 +168,15 @@ body {
 
 /* Content links only — don't touch UI components */
 a:not([data-slot="button"]):not(.nav-link):not([class*="no-underline"]) {
-  color: var(--lagoon-deep);
-  text-decoration-color: oklch(0.52 0.1 192 / 0.4);
+  color: var(--sea-ink);
+  text-decoration-color: oklch(0.2 0.02 60 / 0.35);
   text-decoration-thickness: 1px;
   text-underline-offset: 2px;
 }
 
 a:not([data-slot="button"]):not(.nav-link):not([class*="no-underline"]):hover {
-  color: oklch(0.44 0.1 192);
+  color: var(--sea-ink);
+  text-decoration-color: oklch(0.2 0.02 60 / 0.7);
 }
 
 code {
