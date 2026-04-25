@@ -8,15 +8,15 @@ import { requireCampaignAccess, requireSession } from "@/lib/access";
 /**
  * Called after a new user registers to backfill member rows
  * that were created by email invite before the account existed.
+ * Derives both email and userId from the active session — never trusts the body.
  */
-export const linkMemberAccounts = createServerFn()
-	.inputValidator(z.object({ email: z.string().email(), userId: z.string() }))
-	.handler(async ({ data }) => {
-		await db
-			.update(members)
-			.set({ userId: data.userId })
-			.where(and(eq(members.email, data.email), isNull(members.userId)));
-	});
+export const linkMemberAccounts = createServerFn().handler(async () => {
+	const { user } = await requireSession();
+	await db
+		.update(members)
+		.set({ userId: user.id })
+		.where(and(eq(members.email, user.email), isNull(members.userId)));
+});
 
 export const inviteMember = createServerFn()
 	.inputValidator(

@@ -55,11 +55,10 @@ function RegisterPage() {
 			return;
 		}
 
-		// Backfill member rows for any pre-existing invites matching this email
+		// Backfill member rows for any pre-existing invites matching this email.
+		// Session is already established by signUp; linkMemberAccounts reads it server-side.
 		if (result.data?.user) {
-			await linkMemberAccounts({
-				data: { email: values.email, userId: result.data.user.id },
-			});
+			await linkMemberAccounts({});
 		}
 
 		await navigate({ href: "/campaigns" });
