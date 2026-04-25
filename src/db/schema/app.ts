@@ -18,18 +18,24 @@ export const nounTypeEnum = pgEnum("noun_type", [
 
 export const memberTypeEnum = pgEnum("member_type", ["READ_ONLY"]);
 
-export const campaigns = pgTable("campaigns", {
-	id: text("id")
-		.primaryKey()
-		.$defaultFn(() => crypto.randomUUID()),
-	name: text("name").notNull().unique(),
-	summary: text("summary").notNull().default(""),
-	createdById: text("created_by_id")
-		.notNull()
-		.references(() => users.id, { onDelete: "cascade" }),
-	createdAt: timestamp("created_at").notNull().defaultNow(),
-	updatedAt: timestamp("updated_at").notNull().defaultNow(),
-});
+export const campaigns = pgTable(
+	"campaigns",
+	{
+		id: text("id")
+			.primaryKey()
+			.$defaultFn(() => crypto.randomUUID()),
+		name: text("name").notNull(),
+		summary: text("summary").notNull().default(""),
+		createdById: text("created_by_id")
+			.notNull()
+			.references(() => users.id, { onDelete: "cascade" }),
+		createdAt: timestamp("created_at").notNull().defaultNow(),
+		updatedAt: timestamp("updated_at").notNull().defaultNow(),
+	},
+	(t) => [
+		uniqueIndex("campaigns_creator_name_unique").on(t.createdById, t.name),
+	],
+);
 
 export const nouns = pgTable(
 	"nouns",

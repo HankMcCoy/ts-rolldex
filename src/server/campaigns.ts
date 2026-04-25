@@ -110,10 +110,13 @@ export const createCampaign = createServerFn()
 		const { user } = await requireSession();
 
 		const existing = await db.query.campaigns.findFirst({
-			where: eq(campaigns.name, data.name),
+			where: and(
+				eq(campaigns.name, data.name),
+				eq(campaigns.createdById, user.id),
+			),
 		});
 		if (existing) {
-			return { error: "A campaign with this name already exists." };
+			return { error: "You already have a campaign with this name." };
 		}
 
 		const [campaign] = await db
@@ -138,11 +141,12 @@ export const updateCampaign = createServerFn()
 		const existing = await db.query.campaigns.findFirst({
 			where: and(
 				eq(campaigns.name, data.name),
+				eq(campaigns.createdById, user.id),
 				ne(campaigns.id, data.campaignId),
 			),
 		});
 		if (existing) {
-			return { error: "A campaign with this name already exists." };
+			return { error: "You already have a campaign with this name." };
 		}
 
 		const [campaign] = await db
