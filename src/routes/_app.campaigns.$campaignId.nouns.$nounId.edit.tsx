@@ -5,8 +5,10 @@ import {
 	useRouter,
 } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
+import { useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
+import { EntityImage } from "@/components/EntityImage";
 import { Button } from "@/components/ui/button";
 import {
 	Form,
@@ -21,7 +23,7 @@ import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { zodResolver } from "@/lib/form-resolver";
 import { NOUN_TYPE_LABELS, NOUN_TYPES, nounTypeSchema } from "@/lib/noun-types";
-import { updateNoun } from "@/server/nouns";
+import { removeNounImage, updateNoun, uploadNounImage } from "@/server/nouns";
 
 export const Route = createFileRoute(
 	"/_app/campaigns/$campaignId/nouns/$nounId/edit",
@@ -48,6 +50,13 @@ function EditNounPage() {
 	const navigate = useNavigate();
 	const router = useRouter();
 	const update = useServerFn(updateNoun);
+	const uploadImage = useServerFn(uploadNounImage);
+	const removeImage = useServerFn(removeNounImage);
+
+	const [imageUrl, setImageUrl] = useState<string | null>(noun.imageUrl);
+	const [imageError, setImageError] = useState<string | null>(null);
+	const [imageBusy, setImageBusy] = useState(false);
+	const fileInputRef = useRef<HTMLInputElement>(null);
 
 	const form = useForm<Values>({
 		resolver: zodResolver(schema),
@@ -60,6 +69,47 @@ function EditNounPage() {
 			isSecret: noun.isSecret,
 		},
 	});
+
+	async function handleFileChange(event: React.ChangeEvent<HTMLInputElement>) {
+		const file = event.target.files?.[0];
+		if (!file) return;
+		setImageError(null);
+		setImageBusy(true);
+		try {
+			const formData = new FormData();
+			formData.append("campaignId", campaign.id);
+			formData.append("nounId", noun.id);
+			formData.append("file", file);
+			const result = await uploadImage({ data: formData });
+			if (!result.ok) {
+				setImageError(result.error);
+				return;
+			}
+			setImageUrl(result.value.imageUrl);
+			await router.invalidate();
+		} finally {
+			setImageBusy(false);
+			if (fileInputRef.current) fileInputRef.current.value = "";
+		}
+	}
+
+	async function handleRemoveImage() {
+		setImageError(null);
+		setImageBusy(true);
+		try {
+			const result = await removeImage({
+				data: { campaignId: campaign.id, nounId: noun.id },
+			});
+			if (!result.ok) {
+				setImageError(result.error);
+				return;
+			}
+			setImageUrl(null);
+			await router.invalidate();
+		} finally {
+			setImageBusy(false);
+		}
+	}
 
 	async function onSubmit(values: Values) {
 		const result = await update({
@@ -92,6 +142,45 @@ function EditNounPage() {
 			<div className="island-shell max-w-2xl rounded-2xl p-6">
 				<Form {...form}>
 					<form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+						<div className="space-y-2">
+							<div className="text-sm font-medium">Image</div>
+							<div className="flex items-start gap-4">
+								<div className="w-32 shrink-0">
+									<EntityImage
+										nounType={noun.nounType}
+										imageUrl={imageUrl}
+										name={noun.name}
+									/>
+								</div>
+								<div className="flex flex-col gap-2">
+									<input
+										ref={fileInputRef}
+										type="file"
+										accept="image/jpeg,image/png,image/webp"
+										onChange={handleFileChange}
+										disabled={imageBusy}
+										className="text-sm file:mr-3 file:rounded-md file:border-0 file:bg-secondary file:px-3 file:py-1.5 file:text-sm file:font-medium hover:file:bg-secondary/80 disabled:opacity-50"
+									/>
+									{imageUrl && (
+										<Button
+											type="button"
+											variant="outline"
+											size="sm"
+											onClick={handleRemoveImage}
+											disabled={imageBusy}
+										>
+											Remove image
+										</Button>
+									)}
+									<p className="text-xs text-[var(--sea-ink-soft)]">
+										JPEG, PNG, or WebP. Up to 5 MB.
+									</p>
+									{imageError && (
+										<p className="text-xs text-destructive">{imageError}</p>
+									)}
+								</div>
+							</div>
+						</div>
 						<div className="grid grid-cols-2 gap-4">
 							<FormField
 								control={form.control}

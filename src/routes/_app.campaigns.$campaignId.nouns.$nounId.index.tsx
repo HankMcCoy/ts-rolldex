@@ -7,6 +7,7 @@ import {
 } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { Trash2 } from "lucide-react";
+import { EntityImage } from "@/components/EntityImage";
 import { MarkdownRenderer } from "@/components/MarkdownRenderer";
 import { RelatedEntities } from "@/components/RelatedEntities";
 import { Badge } from "@/components/ui/badge";
@@ -117,11 +118,16 @@ function NounPage() {
 					)}
 				</div>
 
-				{related.length > 0 && (
-					<div className="w-44 shrink-0">
+				<div className="w-44 shrink-0 space-y-6">
+					<EntityImage
+						nounType={noun.nounType}
+						imageUrl={noun.imageUrl}
+						name={noun.name}
+					/>
+					{related.length > 0 && (
 						<RelatedEntities campaignId={campaign.id} related={related} />
-					</div>
-				)}
+					)}
+				</div>
 			</div>
 		</main>
 	);

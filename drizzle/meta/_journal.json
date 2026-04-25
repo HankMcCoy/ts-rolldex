@@ -15,6 +15,13 @@
       "when": 1777082358189,
       "tag": "0001_furry_doorman",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1777147816068,
+      "tag": "0002_round_saracen",
+      "breakpoints": true
     }
   ]
 }

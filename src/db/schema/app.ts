@@ -49,6 +49,7 @@ export const nouns = pgTable(
 		notes: text("notes").notNull().default(""),
 		privateNotes: text("private_notes").notNull().default(""),
 		isSecret: boolean("is_secret").notNull().default(false),
+		imageKey: text("image_key"),
 		createdAt: timestamp("created_at").notNull().defaultNow(),
 		updatedAt: timestamp("updated_at").notNull().defaultNow(),
 	},
