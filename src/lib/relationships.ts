@@ -4,6 +4,7 @@ export interface CandidateEntity {
 	id: string;
 	name: string;
 	entityType: EntityType;
+	summary?: string; // shown in hover preview
 	text?: string; // summary + notes, used for reverse-direction lookup
 }
 

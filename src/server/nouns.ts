@@ -102,6 +102,7 @@ export const getNoun = createServerFn()
 				id: n.id,
 				name: n.name,
 				entityType: n.nounType as CandidateEntity["entityType"],
+				summary: n.summary,
 				text: includePrivate
 					? `${n.summary} ${n.notes} ${n.privateNotes}`
 					: `${n.summary} ${n.notes}`,
@@ -110,6 +111,7 @@ export const getNoun = createServerFn()
 				id: s.id,
 				name: s.name,
 				entityType: "SESSION" as const,
+				summary: s.summary,
 				text: includePrivate
 					? `${s.summary} ${s.notes} ${s.privateNotes}`
 					: `${s.summary} ${s.notes}`,
