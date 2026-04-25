@@ -1,5 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
-import { and, eq, ne, or } from "drizzle-orm";
+import { and, eq, isNull, ne, or } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/db/index";
 import { campaigns, members } from "@/db/schema/index";
@@ -8,9 +8,14 @@ import { requireCampaignAccess, requireSession } from "@/lib/access";
 export const getCampaigns = createServerFn().handler(async () => {
 	const { user } = await requireSession();
 
-	// All campaigns the user created or is a member of
+	// All campaigns the user created or is a member of.
+	// Email fallback (userId IS NULL) handles invite-before-account rows only —
+	// once linked, the userId match is authoritative.
 	const memberCampaignIds = await db.query.members.findMany({
-		where: or(eq(members.userId, user.id), eq(members.email, user.email)),
+		where: or(
+			eq(members.userId, user.id),
+			and(eq(members.email, user.email), isNull(members.userId)),
+		),
 		columns: { campaignId: true },
 	});
 
