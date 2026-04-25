@@ -1,4 +1,5 @@
 import { Link, useNavigate } from "@tanstack/react-router";
+import { LogOut } from "lucide-react";
 import { signOut, useSession } from "@/lib/auth-client";
 
 export default function Header() {
@@ -61,9 +62,11 @@ export default function Header() {
 						<button
 							type="button"
 							onClick={handleSignOut}
-							className="rounded border border-white/25 px-3 py-1 text-sm text-white/80 transition hover:border-white/50 hover:text-white"
+							title="Sign out"
+							aria-label="Sign out"
+							className="rounded p-1.5 text-white/35 transition hover:text-white/75"
 						>
-							Sign Out
+							<LogOut className="size-4" />
 						</button>
 					</div>
 				)}

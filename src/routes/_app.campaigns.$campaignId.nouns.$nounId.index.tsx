@@ -6,6 +6,7 @@ import {
 	useRouter,
 } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
+import { Trash2 } from "lucide-react";
 import { MarkdownRenderer } from "@/components/MarkdownRenderer";
 import { RelatedEntities } from "@/components/RelatedEntities";
 import { Badge } from "@/components/ui/badge";
@@ -70,14 +71,15 @@ function NounPage() {
 										Edit
 									</Link>
 								</Button>
-								<Button
-									variant="outline"
-									size="sm"
-									className="text-destructive hover:text-destructive"
+								<button
+									type="button"
 									onClick={handleDelete}
+									title="Delete entity"
+									aria-label="Delete entity"
+									className="rounded p-1.5 text-[var(--sea-ink-soft)] transition hover:text-destructive"
 								>
-									Delete
-								</Button>
+									<Trash2 className="size-4" />
+								</button>
 							</div>
 						)}
 					</div>
