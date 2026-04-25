@@ -63,7 +63,13 @@ export const getSession = createServerFn()
 						eq(n.campaignId, data.campaignId),
 						accessLevel === "READ_ONLY" ? eq(n.isSecret, false) : undefined,
 					),
-				columns: { id: true, name: true, nounType: true },
+				columns: {
+					id: true,
+					name: true,
+					nounType: true,
+					summary: true,
+					notes: true,
+				},
 			}),
 			db.query.gameSessions.findMany({
 				where: (s, { and, eq }) =>
@@ -71,7 +77,7 @@ export const getSession = createServerFn()
 						eq(s.campaignId, data.campaignId),
 						accessLevel === "READ_ONLY" ? eq(s.isSecret, false) : undefined,
 					),
-				columns: { id: true, name: true },
+				columns: { id: true, name: true, summary: true, notes: true },
 			}),
 		]);
 
@@ -80,15 +86,22 @@ export const getSession = createServerFn()
 				id: n.id,
 				name: n.name,
 				entityType: n.nounType as CandidateEntity["entityType"],
+				text: `${n.summary} ${n.notes}`,
 			})),
 			...allSessions.map((s) => ({
 				id: s.id,
 				name: s.name,
 				entityType: "SESSION" as const,
+				text: `${s.summary} ${s.notes}`,
 			})),
 		];
 
-		const related = computeRelatedEntities(session.id, result, candidates);
+		const related = computeRelatedEntities(
+			session.id,
+			session.name,
+			result,
+			candidates,
+		);
 
 		return { session: result, accessLevel, related };
 	});
