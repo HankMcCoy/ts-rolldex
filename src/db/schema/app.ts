@@ -8,6 +8,7 @@ import {
 	uniqueIndex,
 } from "drizzle-orm/pg-core";
 import { users } from "./auth";
+import { idColumn } from "./columns";
 
 export const nounTypeEnum = pgEnum("noun_type", [
 	"PERSON",
@@ -21,9 +22,7 @@ export const memberTypeEnum = pgEnum("member_type", ["READ_ONLY"]);
 export const campaigns = pgTable(
 	"campaigns",
 	{
-		id: text("id")
-			.primaryKey()
-			.$defaultFn(() => crypto.randomUUID()),
+		id: idColumn(),
 		name: text("name").notNull(),
 		summary: text("summary").notNull().default(""),
 		createdById: text("created_by_id")
@@ -40,9 +39,7 @@ export const campaigns = pgTable(
 export const nouns = pgTable(
 	"nouns",
 	{
-		id: text("id")
-			.primaryKey()
-			.$defaultFn(() => crypto.randomUUID()),
+		id: idColumn(),
 		campaignId: text("campaign_id")
 			.notNull()
 			.references(() => campaigns.id, { onDelete: "cascade" }),
@@ -61,9 +58,7 @@ export const nouns = pgTable(
 export const gameSessions = pgTable(
 	"game_sessions",
 	{
-		id: text("id")
-			.primaryKey()
-			.$defaultFn(() => crypto.randomUUID()),
+		id: idColumn(),
 		campaignId: text("campaign_id")
 			.notNull()
 			.references(() => campaigns.id, { onDelete: "cascade" }),
@@ -83,9 +78,7 @@ export const gameSessions = pgTable(
 export const members = pgTable(
 	"members",
 	{
-		id: text("id")
-			.primaryKey()
-			.$defaultFn(() => crypto.randomUUID()),
+		id: idColumn(),
 		campaignId: text("campaign_id")
 			.notNull()
 			.references(() => campaigns.id, { onDelete: "cascade" }),
