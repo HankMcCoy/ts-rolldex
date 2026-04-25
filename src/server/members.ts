@@ -15,7 +15,9 @@ export const linkMemberAccounts = createServerFn().handler(async () => {
 	await db
 		.update(members)
 		.set({ userId: user.id })
-		.where(and(eq(members.email, user.email), isNull(members.userId)));
+		.where(
+			and(eq(members.email, user.email.toLowerCase()), isNull(members.userId)),
+		);
 });
 
 export const inviteMember = createServerFn()
@@ -26,10 +28,12 @@ export const inviteMember = createServerFn()
 		const { user } = await requireSession();
 		await requireCampaignAccess(data.campaignId, user.id, user.email, "ADMIN");
 
+		const normalizedEmail = data.email.toLowerCase();
+
 		const existing = await db.query.members.findFirst({
 			where: and(
 				eq(members.campaignId, data.campaignId),
-				eq(members.email, data.email),
+				eq(members.email, normalizedEmail),
 			),
 		});
 
@@ -39,7 +43,7 @@ export const inviteMember = createServerFn()
 
 		await db.insert(members).values({
 			campaignId: data.campaignId,
-			email: data.email,
+			email: normalizedEmail,
 		});
 
 		return { success: true };
@@ -50,6 +54,13 @@ export const removeMember = createServerFn()
 	.handler(async ({ data }) => {
 		const { user } = await requireSession();
 		await requireCampaignAccess(data.campaignId, user.id, user.email, "ADMIN");
-		await db.delete(members).where(eq(members.id, data.memberId));
+		await db
+			.delete(members)
+			.where(
+				and(
+					eq(members.id, data.memberId),
+					eq(members.campaignId, data.campaignId),
+				),
+			);
 		return { success: true };
 	});

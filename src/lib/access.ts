@@ -74,7 +74,7 @@ export async function getCampaignAccess(
 			eq(members.campaignId, campaignId),
 			or(
 				eq(members.userId, userId),
-				and(eq(members.email, userEmail), isNull(members.userId)),
+				and(eq(members.email, userEmail.toLowerCase()), isNull(members.userId)),
 			),
 		),
 	});

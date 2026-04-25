@@ -14,7 +14,7 @@ export const getCampaigns = createServerFn().handler(async () => {
 	const memberCampaignIds = await db.query.members.findMany({
 		where: or(
 			eq(members.userId, user.id),
-			and(eq(members.email, user.email), isNull(members.userId)),
+			and(eq(members.email, user.email.toLowerCase()), isNull(members.userId)),
 		),
 		columns: { campaignId: true },
 	});
