@@ -26,7 +26,7 @@ export const inviteMember = createServerFn()
 	)
 	.handler(async ({ data }) => {
 		const { user } = await requireSession();
-		await requireCampaignAccess(data.campaignId, user.id, user.email, "ADMIN");
+		await requireCampaignAccess(data.campaignId, user, "ADMIN");
 
 		const normalizedEmail = data.email.toLowerCase();
 
@@ -53,7 +53,7 @@ export const removeMember = createServerFn()
 	.inputValidator(z.object({ campaignId: z.string(), memberId: z.string() }))
 	.handler(async ({ data }) => {
 		const { user } = await requireSession();
-		await requireCampaignAccess(data.campaignId, user.id, user.email, "ADMIN");
+		await requireCampaignAccess(data.campaignId, user, "ADMIN");
 		await db
 			.delete(members)
 			.where(

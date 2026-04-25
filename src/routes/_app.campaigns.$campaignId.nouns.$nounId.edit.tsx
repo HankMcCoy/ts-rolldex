@@ -20,7 +20,7 @@ import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { zodResolver } from "@/lib/form-resolver";
-import { NOUN_TYPES, nounTypeSchema } from "@/lib/noun-types";
+import { NOUN_TYPE_LABELS, NOUN_TYPES, nounTypeSchema } from "@/lib/noun-types";
 import { updateNoun } from "@/server/nouns";
 
 export const Route = createFileRoute(
@@ -119,7 +119,7 @@ function EditNounPage() {
 											>
 												{NOUN_TYPES.map((t) => (
 													<option key={t} value={t}>
-														{t.charAt(0) + t.slice(1).toLowerCase()}
+														{NOUN_TYPE_LABELS[t]}
 													</option>
 												))}
 											</select>

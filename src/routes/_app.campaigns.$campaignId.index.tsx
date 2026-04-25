@@ -8,7 +8,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { NOUN_TYPES } from "@/lib/noun-types";
+import { NOUN_TYPE_LABELS, NOUN_TYPES } from "@/lib/noun-types";
 import { getCampaignDashboard } from "@/server/campaigns";
 import { removeMember } from "@/server/members";
 
@@ -62,7 +62,7 @@ function CampaignDashboard() {
 						>
 							<div className="text-2xl font-bold">{nounCounts[type]}</div>
 							<div className="text-sm capitalize text-[var(--sea-ink-soft)]">
-								{type.charAt(0) + type.slice(1).toLowerCase()}s
+								{NOUN_TYPE_LABELS[type]}s
 							</div>
 						</Link>
 					))}
@@ -76,7 +76,7 @@ function CampaignDashboard() {
 									params={{ campaignId: campaign.id }}
 									search={{ type }}
 								>
-									+ {type.charAt(0) + type.slice(1).toLowerCase()}
+									+ {NOUN_TYPE_LABELS[type]}
 								</Link>
 							</Button>
 						))}

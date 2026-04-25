@@ -5,27 +5,23 @@ import { z } from "zod";
 import { db } from "@/db/index";
 import { gameSessions } from "@/db/schema/index";
 import { requireCampaignAccess, requireSession } from "@/lib/access";
+import { computeRelatedEntities } from "@/lib/relationships";
 import {
-	type CandidateEntity,
-	computeRelatedEntities,
-} from "@/lib/relationships";
+	loadCampaignCandidates,
+	visibilityFilter,
+} from "@/server/query-helpers";
 
 export const getSessions = createServerFn()
 	.inputValidator(z.object({ campaignId: z.string() }))
 	.handler(async ({ data }) => {
 		const { user } = await requireSession();
-		const accessLevel = await requireCampaignAccess(
-			data.campaignId,
-			user.id,
-			user.email,
-		);
+		const accessLevel = await requireCampaignAccess(data.campaignId, user);
 
 		return db.query.gameSessions.findMany({
-			where: (s, { and, eq }) =>
-				and(
-					eq(s.campaignId, data.campaignId),
-					accessLevel === "READ_ONLY" ? eq(s.isSecret, false) : undefined,
-				),
+			where: and(
+				eq(gameSessions.campaignId, data.campaignId),
+				visibilityFilter(gameSessions.isSecret, accessLevel),
+			),
 			orderBy: (s, { desc }) => desc(s.createdAt),
 		});
 	});
@@ -34,11 +30,7 @@ export const getSession = createServerFn()
 	.inputValidator(z.object({ campaignId: z.string(), sessionId: z.string() }))
 	.handler(async ({ data }) => {
 		const { user } = await requireSession();
-		const accessLevel = await requireCampaignAccess(
-			data.campaignId,
-			user.id,
-			user.email,
-		);
+		const accessLevel = await requireCampaignAccess(data.campaignId, user);
 
 		const session = await db.query.gameSessions.findFirst({
 			where: and(
@@ -55,61 +47,10 @@ export const getSession = createServerFn()
 			result.privateNotes = "";
 		}
 
-		// Fetch all visible entities for relationship computation
-		const [allNouns, allSessions] = await Promise.all([
-			db.query.nouns.findMany({
-				where: (n, { and, eq }) =>
-					and(
-						eq(n.campaignId, data.campaignId),
-						accessLevel === "READ_ONLY" ? eq(n.isSecret, false) : undefined,
-					),
-				columns: {
-					id: true,
-					name: true,
-					nounType: true,
-					summary: true,
-					notes: true,
-					privateNotes: true,
-				},
-			}),
-			db.query.gameSessions.findMany({
-				where: (s, { and, eq }) =>
-					and(
-						eq(s.campaignId, data.campaignId),
-						accessLevel === "READ_ONLY" ? eq(s.isSecret, false) : undefined,
-					),
-				columns: {
-					id: true,
-					name: true,
-					summary: true,
-					notes: true,
-					privateNotes: true,
-				},
-			}),
-		]);
-
-		const includePrivate = accessLevel !== "READ_ONLY";
-		const candidates: CandidateEntity[] = [
-			...allNouns.map((n) => ({
-				id: n.id,
-				name: n.name,
-				entityType: n.nounType as CandidateEntity["entityType"],
-				summary: n.summary,
-				text: includePrivate
-					? `${n.summary} ${n.notes} ${n.privateNotes}`
-					: `${n.summary} ${n.notes}`,
-			})),
-			...allSessions.map((s) => ({
-				id: s.id,
-				name: s.name,
-				entityType: "SESSION" as const,
-				summary: s.summary,
-				text: includePrivate
-					? `${s.summary} ${s.notes} ${s.privateNotes}`
-					: `${s.summary} ${s.notes}`,
-			})),
-		];
-
+		const candidates = await loadCampaignCandidates(
+			data.campaignId,
+			accessLevel,
+		);
 		const related = computeRelatedEntities(
 			session.id,
 			session.name,
@@ -133,7 +74,7 @@ export const createSession = createServerFn()
 	)
 	.handler(async ({ data }) => {
 		const { user } = await requireSession();
-		await requireCampaignAccess(data.campaignId, user.id, user.email, "ADMIN");
+		await requireCampaignAccess(data.campaignId, user, "ADMIN");
 
 		const existing = await db.query.gameSessions.findFirst({
 			where: and(
@@ -175,7 +116,7 @@ export const updateSession = createServerFn()
 	)
 	.handler(async ({ data }) => {
 		const { user } = await requireSession();
-		await requireCampaignAccess(data.campaignId, user.id, user.email, "ADMIN");
+		await requireCampaignAccess(data.campaignId, user, "ADMIN");
 
 		const existing = await db.query.gameSessions.findFirst({
 			where: and(
@@ -214,7 +155,7 @@ export const deleteSession = createServerFn()
 	.inputValidator(z.object({ campaignId: z.string(), sessionId: z.string() }))
 	.handler(async ({ data }) => {
 		const { user } = await requireSession();
-		await requireCampaignAccess(data.campaignId, user.id, user.email, "ADMIN");
+		await requireCampaignAccess(data.campaignId, user, "ADMIN");
 		await db
 			.delete(gameSessions)
 			.where(

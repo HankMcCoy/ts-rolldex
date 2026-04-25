@@ -11,6 +11,7 @@ import {
 	CommandList,
 	CommandSeparator,
 } from "@/components/ui/command";
+import { NOUN_TYPE_LABELS } from "@/lib/noun-types";
 import { quickFind } from "@/server/search";
 
 interface Props {
@@ -90,7 +91,11 @@ export function QuickFindDialog({ campaignId }: Props) {
 								>
 									<span>{n.name}</span>
 									<span className="ml-auto text-xs text-muted-foreground">
-										{n.nounType.charAt(0) + n.nounType.slice(1).toLowerCase()}
+										{
+											NOUN_TYPE_LABELS[
+												n.nounType as keyof typeof NOUN_TYPE_LABELS
+											]
+										}
 									</span>
 								</CommandItem>
 							))}

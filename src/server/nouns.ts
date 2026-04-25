@@ -6,10 +6,8 @@ import { db } from "@/db/index";
 import { nouns } from "@/db/schema/index";
 import { requireCampaignAccess, requireSession } from "@/lib/access";
 import { nounTypeSchema } from "@/lib/noun-types";
-import {
-	type CandidateEntity,
-	computeRelatedEntities,
-} from "@/lib/relationships";
+import { computeRelatedEntities } from "@/lib/relationships";
+import { loadCampaignCandidates, visibilityFilter } from "@/server/query-helpers";
 
 export const getNouns = createServerFn()
 	.inputValidator(
@@ -20,19 +18,14 @@ export const getNouns = createServerFn()
 	)
 	.handler(async ({ data }) => {
 		const { user } = await requireSession();
-		const accessLevel = await requireCampaignAccess(
-			data.campaignId,
-			user.id,
-			user.email,
-		);
+		const accessLevel = await requireCampaignAccess(data.campaignId, user);
 
 		return db.query.nouns.findMany({
-			where: (n, { and, eq }) =>
-				and(
-					eq(n.campaignId, data.campaignId),
-					data.nounType ? eq(n.nounType, data.nounType) : undefined,
-					accessLevel === "READ_ONLY" ? eq(n.isSecret, false) : undefined,
-				),
+			where: and(
+				eq(nouns.campaignId, data.campaignId),
+				data.nounType ? eq(nouns.nounType, data.nounType) : undefined,
+				visibilityFilter(nouns.isSecret, accessLevel),
+			),
 			orderBy: (n, { asc }) => asc(n.name),
 		});
 	});
@@ -41,88 +34,20 @@ export const getNoun = createServerFn()
 	.inputValidator(z.object({ campaignId: z.string(), nounId: z.string() }))
 	.handler(async ({ data }) => {
 		const { user } = await requireSession();
-		const accessLevel = await requireCampaignAccess(
-			data.campaignId,
-			user.id,
-			user.email,
-		);
+		const accessLevel = await requireCampaignAccess(data.campaignId, user);
 
 		const noun = await db.query.nouns.findFirst({
-			where: and(
-				eq(nouns.id, data.nounId),
-				eq(nouns.campaignId, data.campaignId),
-			),
+			where: and(eq(nouns.id, data.nounId), eq(nouns.campaignId, data.campaignId)),
 		});
 
 		if (!noun) throw notFound();
 		if (accessLevel === "READ_ONLY" && noun.isSecret) throw notFound();
 
 		const result = { ...noun };
-		if (accessLevel === "READ_ONLY") {
-			result.privateNotes = "";
-		}
+		if (accessLevel === "READ_ONLY") result.privateNotes = "";
 
-		// Fetch all visible entities for relationship computation
-		const [allNouns, allSessions] = await Promise.all([
-			db.query.nouns.findMany({
-				where: (n, { and, eq }) =>
-					and(
-						eq(n.campaignId, data.campaignId),
-						accessLevel === "READ_ONLY" ? eq(n.isSecret, false) : undefined,
-					),
-				columns: {
-					id: true,
-					name: true,
-					nounType: true,
-					summary: true,
-					notes: true,
-					privateNotes: true,
-				},
-			}),
-			db.query.gameSessions.findMany({
-				where: (s, { and, eq }) =>
-					and(
-						eq(s.campaignId, data.campaignId),
-						accessLevel === "READ_ONLY" ? eq(s.isSecret, false) : undefined,
-					),
-				columns: {
-					id: true,
-					name: true,
-					summary: true,
-					notes: true,
-					privateNotes: true,
-				},
-			}),
-		]);
-
-		const includePrivate = accessLevel !== "READ_ONLY";
-		const candidates: CandidateEntity[] = [
-			...allNouns.map((n) => ({
-				id: n.id,
-				name: n.name,
-				entityType: n.nounType as CandidateEntity["entityType"],
-				summary: n.summary,
-				text: includePrivate
-					? `${n.summary} ${n.notes} ${n.privateNotes}`
-					: `${n.summary} ${n.notes}`,
-			})),
-			...allSessions.map((s) => ({
-				id: s.id,
-				name: s.name,
-				entityType: "SESSION" as const,
-				summary: s.summary,
-				text: includePrivate
-					? `${s.summary} ${s.notes} ${s.privateNotes}`
-					: `${s.summary} ${s.notes}`,
-			})),
-		];
-
-		const related = computeRelatedEntities(
-			noun.id,
-			noun.name,
-			result,
-			candidates,
-		);
+		const candidates = await loadCampaignCandidates(data.campaignId, accessLevel);
+		const related = computeRelatedEntities(noun.id, noun.name, result, candidates);
 
 		return { noun: result, accessLevel, related };
 	});
@@ -141,18 +66,13 @@ export const createNoun = createServerFn()
 	)
 	.handler(async ({ data }) => {
 		const { user } = await requireSession();
-		await requireCampaignAccess(data.campaignId, user.id, user.email, "ADMIN");
+		await requireCampaignAccess(data.campaignId, user, "ADMIN");
 
 		const existing = await db.query.nouns.findFirst({
-			where: and(
-				eq(nouns.campaignId, data.campaignId),
-				eq(nouns.name, data.name),
-			),
+			where: and(eq(nouns.campaignId, data.campaignId), eq(nouns.name, data.name)),
 		});
 		if (existing) {
-			return {
-				error: "A noun with this name already exists in this campaign.",
-			};
+			return { error: "A noun with this name already exists in this campaign." };
 		}
 
 		const [noun] = await db
@@ -185,7 +105,7 @@ export const updateNoun = createServerFn()
 	)
 	.handler(async ({ data }) => {
 		const { user } = await requireSession();
-		await requireCampaignAccess(data.campaignId, user.id, user.email, "ADMIN");
+		await requireCampaignAccess(data.campaignId, user, "ADMIN");
 
 		const existing = await db.query.nouns.findFirst({
 			where: and(
@@ -195,9 +115,7 @@ export const updateNoun = createServerFn()
 			),
 		});
 		if (existing) {
-			return {
-				error: "A noun with this name already exists in this campaign.",
-			};
+			return { error: "A noun with this name already exists in this campaign." };
 		}
 
 		const [noun] = await db
@@ -211,9 +129,7 @@ export const updateNoun = createServerFn()
 				isSecret: data.isSecret,
 				updatedAt: new Date(),
 			})
-			.where(
-				and(eq(nouns.id, data.nounId), eq(nouns.campaignId, data.campaignId)),
-			)
+			.where(and(eq(nouns.id, data.nounId), eq(nouns.campaignId, data.campaignId)))
 			.returning();
 		return { noun };
 	});
@@ -222,11 +138,9 @@ export const deleteNoun = createServerFn()
 	.inputValidator(z.object({ campaignId: z.string(), nounId: z.string() }))
 	.handler(async ({ data }) => {
 		const { user } = await requireSession();
-		await requireCampaignAccess(data.campaignId, user.id, user.email, "ADMIN");
+		await requireCampaignAccess(data.campaignId, user, "ADMIN");
 		await db
 			.delete(nouns)
-			.where(
-				and(eq(nouns.id, data.nounId), eq(nouns.campaignId, data.campaignId)),
-			);
+			.where(and(eq(nouns.id, data.nounId), eq(nouns.campaignId, data.campaignId)));
 		return { success: true };
 	});

@@ -59,22 +59,21 @@ export async function getOptionalSession(): Promise<{
  */
 export async function getCampaignAccess(
 	campaignId: string,
-	userId: string,
-	userEmail: string,
+	user: Pick<SessionUser, "id" | "email">,
 ): Promise<AccessLevel> {
 	const campaign = await db.query.campaigns.findFirst({
 		where: eq(campaigns.id, campaignId),
 	});
 
 	if (!campaign) return "NONE";
-	if (campaign.createdById === userId) return "ADMIN";
+	if (campaign.createdById === user.id) return "ADMIN";
 
 	const member = await db.query.members.findFirst({
 		where: and(
 			eq(members.campaignId, campaignId),
 			or(
-				eq(members.userId, userId),
-				and(eq(members.email, userEmail.toLowerCase()), isNull(members.userId)),
+				eq(members.userId, user.id),
+				and(eq(members.email, user.email.toLowerCase()), isNull(members.userId)),
 			),
 		),
 	});
@@ -88,11 +87,10 @@ export async function getCampaignAccess(
  */
 export async function requireCampaignAccess(
 	campaignId: string,
-	userId: string,
-	userEmail: string,
+	user: Pick<SessionUser, "id" | "email">,
 	minimumLevel: "ADMIN" | "READ_ONLY" = "READ_ONLY",
 ): Promise<"ADMIN" | "READ_ONLY"> {
-	const access = await getCampaignAccess(campaignId, userId, userEmail);
+	const access = await getCampaignAccess(campaignId, user);
 
 	if (access === "NONE") {
 		throw notFound();

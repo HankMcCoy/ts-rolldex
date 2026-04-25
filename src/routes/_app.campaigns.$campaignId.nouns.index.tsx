@@ -2,7 +2,7 @@ import { createFileRoute, getRouteApi, Link } from "@tanstack/react-router";
 import { z } from "zod";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { NOUN_TYPES, nounTypeSchema } from "@/lib/noun-types";
+import { NOUN_TYPE_LABELS, NOUN_TYPES, nounTypeSchema } from "@/lib/noun-types";
 import { getNouns } from "@/server/nouns";
 
 export const Route = createFileRoute("/_app/campaigns/$campaignId/nouns/")({
@@ -21,9 +21,7 @@ function NounsPage() {
 	const { type } = Route.useSearch();
 
 	const isAdmin = accessLevel === "ADMIN";
-	const label = type
-		? `${type.charAt(0)}${type.slice(1).toLowerCase()}s`
-		: "All entities";
+	const label = type ? `${NOUN_TYPE_LABELS[type]}s` : "All entities";
 
 	return (
 		<main className="page-wrap px-4 py-10">
@@ -72,7 +70,7 @@ function NounsPage() {
 							params={{ campaignId: campaign.id }}
 							search={{ type: t }}
 						>
-							{t.charAt(0) + t.slice(1).toLowerCase()}s
+							{NOUN_TYPE_LABELS[t]}s
 						</Link>
 					</Button>
 				))}
@@ -100,8 +98,7 @@ function NounsPage() {
 								<div className="flex items-center gap-2">
 									{noun.isSecret && <Badge variant="secondary">Secret</Badge>}
 									<Badge variant="outline">
-										{noun.nounType.charAt(0) +
-											noun.nounType.slice(1).toLowerCase()}
+										{NOUN_TYPE_LABELS[noun.nounType]}
 									</Badge>
 								</div>
 							</Link>

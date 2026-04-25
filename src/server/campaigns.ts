@@ -3,8 +3,9 @@ import { createServerFn } from "@tanstack/react-start";
 import { and, eq, isNull, ne, or } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/db/index";
-import { campaigns, members } from "@/db/schema/index";
+import { campaigns, gameSessions, members, nouns } from "@/db/schema/index";
 import { requireCampaignAccess, requireSession } from "@/lib/access";
+import { visibilityFilter } from "@/server/query-helpers";
 
 export const getCampaigns = createServerFn().handler(async () => {
 	const { user } = await requireSession();
@@ -40,11 +41,7 @@ export const getCampaign = createServerFn()
 	.inputValidator(z.object({ campaignId: z.string() }))
 	.handler(async ({ data }) => {
 		const { user } = await requireSession();
-		const accessLevel = await requireCampaignAccess(
-			data.campaignId,
-			user.id,
-			user.email,
-		);
+		const accessLevel = await requireCampaignAccess(data.campaignId, user);
 		const campaign = await db.query.campaigns.findFirst({
 			where: eq(campaigns.id, data.campaignId),
 		});
@@ -56,30 +53,24 @@ export const getCampaignDashboard = createServerFn()
 	.inputValidator(z.object({ campaignId: z.string() }))
 	.handler(async ({ data }) => {
 		const { user } = await requireSession();
-		const accessLevel = await requireCampaignAccess(
-			data.campaignId,
-			user.id,
-			user.email,
-		);
+		const accessLevel = await requireCampaignAccess(data.campaignId, user);
 
 		const [campaign, allNouns, recentSessions, allMembers] = await Promise.all([
 			db.query.campaigns.findFirst({
 				where: eq(campaigns.id, data.campaignId),
 			}),
 			db.query.nouns.findMany({
-				where: (n, { and, eq }) =>
-					and(
-						eq(n.campaignId, data.campaignId),
-						accessLevel === "READ_ONLY" ? eq(n.isSecret, false) : undefined,
-					),
+				where: and(
+					eq(nouns.campaignId, data.campaignId),
+					visibilityFilter(nouns.isSecret, accessLevel),
+				),
 				columns: { id: true, nounType: true },
 			}),
 			db.query.gameSessions.findMany({
-				where: (s, { and, eq }) =>
-					and(
-						eq(s.campaignId, data.campaignId),
-						accessLevel === "READ_ONLY" ? eq(s.isSecret, false) : undefined,
-					),
+				where: and(
+					eq(gameSessions.campaignId, data.campaignId),
+					visibilityFilter(gameSessions.isSecret, accessLevel),
+				),
 				orderBy: (s, { desc }) => desc(s.createdAt),
 				limit: 5,
 				columns: { id: true, name: true, summary: true, createdAt: true },
@@ -142,7 +133,7 @@ export const updateCampaign = createServerFn()
 	)
 	.handler(async ({ data }) => {
 		const { user } = await requireSession();
-		await requireCampaignAccess(data.campaignId, user.id, user.email, "ADMIN");
+		await requireCampaignAccess(data.campaignId, user, "ADMIN");
 
 		const existing = await db.query.campaigns.findFirst({
 			where: and(
@@ -171,7 +162,7 @@ export const deleteCampaign = createServerFn()
 	.inputValidator(z.object({ campaignId: z.string() }))
 	.handler(async ({ data }) => {
 		const { user } = await requireSession();
-		await requireCampaignAccess(data.campaignId, user.id, user.email, "ADMIN");
+		await requireCampaignAccess(data.campaignId, user, "ADMIN");
 		await db.delete(campaigns).where(eq(campaigns.id, data.campaignId));
 		return { success: true };
 	});

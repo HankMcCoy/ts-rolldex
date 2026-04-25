@@ -12,6 +12,7 @@ import { RelatedEntities } from "@/components/RelatedEntities";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
+import { NOUN_TYPE_LABELS } from "@/lib/noun-types";
 import { deleteNoun } from "@/server/nouns";
 
 export const Route = createFileRoute(
@@ -31,8 +32,7 @@ function NounPage() {
 	const remove = useServerFn(deleteNoun);
 
 	const isAdmin = accessLevel === "ADMIN";
-	const typeLabel =
-		noun.nounType.charAt(0) + noun.nounType.slice(1).toLowerCase();
+	const typeLabel = NOUN_TYPE_LABELS[noun.nounType];
 
 	async function handleDelete() {
 		if (!confirm(`Delete "${noun.name}"? This cannot be undone.`)) return;
