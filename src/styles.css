@@ -1,4 +1,4 @@
-@import url("https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700&family=Manrope:wght@400;500;600;700;800&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Fraunces:opsz,wght@9..144,500;9..144,700&family=Manrope:wght@400;500;600;700;800&display=swap");
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
@@ -8,6 +8,7 @@
 @plugin "@tailwindcss/typography";
 
 @theme inline {
+  --font-display: 'Bebas Neue', Impact, sans-serif;
   --font-heading: var(--font-sans);
   --font-sans: 'Geist Variable', sans-serif;
   --color-sidebar-ring: var(--sidebar-ring);
@@ -52,22 +53,29 @@
 
 /* ── Custom brand tokens ── */
 :root {
-  --sea-ink: oklch(0.22 0.04 200);
-  --sea-ink-soft: oklch(0.42 0.04 200);
+  --sea-ink: oklch(0.2 0.02 60);
+  --sea-ink-soft: oklch(0.45 0.02 60);
   --lagoon: oklch(0.68 0.1 190);
   --lagoon-deep: oklch(0.52 0.1 192);
-  --line: oklch(0 0 0 / 0.1);
-  --surface: oklch(1 0 0 / 0.78);
-  --surface-strong: oklch(1 0 0 / 0.92);
-  --inset-glint: oklch(1 0 0 / 0.82);
-  --kicker: oklch(0.42 0.08 155);
-  --header-bg: oklch(0.99 0 0 / 0.88);
+  --line: oklch(0 0 0 / 0.12);
+  --surface: oklch(0.97 0.01 75 / 0.9);
+  --surface-strong: oklch(0.99 0.005 75);
+  --inset-glint: oklch(1 0 0 / 0.7);
+  --kicker: oklch(0.42 0.02 60);
+  --header-bg: oklch(0.1 0.005 50);
   --chip-bg: oklch(1 0 0 / 0.8);
-  --chip-line: oklch(0.42 0.08 155 / 0.18);
+  --chip-line: oklch(0.42 0.02 60 / 0.2);
   --link-bg-hover: oklch(1 0 0 / 0.9);
 
+  /* Dark campaign card tokens */
+  --card-dark-bg: oklch(0.14 0.005 50);
+  --card-dark-border: oklch(0.24 0.005 50);
+  --card-dark-fg: oklch(0.93 0.01 70);
+  --card-dark-fg-soft: oklch(0.6 0.01 70);
+  --card-dark-line: oklch(1 0 0 / 0.08);
+
   /* ShadCN light */
-  --background: oklch(0.98 0 0);
+  --background: oklch(0.94 0.012 75);
   --foreground: oklch(0.145 0 0);
   --card: oklch(1 0 0);
   --card-foreground: oklch(0.145 0 0);
@@ -194,7 +202,47 @@ pre code {
 }
 
 .display-title {
-  font-family: "Fraunces", Georgia, serif;
+  font-family: "Bebas Neue", Impact, sans-serif;
+  letter-spacing: 0.03em;
+}
+
+.campaign-card {
+  background-color: var(--card-dark-bg);
+  border: 1px solid var(--card-dark-border);
+  border-radius: 4px;
+  transition: transform 180ms ease, border-color 180ms ease;
+}
+
+.campaign-card:hover {
+  transform: translateY(-2px);
+  border-color: oklch(0.38 0.005 50);
+}
+
+.campaign-card-title {
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--card-dark-fg);
+}
+
+.campaign-card-body {
+  color: var(--card-dark-fg-soft);
+}
+
+.campaign-card-stat-num {
+  font-size: 1.5rem;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--card-dark-fg);
+}
+
+.campaign-card-stat-label {
+  font-family: ui-monospace, monospace;
+  font-size: 0.6rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--card-dark-fg-soft);
+  margin-top: 3px;
 }
 
 .island-shell {
@@ -219,7 +267,16 @@ pre code {
   display: inline-flex;
   align-items: center;
   text-decoration: none;
-  color: var(--sea-ink-soft);
+  color: oklch(1 0 0 / 0.65);
+}
+
+.nav-link:hover,
+.nav-link.is-active {
+  color: oklch(1 0 0 / 1) !important;
+}
+
+.nav-link.is-active::after {
+  transform: scaleX(1) !important;
 }
 
 .nav-link::after {
@@ -231,17 +288,11 @@ pre code {
   height: 2px;
   transform: scaleX(0);
   transform-origin: left;
-  background: linear-gradient(90deg, var(--lagoon), var(--lagoon-deep));
+  background: oklch(1 0 0 / 0.5);
   transition: transform 170ms ease;
 }
 
-.nav-link:hover,
-.nav-link.is-active {
-  color: var(--sea-ink);
-}
-
-.nav-link:hover::after,
-.nav-link.is-active::after {
+.nav-link:hover::after {
   transform: scaleX(1);
 }
 

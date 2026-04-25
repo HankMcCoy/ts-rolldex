@@ -12,44 +12,76 @@ function CampaignsPage() {
 
 	return (
 		<main className="page-wrap px-4 py-10">
-			<div className="mb-6 flex items-center justify-between">
-				<h1 className="display-title text-3xl font-bold">Campaigns</h1>
+			<div className="mb-8 flex items-end justify-between gap-4">
+				<div>
+					<h1
+						className="display-title text-6xl leading-none text-[var(--sea-ink)]"
+						style={{ fontSize: "clamp(2.5rem, 6vw, 4rem)" }}
+					>
+						Campaigns
+					</h1>
+					<p
+						className="mt-1 text-[var(--sea-ink-soft)]"
+						style={{
+							fontFamily: "ui-monospace, monospace",
+							fontSize: "0.65rem",
+							letterSpacing: "0.18em",
+							textTransform: "uppercase",
+						}}
+					>
+						Campaign Registry &mdash; {campaigns.length}{" "}
+						{campaigns.length === 1 ? "Record" : "Records"}
+					</p>
+				</div>
 				<Button asChild>
-					<Link to="/campaigns/new">New campaign</Link>
+					<Link to="/campaigns/new">+ New Campaign</Link>
 				</Button>
 			</div>
 
-			{campaigns.length === 0 ? (
-				<div className="island-shell rounded-2xl p-10 text-center">
-					<p className="mb-4 text-[var(--sea-ink-soft)]">
-						No campaigns yet. Create one to get started.
-					</p>
-					<Button asChild>
-						<Link to="/campaigns/new">Create your first campaign</Link>
-					</Button>
-				</div>
-			) : (
-				<ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-					{campaigns.map((c) => (
-						<li key={c.id}>
-							<Link
-								to="/campaigns/$campaignId"
-								params={{ campaignId: c.id }}
-								className="island-shell block rounded-2xl p-5 no-underline transition hover:-translate-y-0.5"
+			<ul className="grid gap-4 sm:grid-cols-2">
+				{campaigns.map((c) => (
+					<li key={c.id}>
+						<Link
+							to="/campaigns/$campaignId"
+							params={{ campaignId: c.id }}
+							className="campaign-card block p-5 no-underline"
+						>
+							<h2 className="campaign-card-title mb-2 text-base">{c.name}</h2>
+							{c.summary && (
+								<p className="campaign-card-body mb-4 line-clamp-2 text-sm">
+									{c.summary}
+								</p>
+							)}
+							<div
+								className="flex gap-6 pt-3"
+								style={{ borderTop: "1px solid var(--card-dark-line)" }}
 							>
-								<h2 className="mb-1 text-base font-semibold text-[var(--sea-ink)]">
-									{c.name}
-								</h2>
-								{c.summary && (
-									<p className="line-clamp-2 text-sm text-[var(--sea-ink-soft)]">
-										{c.summary}
-									</p>
-								)}
-							</Link>
-						</li>
-					))}
-				</ul>
-			)}
+								<div>
+									<div className="campaign-card-stat-num">
+										{c.gameSessions.length}
+									</div>
+									<div className="campaign-card-stat-label">Sessions</div>
+								</div>
+								<div>
+									<div className="campaign-card-stat-num">{c.nouns.length}</div>
+									<div className="campaign-card-stat-label">Entries</div>
+								</div>
+							</div>
+						</Link>
+					</li>
+				))}
+				<li>
+					<Link
+						to="/campaigns/new"
+						className="flex min-h-[160px] flex-col items-center justify-center gap-2 rounded-sm border border-dashed border-[var(--line)] no-underline transition hover:border-[var(--sea-ink-soft)]"
+					>
+						<span className="text-2xl text-[var(--sea-ink-soft)]">+</span>
+						<span className="text-sm text-[var(--sea-ink-soft)]">
+							New Campaign
+						</span>
+					</Link>
+				</li>
+			</ul>
 		</main>
 	);
 }

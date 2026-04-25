@@ -22,6 +22,10 @@ export const getCampaigns = createServerFn().handler(async () => {
 				eq(c.createdById, user.id),
 				memberIds.length > 0 ? inArray(c.id, memberIds) : undefined,
 			),
+		with: {
+			nouns: { columns: { id: true } },
+			gameSessions: { columns: { id: true } },
+		},
 		orderBy: (c, { desc }) => desc(c.createdAt),
 	});
 });
