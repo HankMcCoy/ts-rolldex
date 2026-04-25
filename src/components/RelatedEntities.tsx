@@ -32,21 +32,29 @@ export function RelatedEntities({ campaignId, related }: Props) {
 
 	return (
 		<aside>
-			<h2 className="island-kicker mb-3">Related</h2>
-			<div className="space-y-4">
+			<h2
+				className="mb-4 text-xs font-bold tracking-[0.18em] text-[var(--sea-ink)]"
+				style={{ textTransform: "uppercase" }}
+			>
+				Related
+			</h2>
+			<div className="space-y-5">
 				{byType.map(({ type, items }) => (
 					<div key={type}>
-						<h3 className="mb-1 text-xs font-semibold uppercase tracking-wide text-[var(--sea-ink-soft)]">
+						<h3
+							className="mb-2 text-[10px] font-semibold tracking-[0.15em] text-[var(--sea-ink-soft)]"
+							style={{ textTransform: "uppercase" }}
+						>
 							{TYPE_LABELS[type]}
 						</h3>
-						<ul className="space-y-1">
+						<ul className="space-y-1.5">
 							{items.map((e) => (
 								<li key={e.id}>
 									{type === "SESSION" ? (
 										<Link
 											to="/campaigns/$campaignId/sessions/$sessionId"
 											params={{ campaignId, sessionId: e.id }}
-											className="text-sm hover:underline"
+											className="text-sm"
 										>
 											{e.name}
 										</Link>
@@ -54,7 +62,7 @@ export function RelatedEntities({ campaignId, related }: Props) {
 										<Link
 											to="/campaigns/$campaignId/nouns/$nounId"
 											params={{ campaignId, nounId: e.id }}
-											className="text-sm hover:underline"
+											className="text-sm"
 										>
 											{e.name}
 										</Link>

@@ -47,32 +47,40 @@ function SessionPage() {
 
 	return (
 		<main className="page-wrap px-4 py-10">
-			<div className="flex gap-10">
+			<div className="flex gap-12">
 				<div className="min-w-0 flex-1">
 					<div className="mb-1 flex items-start justify-between gap-4">
 						<div>
 							<Link
 								to="/campaigns/$campaignId/sessions"
 								params={{ campaignId: campaign.id }}
-								className="text-sm text-[var(--sea-ink-soft)] hover:underline"
+								className="text-sm"
 							>
 								← Sessions
 							</Link>
-							<h1 className="display-title text-3xl font-bold">
+							<h1 className="display-title text-4xl font-bold">
 								{session.name}
 							</h1>
 						</div>
 						{isAdmin && (
-							<div className="flex gap-2">
+							<div className="mt-1 flex shrink-0 gap-2">
 								<Button variant="outline" size="sm" asChild>
 									<Link
 										to="/campaigns/$campaignId/sessions/$sessionId/edit"
-										params={{ campaignId: campaign.id, sessionId: session.id }}
+										params={{
+											campaignId: campaign.id,
+											sessionId: session.id,
+										}}
 									>
 										Edit
 									</Link>
 								</Button>
-								<Button variant="destructive" size="sm" onClick={handleDelete}>
+								<Button
+									variant="outline"
+									size="sm"
+									className="text-destructive hover:text-destructive"
+									onClick={handleDelete}
+								>
 									Delete
 								</Button>
 							</div>
@@ -80,7 +88,7 @@ function SessionPage() {
 					</div>
 
 					{session.isSecret && (
-						<div className="mb-4">
+						<div className="mb-3">
 							<Badge variant="secondary">Secret</Badge>
 						</div>
 					)}
@@ -93,8 +101,8 @@ function SessionPage() {
 
 					{session.notes && (
 						<section className="mb-8">
-							<h2 className="island-kicker mb-2">Notes</h2>
-							<div className="island-shell max-w-2xl rounded-xl p-4">
+							<h2 className="island-kicker mb-3">Notes</h2>
+							<div className="max-w-2xl rounded-2xl border border-[var(--line)] bg-white/90 p-5 shadow-sm">
 								<MarkdownRenderer content={session.notes} />
 							</div>
 						</section>
@@ -104,8 +112,8 @@ function SessionPage() {
 						<>
 							<Separator className="mb-8" />
 							<section className="mb-8">
-								<h2 className="island-kicker mb-2">Private notes</h2>
-								<div className="island-shell max-w-2xl rounded-xl p-4">
+								<h2 className="island-kicker mb-3">Private notes</h2>
+								<div className="max-w-2xl rounded-2xl border border-[var(--line)] bg-white/90 p-5 shadow-sm">
 									<MarkdownRenderer content={session.privateNotes} />
 								</div>
 							</section>
@@ -114,7 +122,7 @@ function SessionPage() {
 				</div>
 
 				{related.length > 0 && (
-					<div className="w-48 shrink-0">
+					<div className="w-44 shrink-0">
 						<RelatedEntities campaignId={campaign.id} related={related} />
 					</div>
 				)}
