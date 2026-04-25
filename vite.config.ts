@@ -7,20 +7,28 @@ import viteReact from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import { nitro } from 'nitro/vite'
 
+// routeTree.gen.ts has `import type { getRouter } from './router.tsx'` inside
+// a `declare module` block, and router.tsx imports routeTree.gen.ts — a cycle.
+// TypeScript erases `import type` at compile time but Vite SSR does not, so it
+// treats both directions as runtime deps, causing "before initialization" errors
+// on every HMR reload. This plugin strips the type-only import from the
+// generated file during Vite's transform phase where it has always been a no-op.
+const stripRouteTreeTypeImports = {
+  name: 'strip-routetree-type-imports',
+  transform(code: string, id: string) {
+    if (!id.includes('routeTree.gen')) return
+    return {
+      code: code.replace(/^import type \{[^}]*\} from ['"][^'"]+['"];?\r?\n?/gm, ''),
+      map: null,
+    }
+  },
+}
+
 const config = defineConfig({
   resolve: { tsconfigPaths: true },
   ssr: { noExternal: ["react-markdown", "remark-gfm"] },
-  server: {
-    warmup: {
-      ssrFiles: [
-        "./src/lib/auth.ts",
-        "./src/lib/access.ts",
-        "./src/db/index.ts",
-        "./src/db/schema/index.ts",
-      ],
-    },
-  },
   plugins: [
+    stripRouteTreeTypeImports,
     devtools(),
     nitro({ rollupConfig: { external: [/^@sentry\//] } }),
     tailwindcss(),
