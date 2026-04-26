@@ -2,7 +2,13 @@ import { createServerFn } from "@tanstack/react-start";
 import { and, eq, isNull, ne, or } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/db/index";
-import { campaigns, gameSessions, members, nouns } from "@/db/schema/index";
+import {
+	campaigns,
+	gameSessions,
+	members,
+	nouns,
+	users,
+} from "@/db/schema/index";
 import {
 	requireCampaign,
 	requireCampaignAccess,
@@ -59,7 +65,7 @@ export const getCampaignDashboard = createServerFn()
 			user,
 		);
 
-		const [allNouns, recentSessions, allMembers] = await Promise.all([
+		const [allNouns, recentSessions, allMembers, creator] = await Promise.all([
 			db.query.nouns.findMany({
 				where: and(
 					eq(nouns.campaignId, data.campaignId),
@@ -88,6 +94,10 @@ export const getCampaignDashboard = createServerFn()
 				where: eq(members.campaignId, data.campaignId),
 				with: { user: { columns: { id: true, name: true, email: true } } },
 			}),
+			db.query.users.findFirst({
+				where: eq(users.id, campaign.createdById),
+				columns: { id: true, name: true, email: true },
+			}),
 		]);
 
 		const entities = allNouns.map(({ imageKey, ...rest }) => ({
@@ -95,20 +105,37 @@ export const getCampaignDashboard = createServerFn()
 			imageUrl: imageKey ? publicUrlFor(imageKey) : null,
 		}));
 
+		const dmEntry = {
+			id: `dm-${campaign.createdById}`,
+			role: "DM" as const,
+			email: accessLevel === "ADMIN" ? (creator?.email ?? null) : null,
+			user: creator ? { name: creator.name } : null,
+		};
+
 		// Hide pending invites and member emails from non-admin viewers.
-		const visibleMembers =
+		const memberEntries =
 			accessLevel === "ADMIN"
-				? allMembers
+				? allMembers.map((m) => ({
+						id: m.id,
+						role: "READ_ONLY" as const,
+						email: m.email,
+						user: m.user ? { name: m.user.name } : null,
+					}))
 				: allMembers
 						.filter((m) => m.user)
-						.map((m) => ({ id: m.id, user: { name: m.user?.name ?? "" } }));
+						.map((m) => ({
+							id: m.id,
+							role: "READ_ONLY" as const,
+							email: null,
+							user: { name: m.user?.name ?? "" },
+						}));
 
 		return {
 			campaign,
 			accessLevel,
 			entities,
 			recentSessions,
-			members: visibleMembers,
+			members: [dmEntry, ...memberEntries],
 		};
 	});
 
