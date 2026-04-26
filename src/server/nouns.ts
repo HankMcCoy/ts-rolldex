@@ -40,7 +40,7 @@ export const getNouns = createServerFn()
 		const { user } = await requireSession();
 		const accessLevel = await requireCampaignAccess(data.campaignId, user);
 
-		return db.query.nouns.findMany({
+		const rows = await db.query.nouns.findMany({
 			where: and(
 				eq(nouns.campaignId, data.campaignId),
 				data.nounType ? eq(nouns.nounType, data.nounType) : undefined,
@@ -48,6 +48,8 @@ export const getNouns = createServerFn()
 			),
 			orderBy: (n, { asc }) => asc(n.name),
 		});
+
+		return rows.map((n) => ({ ...n, imageUrl: imageUrlFor(n.imageKey) }));
 	});
 
 export const getNoun = createServerFn()

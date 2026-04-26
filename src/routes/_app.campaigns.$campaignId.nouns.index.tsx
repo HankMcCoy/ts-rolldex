@@ -1,5 +1,6 @@
 import { createFileRoute, getRouteApi, Link } from "@tanstack/react-router";
 import { z } from "zod";
+import { EntityAvatar } from "@/components/EntityAvatar";
 import { PageHeader } from "@/components/PageHeader";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -88,9 +89,14 @@ function NounsPage() {
 								<Link
 									to="/campaigns/$campaignId/nouns/$nounId"
 									params={{ campaignId: campaign.id, nounId: noun.id }}
-									className="island-shell flex items-center justify-between rounded-xl p-4 no-underline transition hover:-translate-y-0.5"
+									className="island-shell flex items-center gap-4 rounded-xl p-4 no-underline transition hover:-translate-y-0.5"
 								>
-									<div>
+									<EntityAvatar
+										entityType={noun.nounType}
+										imageUrl={noun.imageUrl}
+										name={noun.name}
+									/>
+									<div className="min-w-0 flex-1">
 										<span className="font-medium">{noun.name}</span>
 										{noun.summary && (
 											<p className="mt-0.5 text-sm text-[var(--sea-ink-soft)] line-clamp-1">
@@ -98,7 +104,7 @@ function NounsPage() {
 											</p>
 										)}
 									</div>
-									<div className="flex items-center gap-2">
+									<div className="flex shrink-0 items-center gap-2">
 										{noun.isSecret && <Badge variant="secondary">Secret</Badge>}
 										<Badge variant="outline">
 											{NOUN_TYPE_LABELS[noun.nounType]}

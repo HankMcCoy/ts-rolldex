@@ -1,4 +1,5 @@
 import { Link } from "@tanstack/react-router";
+import { EntityAvatar } from "@/components/EntityAvatar";
 import {
 	Tooltip,
 	TooltipContent,
@@ -74,7 +75,17 @@ export function RelatedEntities({ campaignId, related }: Props) {
 								{items.map((e) => {
 									const { to, params } = entityHref(campaignId, e);
 									const link = (
-										<Link to={to} params={params} className="text-sm">
+										<Link
+											to={to}
+											params={params}
+											className="flex items-center gap-2 text-sm"
+										>
+											<EntityAvatar
+												entityType={e.entityType}
+												imageUrl={e.imageUrl}
+												name={e.name}
+												className="size-6 rounded-md"
+											/>
 											{e.name}
 										</Link>
 									);

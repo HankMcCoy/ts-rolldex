@@ -1,4 +1,5 @@
 import { createFileRoute, getRouteApi, Link } from "@tanstack/react-router";
+import { EntityAvatar } from "@/components/EntityAvatar";
 import { PageHeader } from "@/components/PageHeader";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -52,9 +53,14 @@ function SessionsPage() {
 								<Link
 									to="/campaigns/$campaignId/sessions/$sessionId"
 									params={{ campaignId: campaign.id, sessionId: s.id }}
-									className="island-shell flex items-center justify-between rounded-xl p-4 no-underline transition hover:-translate-y-0.5"
+									className="island-shell flex items-center gap-4 rounded-xl p-4 no-underline transition hover:-translate-y-0.5"
 								>
-									<div>
+									<EntityAvatar
+										entityType="SESSION"
+										imageUrl={null}
+										name={s.name}
+									/>
+									<div className="min-w-0 flex-1">
 										<span className="font-medium">{s.name}</span>
 										{s.summary && (
 											<p className="mt-0.5 text-sm text-[var(--sea-ink-soft)] line-clamp-1">

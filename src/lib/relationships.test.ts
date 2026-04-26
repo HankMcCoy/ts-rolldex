@@ -11,6 +11,7 @@ function candidate(
 ): CandidateEntity {
 	return {
 		entityType: "PERSON",
+		imageUrl: null,
 		...overrides,
 	};
 }
@@ -197,6 +198,7 @@ describe("computeRelatedEntities — output shape", () => {
 				id: "v",
 				name: "Villain",
 				entityType: "PERSON",
+				imageUrl: null,
 				summary: "The bad guy",
 			},
 		]);

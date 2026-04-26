@@ -4,6 +4,7 @@ import { z } from "zod";
 import { db } from "@/db/index";
 import { gameSessions, nouns } from "@/db/schema/index";
 import { requireCampaignAccess, requireSession } from "@/lib/access";
+import { publicUrlFor } from "@/lib/storage";
 import { visibilityFilter } from "@/server/query-helpers";
 
 export const quickFind = createServerFn()
@@ -21,7 +22,7 @@ export const quickFind = createServerFn()
 					ilike(nouns.name, q),
 					visibilityFilter(nouns.isSecret, accessLevel),
 				),
-				columns: { id: true, name: true, nounType: true },
+				columns: { id: true, name: true, nounType: true, imageKey: true },
 				limit: 5,
 			}),
 			db.query.gameSessions.findMany({
@@ -35,5 +36,13 @@ export const quickFind = createServerFn()
 			}),
 		]);
 
-		return { nouns: matchedNouns, sessions: matchedSessions };
+		return {
+			nouns: matchedNouns.map((n) => ({
+				id: n.id,
+				name: n.name,
+				nounType: n.nounType,
+				imageUrl: n.imageKey ? publicUrlFor(n.imageKey) : null,
+			})),
+			sessions: matchedSessions,
+		};
 	});

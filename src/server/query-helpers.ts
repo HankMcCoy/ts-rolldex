@@ -3,6 +3,7 @@ import { db } from "@/db/index";
 import { gameSessions, nouns } from "@/db/schema/index";
 import type { AccessLevel } from "@/lib/access";
 import type { CandidateEntity } from "@/lib/relationships";
+import { publicUrlFor } from "@/lib/storage";
 
 /**
  * Returns eq(col, false) for READ_ONLY users so secret entities are hidden,
@@ -34,6 +35,7 @@ export async function loadCampaignCandidates(
 				id: true,
 				name: true,
 				nounType: true,
+				imageKey: true,
 				summary: true,
 				notes: true,
 				privateNotes: true,
@@ -60,6 +62,7 @@ export async function loadCampaignCandidates(
 			id: n.id,
 			name: n.name,
 			entityType: n.nounType as CandidateEntity["entityType"],
+			imageUrl: n.imageKey ? publicUrlFor(n.imageKey) : null,
 			summary: n.summary,
 			text: includePrivate
 				? `${n.summary} ${n.notes} ${n.privateNotes}`
@@ -69,6 +72,7 @@ export async function loadCampaignCandidates(
 			id: s.id,
 			name: s.name,
 			entityType: "SESSION" as const,
+			imageUrl: null,
 			summary: s.summary,
 			text: includePrivate
 				? `${s.summary} ${s.notes} ${s.privateNotes}`

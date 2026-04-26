@@ -1,6 +1,7 @@
 import { useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useRef, useState } from "react";
+import { EntityAvatar } from "@/components/EntityAvatar";
 import {
 	Command,
 	CommandDialog,
@@ -11,19 +12,31 @@ import {
 	CommandList,
 	CommandSeparator,
 } from "@/components/ui/command";
-import { NOUN_TYPE_LABELS } from "@/lib/noun-types";
+import { NOUN_TYPE_LABELS, type NounType } from "@/lib/noun-types";
 import { quickFind } from "@/server/search";
 
 interface Props {
 	campaignId: string;
 }
 
+interface NounResult {
+	id: string;
+	name: string;
+	nounType: NounType;
+	imageUrl: string | null;
+}
+
+interface SessionResult {
+	id: string;
+	name: string;
+}
+
 export function QuickFindDialog({ campaignId }: Props) {
 	const [open, setOpen] = useState(false);
 	const [query, setQuery] = useState("");
 	const [results, setResults] = useState<{
-		nouns: { id: string; name: string; nounType: string }[];
-		sessions: { id: string; name: string }[];
+		nouns: NounResult[];
+		sessions: SessionResult[];
 	}>({ nouns: [], sessions: [] });
 
 	const navigate = useNavigate();
@@ -89,13 +102,15 @@ export function QuickFindDialog({ campaignId }: Props) {
 										handleSelect(`/campaigns/${campaignId}/nouns/${n.id}`)
 									}
 								>
+									<EntityAvatar
+										entityType={n.nounType}
+										imageUrl={n.imageUrl}
+										name={n.name}
+										className="size-6 rounded-md"
+									/>
 									<span>{n.name}</span>
 									<span className="ml-auto text-xs text-muted-foreground">
-										{
-											NOUN_TYPE_LABELS[
-												n.nounType as keyof typeof NOUN_TYPE_LABELS
-											]
-										}
+										{NOUN_TYPE_LABELS[n.nounType]}
 									</span>
 								</CommandItem>
 							))}
@@ -113,6 +128,12 @@ export function QuickFindDialog({ campaignId }: Props) {
 										handleSelect(`/campaigns/${campaignId}/sessions/${s.id}`)
 									}
 								>
+									<EntityAvatar
+										entityType="SESSION"
+										imageUrl={null}
+										name={s.name}
+										className="size-6 rounded-md"
+									/>
 									{s.name}
 								</CommandItem>
 							))}

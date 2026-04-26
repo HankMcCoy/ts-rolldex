@@ -5,6 +5,7 @@ import {
 	useRouter,
 } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
+import { EntityAvatar } from "@/components/EntityAvatar";
 import { PageHeader } from "@/components/PageHeader";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -128,14 +129,21 @@ function CampaignDashboard() {
 									<Link
 										to="/campaigns/$campaignId/sessions/$sessionId"
 										params={{ campaignId: campaign.id, sessionId: s.id }}
-										className="island-shell block rounded-xl p-4 no-underline transition hover:-translate-y-0.5"
+										className="island-shell flex items-center gap-4 rounded-xl p-4 no-underline transition hover:-translate-y-0.5"
 									>
-										<div className="font-medium">{s.name}</div>
-										{s.summary && (
-											<div className="mt-1 line-clamp-1 text-sm text-[var(--sea-ink-soft)]">
-												{s.summary}
-											</div>
-										)}
+										<EntityAvatar
+											entityType="SESSION"
+											imageUrl={null}
+											name={s.name}
+										/>
+										<div className="min-w-0 flex-1">
+											<div className="font-medium">{s.name}</div>
+											{s.summary && (
+												<div className="mt-1 line-clamp-1 text-sm text-[var(--sea-ink-soft)]">
+													{s.summary}
+												</div>
+											)}
+										</div>
 									</Link>
 								</li>
 							))}
