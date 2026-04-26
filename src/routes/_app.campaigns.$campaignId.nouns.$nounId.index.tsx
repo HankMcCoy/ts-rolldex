@@ -11,7 +11,6 @@ import { EntityImage } from "@/components/EntityImage";
 import { MarkdownRenderer } from "@/components/MarkdownRenderer";
 import { Page } from "@/components/Page";
 import { RelatedEntities } from "@/components/RelatedEntities";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { NOUN_TYPE_LABELS } from "@/lib/noun-types";
 import { deleteNoun } from "@/server/nouns";
@@ -62,6 +61,7 @@ function NounPage() {
 				},
 			]}
 			title={noun.name}
+			secret={noun.isSecret}
 			actions={
 				isAdmin && (
 					<>
@@ -88,8 +88,6 @@ function NounPage() {
 		>
 			<div className="flex gap-12">
 				<div className="min-w-0 flex-1 space-y-6">
-					{noun.isSecret && <Badge variant="secondary">Secret</Badge>}
-
 					{noun.summary && (
 						<section>
 							<h2 className="island-kicker mb-3">Summary</h2>

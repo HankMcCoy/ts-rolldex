@@ -10,7 +10,6 @@ import { Trash2 } from "lucide-react";
 import { MarkdownRenderer } from "@/components/MarkdownRenderer";
 import { Page } from "@/components/Page";
 import { RelatedEntities } from "@/components/RelatedEntities";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { deleteSession } from "@/server/sessions";
 
@@ -61,6 +60,7 @@ function SessionPage() {
 				},
 			]}
 			title={session.name}
+			secret={session.isSecret}
 			actions={
 				isAdmin && (
 					<>
@@ -90,8 +90,6 @@ function SessionPage() {
 		>
 			<div className="flex gap-12">
 				<div className="min-w-0 flex-1 space-y-6">
-					{session.isSecret && <Badge variant="secondary">Secret</Badge>}
-
 					{session.summary && (
 						<section>
 							<h2 className="island-kicker mb-3">Summary</h2>

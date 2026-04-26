@@ -11,10 +11,11 @@ export type Crumb = {
 interface Props {
 	breadcrumbs?: Crumb[];
 	title: string;
+	secret?: boolean;
 	actions?: ReactNode;
 }
 
-export function PageHeader({ breadcrumbs, title, actions }: Props) {
+export function PageHeader({ breadcrumbs, title, secret, actions }: Props) {
 	return (
 		<header
 			className="sticky top-0 z-50 px-4"
@@ -58,9 +59,16 @@ export function PageHeader({ breadcrumbs, title, actions }: Props) {
 							</ol>
 						</nav>
 					)}
-					<h1 className="display-title truncate text-2xl font-bold leading-tight text-white">
-						{title}
-					</h1>
+					<div className="flex items-center gap-3">
+						<h1 className="display-title truncate text-2xl font-bold leading-tight text-white">
+							{title}
+						</h1>
+						{secret && (
+							<span className="shrink-0 rounded-full border border-white/15 bg-white/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-white/70">
+								Secret
+							</span>
+						)}
+					</div>
 				</div>
 
 				{actions && (
