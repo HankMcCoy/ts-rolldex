@@ -12,6 +12,7 @@ import { err, ok } from "@/lib/result";
 import { deleteObject, publicUrlFor, uploadObject } from "@/lib/storage";
 import {
 	loadCampaignCandidates,
+	loadMapPinLocations,
 	visibilityFilter,
 } from "@/server/query-helpers";
 
@@ -84,7 +85,18 @@ export const getNoun = createServerFn()
 
 		const imageUrl = imageUrlFor(noun.imageKey);
 
-		return { noun: { ...result, imageUrl }, accessLevel, related };
+		const mapPinLocations = await loadMapPinLocations(
+			data.campaignId,
+			accessLevel,
+			{ nounId: noun.id },
+		);
+
+		return {
+			noun: { ...result, imageUrl },
+			accessLevel,
+			related,
+			mapPinLocations,
+		};
 	});
 
 export const createNoun = createServerFn()

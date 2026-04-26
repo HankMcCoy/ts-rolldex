@@ -10,6 +10,7 @@ import { Trash2 } from "lucide-react";
 import { EntityImage } from "@/components/EntityImage";
 import { MarkdownRenderer } from "@/components/MarkdownRenderer";
 import { Page } from "@/components/Page";
+import { PinnedOnMaps } from "@/components/PinnedOnMaps";
 import { RelatedEntities } from "@/components/RelatedEntities";
 import { Button } from "@/components/ui/button";
 import { NOUN_TYPE_LABELS } from "@/lib/noun-types";
@@ -25,7 +26,8 @@ const parentRoute = getRouteApi("/_app/campaigns/$campaignId");
 const nounRoute = getRouteApi("/_app/campaigns/$campaignId/nouns/$nounId");
 
 function NounPage() {
-	const { noun, accessLevel, related } = nounRoute.useLoaderData();
+	const { noun, accessLevel, related, mapPinLocations } =
+		nounRoute.useLoaderData();
 	const { campaign } = parentRoute.useLoaderData();
 	const navigate = useNavigate();
 	const router = useRouter();
@@ -114,6 +116,8 @@ function NounPage() {
 							</div>
 						</section>
 					)}
+
+					<PinnedOnMaps campaignId={campaign.id} locations={mapPinLocations} />
 				</div>
 
 				<div className="w-44 shrink-0 space-y-6">

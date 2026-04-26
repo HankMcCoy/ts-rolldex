@@ -1,10 +1,69 @@
 import { and, eq } from "drizzle-orm";
 import type { AnyPgColumn } from "drizzle-orm/pg-core";
 import { db } from "@/db/index";
-import { gameSessions, nouns } from "@/db/schema/index";
+import { gameSessions, mapPins, maps, nouns } from "@/db/schema/index";
 import type { AccessLevel } from "@/lib/access";
 import type { CandidateEntity } from "@/lib/relationships";
 import { publicUrlFor } from "@/lib/storage";
+
+export interface MapPinLocation {
+	map: { id: string; name: string; imageUrl: string | null };
+	pins: { id: string; x: number; y: number; label: string | null }[];
+}
+
+/**
+ * Loads every map (within the campaign and visible to the caller) that has at
+ * least one pin pointing at the given noun or session, grouped per map.
+ */
+export async function loadMapPinLocations(
+	campaignId: string,
+	accessLevel: AccessLevel,
+	target: { nounId: string } | { sessionId: string },
+): Promise<MapPinLocation[]> {
+	const filter =
+		"nounId" in target
+			? eq(mapPins.nounId, target.nounId)
+			: eq(mapPins.sessionId, target.sessionId);
+
+	const rows = await db
+		.select({
+			pinId: mapPins.id,
+			pinX: mapPins.x,
+			pinY: mapPins.y,
+			pinLabel: mapPins.label,
+			mapId: maps.id,
+			mapName: maps.name,
+			mapImageKey: maps.imageKey,
+			mapIsSecret: maps.isSecret,
+		})
+		.from(mapPins)
+		.innerJoin(maps, eq(mapPins.mapId, maps.id))
+		.where(and(eq(maps.campaignId, campaignId), filter))
+		.orderBy(maps.name);
+
+	const visible = rows.filter(
+		(r) => accessLevel !== "READ_ONLY" || !r.mapIsSecret,
+	);
+
+	const grouped = new Map<string, MapPinLocation>();
+	for (const r of visible) {
+		const pin = { id: r.pinId, x: r.pinX, y: r.pinY, label: r.pinLabel };
+		const existing = grouped.get(r.mapId);
+		if (existing) {
+			existing.pins.push(pin);
+		} else {
+			grouped.set(r.mapId, {
+				map: {
+					id: r.mapId,
+					name: r.mapName,
+					imageUrl: r.mapImageKey ? publicUrlFor(r.mapImageKey) : null,
+				},
+				pins: [pin],
+			});
+		}
+	}
+	return Array.from(grouped.values());
+}
 
 /**
  * Returns eq(col, false) for READ_ONLY users so secret entities are hidden,

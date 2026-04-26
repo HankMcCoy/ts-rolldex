@@ -9,6 +9,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { Trash2 } from "lucide-react";
 import { MarkdownRenderer } from "@/components/MarkdownRenderer";
 import { Page } from "@/components/Page";
+import { PinnedOnMaps } from "@/components/PinnedOnMaps";
 import { RelatedEntities } from "@/components/RelatedEntities";
 import { Button } from "@/components/ui/button";
 import { deleteSession } from "@/server/sessions";
@@ -25,7 +26,8 @@ const sessionRoute = getRouteApi(
 );
 
 function SessionPage() {
-	const { session, accessLevel, related } = sessionRoute.useLoaderData();
+	const { session, accessLevel, related, mapPinLocations } =
+		sessionRoute.useLoaderData();
 	const { campaign } = parentRoute.useLoaderData();
 	const navigate = useNavigate();
 	const router = useRouter();
@@ -116,6 +118,8 @@ function SessionPage() {
 							</div>
 						</section>
 					)}
+
+					<PinnedOnMaps campaignId={campaign.id} locations={mapPinLocations} />
 				</div>
 
 				{related.length > 0 && (

@@ -10,6 +10,7 @@ import { computeRelatedEntities } from "@/lib/relationships";
 import { err, ok } from "@/lib/result";
 import {
 	loadCampaignCandidates,
+	loadMapPinLocations,
 	visibilityFilter,
 } from "@/server/query-helpers";
 
@@ -60,7 +61,13 @@ export const getSession = createServerFn()
 			candidates,
 		);
 
-		return { session: result, accessLevel, related };
+		const mapPinLocations = await loadMapPinLocations(
+			data.campaignId,
+			accessLevel,
+			{ sessionId: session.id },
+		);
+
+		return { session: result, accessLevel, related, mapPinLocations };
 	});
 
 export const createSession = createServerFn()
