@@ -10,6 +10,7 @@ import { useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { EntityImage } from "@/components/EntityImage";
+import { MarkdownEditor } from "@/components/MarkdownEditor";
 import { Page } from "@/components/Page";
 import { Button } from "@/components/ui/button";
 import {
@@ -275,7 +276,14 @@ function EditNounPage() {
 								<FormItem>
 									<FormLabel>Notes</FormLabel>
 									<FormControl>
-										<Textarea rows={5} {...field} />
+										<MarkdownEditor
+											value={field.value}
+											onChange={field.onChange}
+											onBlur={field.onBlur}
+											minRows={5}
+											maxLength={50_000}
+											ariaLabel="Notes"
+										/>
 									</FormControl>
 									<FormMessage />
 								</FormItem>
@@ -288,7 +296,14 @@ function EditNounPage() {
 								<FormItem>
 									<FormLabel>Private notes</FormLabel>
 									<FormControl>
-										<Textarea rows={3} {...field} />
+										<MarkdownEditor
+											value={field.value}
+											onChange={field.onChange}
+											onBlur={field.onBlur}
+											minRows={3}
+											maxLength={50_000}
+											ariaLabel="Private notes"
+										/>
 									</FormControl>
 									<FormMessage />
 								</FormItem>
