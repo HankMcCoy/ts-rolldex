@@ -18,19 +18,21 @@ interface Props {
 export function PageHeader({ breadcrumbs, title, secret, actions }: Props) {
 	return (
 		<header
-			className="sticky top-0 z-50 px-4"
+			className="sticky top-0 z-50"
 			style={{ backgroundColor: "var(--header-bg)" }}
 		>
-			<div className="page-wrap flex items-center gap-6 py-3">
-				<Link to="/" className="flex-shrink-0 no-underline">
-					<div
-						className="text-2xl leading-none tracking-widest text-white"
-						style={{ fontFamily: "var(--font-display)" }}
-					>
-						ROLLDEX
-					</div>
-				</Link>
-
+			<Link
+				to="/"
+				className="absolute top-1/2 left-4 hidden -translate-y-1/2 no-underline xl:block"
+			>
+				<div
+					className="text-2xl leading-none tracking-widest text-white"
+					style={{ fontFamily: "var(--font-display)" }}
+				>
+					ROLLDEX
+				</div>
+			</Link>
+			<div className="page-wrap flex items-center gap-6 px-4 py-3">
 				<div className="min-w-0 flex-1">
 					{breadcrumbs && breadcrumbs.length > 0 && (
 						<nav aria-label="Breadcrumb">
