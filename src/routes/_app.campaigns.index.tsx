@@ -20,26 +20,13 @@ function CampaignsPage() {
 				</Button>
 			}
 		>
-			<p
-				className="mb-8 text-[var(--sea-ink-soft)]"
-				style={{
-					fontFamily: "ui-monospace, monospace",
-					fontSize: "0.65rem",
-					letterSpacing: "0.18em",
-					textTransform: "uppercase",
-				}}
-			>
-				Campaign Registry &mdash; {campaigns.length}{" "}
-				{campaigns.length === 1 ? "Record" : "Records"}
-			</p>
-
 			<ul className="grid gap-4 sm:grid-cols-2">
 				{campaigns.map((c) => (
 					<li key={c.id}>
 						<Link
 							to="/campaigns/$campaignId"
 							params={{ campaignId: c.id }}
-							className="campaign-card block p-5 no-underline"
+							className="campaign-card flex h-full flex-col p-5 no-underline"
 						>
 							<h2 className="campaign-card-title mb-2 text-base">{c.name}</h2>
 							{c.summary && (
@@ -68,7 +55,7 @@ function CampaignsPage() {
 				<li>
 					<Link
 						to="/campaigns/new"
-						className="flex min-h-[160px] flex-col items-center justify-center gap-2 rounded-sm border border-dashed border-[var(--line)] no-underline transition hover:border-[var(--sea-ink-soft)]"
+						className="flex h-full flex-col items-center justify-center gap-2 rounded-sm border border-dashed border-[var(--line)] p-5 no-underline transition hover:border-[var(--sea-ink-soft)]"
 					>
 						<span className="text-2xl text-[var(--sea-ink-soft)]">+</span>
 						<span className="text-sm text-[var(--sea-ink-soft)]">
