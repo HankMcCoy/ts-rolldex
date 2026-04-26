@@ -10,6 +10,8 @@ import {
 import StarterKit from "@tiptap/starter-kit";
 import { Markdown, type MarkdownStorage } from "tiptap-markdown";
 import { describe, expect, it } from "vitest";
+import { ADVERSARY_TEMPLATE_NODES as ADVERSARY_TEMPLATE_NODES_TEST } from "@/components/markdown/extensions/adversary-template";
+import { Callout } from "@/components/markdown/extensions/callout";
 import { EnforceTableHeader } from "@/components/markdown/extensions/enforce-table-header";
 
 declare module "@tiptap/core" {
@@ -29,6 +31,7 @@ function makeEditor(content: string): Editor {
 			TableCell,
 			TableHeader,
 			EnforceTableHeader,
+			Callout,
 			CharacterCount.configure({}),
 			Markdown.configure({
 				html: false,
@@ -130,6 +133,43 @@ describe("markdown editor round-trip", () => {
 		// Without the EnforceTableHeader extension, this serialises to
 		// `[table]`. With it, the first row is promoted so we get valid GFM.
 		expect(md).toContain("| --- |");
+		editor.destroy();
+	});
+
+	it("basic callout", () => {
+		expectIdempotent(":::note\nHello, world.\n:::\n");
+	});
+
+	it("callout with nested heading, list, and bold", () => {
+		expectIdempotent(
+			":::stat-block\n## Title\n\n**Bold** intro.\n\n- one\n- two\n:::\n",
+		);
+	});
+
+	it("callout adjacent to other markdown", () => {
+		expectIdempotent("Before.\n\n:::note\nMid.\n:::\n\nAfter.\n");
+	});
+
+	it("adversary template serialises to a stat-block fence", () => {
+		const editor = makeEditor("");
+		editor
+			.chain()
+			.focus()
+			// biome-ignore lint/suspicious/noExplicitAny: ProseMirror JSON is loosely typed
+			.insertContent(ADVERSARY_TEMPLATE_NODES_TEST as any)
+			.run();
+		const md = editor.storage.markdown.getMarkdown();
+		expect(md.startsWith(":::stat-block\n")).toBe(true);
+		expect(md).toContain("Adversary Name");
+		expect(md.trimEnd().endsWith(":::")).toBe(true);
+		// And it should be idempotent.
+		const second = (() => {
+			const e2 = makeEditor(md);
+			const out = e2.storage.markdown.getMarkdown();
+			e2.destroy();
+			return out;
+		})();
+		expect(second).toBe(md);
 		editor.destroy();
 	});
 

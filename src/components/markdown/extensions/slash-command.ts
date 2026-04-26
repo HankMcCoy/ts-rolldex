@@ -13,13 +13,16 @@ import {
 	Heading3,
 	List,
 	ListOrdered,
+	Megaphone,
 	Minus,
 	Quote,
 	Rows3,
+	Shield,
 	SquareCode,
 	Table as TableIcon,
 	Trash2,
 } from "lucide-react";
+import { ADVERSARY_TEMPLATE_NODES } from "@/components/markdown/extensions/adversary-template";
 import type { SlashMenuItem } from "@/components/markdown/SlashMenu";
 
 interface CommandItem extends SlashMenuItem {
@@ -141,6 +144,33 @@ const TEXT_ITEMS: CommandItem[] = [
 				.focus()
 				.deleteRange(range)
 				.insertTable({ rows: 5, cols: 3, withHeaderRow: true })
+				.run(),
+	},
+	{
+		id: "callout",
+		label: "Callout",
+		hint: ":::",
+		icon: Megaphone,
+		keywords: ["callout", "card", "note", "admonition", "block"],
+		command: ({ editor, range }) =>
+			editor
+				.chain()
+				.focus()
+				.deleteRange(range)
+				.setCallout({ name: "note" })
+				.run(),
+	},
+	{
+		id: "adversary",
+		label: "Adversary stat block",
+		icon: Shield,
+		keywords: ["adversary", "stat", "monster", "npc", "enemy", "daggerheart"],
+		command: ({ editor, range }) =>
+			editor
+				.chain()
+				.focus()
+				.deleteRange(range)
+				.insertContent(ADVERSARY_TEMPLATE_NODES)
 				.run(),
 	},
 	{
