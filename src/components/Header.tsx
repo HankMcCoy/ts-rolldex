@@ -1,15 +1,12 @@
-import { Link, useNavigate } from "@tanstack/react-router";
-import { LogOut } from "lucide-react";
-import { signOut, useSession } from "@/lib/auth-client";
+import { Link, useMatches } from "@tanstack/react-router";
+import { useSession } from "@/lib/auth-client";
 
 export default function Header() {
+	const matches = useMatches();
 	const { data: session } = useSession();
-	const navigate = useNavigate();
 
-	async function handleSignOut() {
-		await signOut();
-		navigate({ href: "/login" });
-	}
+	const isAppRoute = matches.some((m) => m.routeId.startsWith("/_app"));
+	if (isAppRoute) return null;
 
 	return (
 		<header
@@ -26,7 +23,7 @@ export default function Header() {
 					</div>
 				</Link>
 
-				<div className="flex items-center gap-5 text-sm font-medium">
+				<div className="ml-auto flex items-center gap-5 text-sm font-medium">
 					{session ? (
 						<Link
 							to="/campaigns"
@@ -46,21 +43,6 @@ export default function Header() {
 						</>
 					)}
 				</div>
-
-				{session && (
-					<div className="ml-auto flex items-center gap-3">
-						<span className="text-sm text-white/50">{session.user.name}</span>
-						<button
-							type="button"
-							onClick={handleSignOut}
-							title="Sign out"
-							aria-label="Sign out"
-							className="rounded p-1.5 text-white/35 transition hover:text-white/75"
-						>
-							<LogOut className="size-4" />
-						</button>
-					</div>
-				)}
 			</nav>
 		</header>
 	);

@@ -4,6 +4,8 @@
 @import "shadcn/tailwind.css";
 @import "@fontsource-variable/geist";
 
+/* Bind Tailwind's `dark:` variant to a `.dark` parent class we never set,
+   neutralizing the dark-mode utilities baked into shadcn primitives. */
 @custom-variant dark (&:is(.dark *));
 @plugin "@tailwindcss/typography";
 
@@ -102,50 +104,6 @@
   --sidebar-accent-foreground: oklch(0.205 0 0);
   --sidebar-border: oklch(0.922 0 0);
   --sidebar-ring: oklch(0.708 0 0);
-}
-
-.dark {
-  --sea-ink: oklch(0.9 0.03 190);
-  --sea-ink-soft: oklch(0.7 0.04 190);
-  --lagoon: oklch(0.72 0.1 190);
-  --lagoon-deep: oklch(0.78 0.1 188);
-  --line: oklch(1 0 0 / 0.12);
-  --surface: oklch(0.18 0.01 200 / 0.8);
-  --surface-strong: oklch(0.16 0.01 200 / 0.92);
-  --inset-glint: oklch(1 0 0 / 0.06);
-  --kicker: oklch(0.82 0.08 175);
-  --header-bg: oklch(0.12 0.01 200 / 0.88);
-  --chip-bg: oklch(0.15 0.01 200 / 0.9);
-  --chip-line: oklch(0.72 0.1 190 / 0.24);
-  --link-bg-hover: oklch(0.2 0.01 200 / 0.8);
-
-  /* ShadCN dark */
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
 }
 
 * {

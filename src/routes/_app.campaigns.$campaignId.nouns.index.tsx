@@ -1,5 +1,6 @@
 import { createFileRoute, getRouteApi, Link } from "@tanstack/react-router";
 import { z } from "zod";
+import { PageHeader } from "@/components/PageHeader";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { NOUN_TYPE_LABELS, NOUN_TYPES, nounTypeSchema } from "@/lib/noun-types";
@@ -24,88 +25,91 @@ function NounsPage() {
 	const label = type ? `${NOUN_TYPE_LABELS[type]}s` : "All entities";
 
 	return (
-		<main className="page-wrap px-4 py-10">
-			<div className="mb-6 flex items-start justify-between gap-4">
-				<div>
-					<Link
-						to="/campaigns/$campaignId"
-						params={{ campaignId: campaign.id }}
-						className="text-sm text-[var(--sea-ink-soft)] hover:underline"
-					>
-						{campaign.name}
-					</Link>
-					<h1 className="display-title text-3xl font-bold">{label}</h1>
-				</div>
-				{isAdmin && (
-					<Button asChild size="sm">
-						<Link
-							to="/campaigns/$campaignId/nouns/new"
-							params={{ campaignId: campaign.id }}
-							search={type ? { type } : {}}
-						>
-							+ Add
-						</Link>
-					</Button>
-				)}
-			</div>
-
-			<div className="mb-6 flex flex-wrap gap-2">
-				<Button variant={!type ? "default" : "outline"} size="sm" asChild>
-					<Link
-						to="/campaigns/$campaignId/nouns"
-						params={{ campaignId: campaign.id }}
-					>
-						All
-					</Link>
-				</Button>
-				{NOUN_TYPES.map((t) => (
-					<Button
-						key={t}
-						variant={type === t ? "default" : "outline"}
-						size="sm"
-						asChild
-					>
+		<>
+			<PageHeader
+				breadcrumbs={[
+					{
+						label: campaign.name,
+						to: "/campaigns/$campaignId",
+						params: { campaignId: campaign.id },
+					},
+				]}
+				title={label}
+				actions={
+					isAdmin && (
+						<Button asChild size="sm">
+							<Link
+								to="/campaigns/$campaignId/nouns/new"
+								params={{ campaignId: campaign.id }}
+								search={type ? { type } : {}}
+							>
+								+ Add
+							</Link>
+						</Button>
+					)
+				}
+			/>
+			<main className="page-wrap px-4 py-10">
+				<div className="mb-6 flex flex-wrap gap-2">
+					<Button variant={!type ? "default" : "outline"} size="sm" asChild>
 						<Link
 							to="/campaigns/$campaignId/nouns"
 							params={{ campaignId: campaign.id }}
-							search={{ type: t }}
 						>
-							{NOUN_TYPE_LABELS[t]}s
+							All
 						</Link>
 					</Button>
-				))}
-			</div>
-
-			{nouns.length === 0 ? (
-				<p className="text-sm text-[var(--sea-ink-soft)]">Nothing here yet.</p>
-			) : (
-				<ul className="space-y-2">
-					{nouns.map((noun) => (
-						<li key={noun.id}>
+					{NOUN_TYPES.map((t) => (
+						<Button
+							key={t}
+							variant={type === t ? "default" : "outline"}
+							size="sm"
+							asChild
+						>
 							<Link
-								to="/campaigns/$campaignId/nouns/$nounId"
-								params={{ campaignId: campaign.id, nounId: noun.id }}
-								className="island-shell flex items-center justify-between rounded-xl p-4 no-underline transition hover:-translate-y-0.5"
+								to="/campaigns/$campaignId/nouns"
+								params={{ campaignId: campaign.id }}
+								search={{ type: t }}
 							>
-								<div>
-									<span className="font-medium">{noun.name}</span>
-									{noun.summary && (
-										<p className="mt-0.5 text-sm text-[var(--sea-ink-soft)] line-clamp-1">
-											{noun.summary}
-										</p>
-									)}
-								</div>
-								<div className="flex items-center gap-2">
-									{noun.isSecret && <Badge variant="secondary">Secret</Badge>}
-									<Badge variant="outline">
-										{NOUN_TYPE_LABELS[noun.nounType]}
-									</Badge>
-								</div>
+								{NOUN_TYPE_LABELS[t]}s
 							</Link>
-						</li>
+						</Button>
 					))}
-				</ul>
-			)}
-		</main>
+				</div>
+
+				{nouns.length === 0 ? (
+					<p className="text-sm text-[var(--sea-ink-soft)]">
+						Nothing here yet.
+					</p>
+				) : (
+					<ul className="space-y-2">
+						{nouns.map((noun) => (
+							<li key={noun.id}>
+								<Link
+									to="/campaigns/$campaignId/nouns/$nounId"
+									params={{ campaignId: campaign.id, nounId: noun.id }}
+									className="island-shell flex items-center justify-between rounded-xl p-4 no-underline transition hover:-translate-y-0.5"
+								>
+									<div>
+										<span className="font-medium">{noun.name}</span>
+										{noun.summary && (
+											<p className="mt-0.5 text-sm text-[var(--sea-ink-soft)] line-clamp-1">
+												{noun.summary}
+											</p>
+										)}
+									</div>
+									<div className="flex items-center gap-2">
+										{noun.isSecret && <Badge variant="secondary">Secret</Badge>}
+										<Badge variant="outline">
+											{NOUN_TYPE_LABELS[noun.nounType]}
+										</Badge>
+									</div>
+								</Link>
+							</li>
+						))}
+					</ul>
+				)}
+			</main>
+		</>
 	);
 }
