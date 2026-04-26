@@ -70,7 +70,7 @@ export const getSession = createServerFn()
 		return { session: result, accessLevel, related, mapPinLocations };
 	});
 
-export const createSession = createServerFn()
+export const createSession = createServerFn({ method: "POST" })
 	.inputValidator(
 		z.object({
 			campaignId: z.string(),
@@ -116,7 +116,7 @@ export const createSession = createServerFn()
 		}
 	});
 
-export const updateSession = createServerFn()
+export const updateSession = createServerFn({ method: "POST" })
 	.inputValidator(
 		z.object({
 			campaignId: z.string(),
@@ -170,7 +170,7 @@ export const updateSession = createServerFn()
 		}
 	});
 
-export const deleteSession = createServerFn()
+export const deleteSession = createServerFn({ method: "POST" })
 	.inputValidator(z.object({ campaignId: z.string(), sessionId: z.string() }))
 	.handler(async ({ data }) => {
 		const { user } = await requireSession();

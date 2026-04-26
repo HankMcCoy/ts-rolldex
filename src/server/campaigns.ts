@@ -155,7 +155,7 @@ export const getCampaignDashboard = createServerFn()
 		};
 	});
 
-export const createCampaign = createServerFn()
+export const createCampaign = createServerFn({ method: "POST" })
 	.inputValidator(
 		z.object({
 			name: z.string().min(1).max(100),
@@ -193,7 +193,7 @@ export const createCampaign = createServerFn()
 		}
 	});
 
-export const updateCampaign = createServerFn()
+export const updateCampaign = createServerFn({ method: "POST" })
 	.inputValidator(
 		z.object({
 			campaignId: z.string(),
@@ -235,7 +235,7 @@ export const updateCampaign = createServerFn()
 		}
 	});
 
-export const deleteCampaign = createServerFn()
+export const deleteCampaign = createServerFn({ method: "POST" })
 	.inputValidator(z.object({ campaignId: z.string() }))
 	.handler(async ({ data }) => {
 		const { user } = await requireSession();

@@ -99,7 +99,7 @@ export const getNoun = createServerFn()
 		};
 	});
 
-export const createNoun = createServerFn()
+export const createNoun = createServerFn({ method: "POST" })
 	.inputValidator(
 		z.object({
 			campaignId: z.string(),
@@ -147,7 +147,7 @@ export const createNoun = createServerFn()
 		}
 	});
 
-export const updateNoun = createServerFn()
+export const updateNoun = createServerFn({ method: "POST" })
 	.inputValidator(
 		z.object({
 			campaignId: z.string(),
@@ -200,7 +200,7 @@ export const updateNoun = createServerFn()
 		}
 	});
 
-export const deleteNoun = createServerFn()
+export const deleteNoun = createServerFn({ method: "POST" })
 	.inputValidator(z.object({ campaignId: z.string(), nounId: z.string() }))
 	.handler(async ({ data }) => {
 		const { user } = await requireSession();
@@ -294,7 +294,7 @@ export const uploadNounImage = createServerFn({ method: "POST" })
 		return ok({ imageKey: key, imageUrl: publicUrlFor(key) });
 	});
 
-export const removeNounImage = createServerFn()
+export const removeNounImage = createServerFn({ method: "POST" })
 	.inputValidator(z.object({ campaignId: z.string(), nounId: z.string() }))
 	.handler(async ({ data }) => {
 		const { user } = await requireSession();

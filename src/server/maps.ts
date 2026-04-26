@@ -121,7 +121,7 @@ export const getMap = createServerFn()
 		};
 	});
 
-export const createMap = createServerFn()
+export const createMap = createServerFn({ method: "POST" })
 	.inputValidator(
 		z.object({
 			campaignId: z.string(),
@@ -161,7 +161,7 @@ export const createMap = createServerFn()
 		}
 	});
 
-export const updateMap = createServerFn()
+export const updateMap = createServerFn({ method: "POST" })
 	.inputValidator(
 		z.object({
 			campaignId: z.string(),
@@ -206,7 +206,7 @@ export const updateMap = createServerFn()
 		}
 	});
 
-export const deleteMap = createServerFn()
+export const deleteMap = createServerFn({ method: "POST" })
 	.inputValidator(z.object({ campaignId: z.string(), mapId: z.string() }))
 	.handler(async ({ data }) => {
 		const { user } = await requireSession();
@@ -290,7 +290,7 @@ export const uploadMapImage = createServerFn({ method: "POST" })
 		return ok({ imageKey: key, imageUrl: publicUrlFor(key) });
 	});
 
-export const removeMapImage = createServerFn()
+export const removeMapImage = createServerFn({ method: "POST" })
 	.inputValidator(z.object({ campaignId: z.string(), mapId: z.string() }))
 	.handler(async ({ data }) => {
 		const { user } = await requireSession();
@@ -320,7 +320,7 @@ export const removeMapImage = createServerFn()
 		return ok({ success: true });
 	});
 
-export const createPin = createServerFn()
+export const createPin = createServerFn({ method: "POST" })
 	.inputValidator(
 		z
 			.object({
@@ -360,7 +360,7 @@ export const createPin = createServerFn()
 		return ok(pin);
 	});
 
-export const updatePinLabel = createServerFn()
+export const updatePinLabel = createServerFn({ method: "POST" })
 	.inputValidator(
 		z.object({
 			campaignId: z.string(),
@@ -388,7 +388,7 @@ export const updatePinLabel = createServerFn()
 		return ok({ success: true });
 	});
 
-export const deletePin = createServerFn()
+export const deletePin = createServerFn({ method: "POST" })
 	.inputValidator(z.object({ campaignId: z.string(), pinId: z.string() }))
 	.handler(async ({ data }) => {
 		const { user } = await requireSession();

@@ -23,7 +23,7 @@ export const linkMemberAccounts = createServerFn().handler(async () => {
 		);
 });
 
-export const inviteMember = createServerFn()
+export const inviteMember = createServerFn({ method: "POST" })
 	.inputValidator(
 		z.object({ campaignId: z.string(), email: z.string().email() }),
 	)
@@ -67,7 +67,7 @@ export const inviteMember = createServerFn()
 		return ok(null);
 	});
 
-export const removeMember = createServerFn()
+export const removeMember = createServerFn({ method: "POST" })
 	.inputValidator(z.object({ campaignId: z.string(), memberId: z.string() }))
 	.handler(async ({ data }) => {
 		const { user } = await requireSession();
