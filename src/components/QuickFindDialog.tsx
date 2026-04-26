@@ -1,5 +1,6 @@
 import { useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
+import { PlusIcon } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { EntityAvatar } from "@/components/EntityAvatar";
 import {
@@ -17,6 +18,7 @@ import { quickFind } from "@/server/search";
 
 interface Props {
 	campaignId: string;
+	accessLevel: "ADMIN" | "READ_ONLY";
 }
 
 interface NounResult {
@@ -31,7 +33,7 @@ interface SessionResult {
 	name: string;
 }
 
-export function QuickFindDialog({ campaignId }: Props) {
+export function QuickFindDialog({ campaignId, accessLevel }: Props) {
 	const [open, setOpen] = useState(false);
 	const [query, setQuery] = useState("");
 	const [results, setResults] = useState<{
@@ -79,7 +81,18 @@ export function QuickFindDialog({ campaignId }: Props) {
 		navigate({ href });
 	}
 
+	function handleCreateEntity(name: string) {
+		setOpen(false);
+		navigate({
+			to: "/campaigns/$campaignId/nouns/new",
+			params: { campaignId },
+			search: { name },
+		});
+	}
+
 	const hasResults = results.nouns.length > 0 || results.sessions.length > 0;
+	const trimmedQuery = query.trim();
+	const showCreate = accessLevel === "ADMIN" && trimmedQuery.length > 0;
 
 	return (
 		<CommandDialog open={open} onOpenChange={setOpen} title="Quick find">
@@ -90,7 +103,7 @@ export function QuickFindDialog({ campaignId }: Props) {
 					onValueChange={handleQueryChange}
 				/>
 				<CommandList>
-					{query && !hasResults && (
+					{query && !hasResults && !showCreate && (
 						<CommandEmpty>No results found.</CommandEmpty>
 					)}
 					{results.nouns.length > 0 && (
@@ -137,6 +150,22 @@ export function QuickFindDialog({ campaignId }: Props) {
 									{s.name}
 								</CommandItem>
 							))}
+						</CommandGroup>
+					)}
+					{showCreate && hasResults && <CommandSeparator />}
+					{showCreate && (
+						<CommandGroup heading="Create">
+							<CommandItem
+								key={`create-${trimmedQuery}`}
+								onSelect={() => handleCreateEntity(trimmedQuery)}
+							>
+								<span className="flex size-6 items-center justify-center rounded-md border border-[var(--line)] bg-white/90 text-muted-foreground">
+									<PlusIcon className="size-4" />
+								</span>
+								<span className="flex-1 truncate">
+									Create entity “{trimmedQuery}”
+								</span>
+							</CommandItem>
 						</CommandGroup>
 					)}
 				</CommandList>

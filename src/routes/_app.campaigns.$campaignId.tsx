@@ -9,11 +9,11 @@ export const Route = createFileRoute("/_app/campaigns/$campaignId")({
 });
 
 function CampaignLayout() {
-	const { campaign } = Route.useLoaderData();
+	const { campaign, accessLevel } = Route.useLoaderData();
 	return (
 		<>
 			<Outlet />
-			<QuickFindDialog campaignId={campaign.id} />
+			<QuickFindDialog campaignId={campaign.id} accessLevel={accessLevel} />
 		</>
 	);
 }

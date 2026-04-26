@@ -24,7 +24,10 @@ import { NOUN_TYPE_LABELS, NOUN_TYPES, nounTypeSchema } from "@/lib/noun-types";
 import { createNoun } from "@/server/nouns";
 
 export const Route = createFileRoute("/_app/campaigns/$campaignId/nouns/new")({
-	validateSearch: z.object({ type: nounTypeSchema.optional() }),
+	validateSearch: z.object({
+		type: nounTypeSchema.optional(),
+		name: z.string().optional(),
+	}),
 	component: NewNounPage,
 });
 
@@ -42,14 +45,14 @@ type Values = z.infer<typeof schema>;
 
 function NewNounPage() {
 	const { campaign, accessLevel } = parentRoute.useLoaderData();
-	const { type } = Route.useSearch();
+	const { type, name } = Route.useSearch();
 	const navigate = useNavigate();
 	const create = useServerFn(createNoun);
 
 	const form = useForm<Values>({
 		resolver: zodResolver(schema),
 		defaultValues: {
-			name: "",
+			name: name ?? "",
 			nounType: type ?? "PERSON",
 			summary: "",
 			notes: "",
