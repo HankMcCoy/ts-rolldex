@@ -12,7 +12,6 @@ import { PageHeader } from "@/components/PageHeader";
 import { RelatedEntities } from "@/components/RelatedEntities";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
 import { deleteSession } from "@/server/sessions";
 
 export const Route = createFileRoute(
@@ -92,21 +91,20 @@ function SessionPage() {
 			/>
 			<main className="page-wrap px-4 py-10">
 				<div className="flex gap-12">
-					<div className="min-w-0 flex-1">
-						{session.isSecret && (
-							<div className="mb-3">
-								<Badge variant="secondary">Secret</Badge>
-							</div>
-						)}
+					<div className="min-w-0 flex-1 space-y-6">
+						{session.isSecret && <Badge variant="secondary">Secret</Badge>}
 
 						{session.summary && (
-							<p className="mb-8 max-w-2xl text-[var(--sea-ink-soft)]">
-								{session.summary}
-							</p>
+							<section>
+								<h2 className="island-kicker mb-3">Summary</h2>
+								<div className="max-w-2xl rounded-2xl border border-[var(--line)] bg-white/90 p-5 text-[var(--sea-ink-soft)] shadow-sm">
+									{session.summary}
+								</div>
+							</section>
 						)}
 
 						{session.notes && (
-							<section className="mb-8">
+							<section>
 								<h2 className="island-kicker mb-3">Notes</h2>
 								<div className="max-w-2xl rounded-2xl border border-[var(--line)] bg-white/90 p-5 shadow-sm">
 									<MarkdownRenderer content={session.notes} />
@@ -115,15 +113,12 @@ function SessionPage() {
 						)}
 
 						{isAdmin && session.privateNotes && (
-							<>
-								<Separator className="mb-8" />
-								<section className="mb-8">
-									<h2 className="island-kicker mb-3">Private notes</h2>
-									<div className="max-w-2xl rounded-2xl border border-[var(--line)] bg-white/90 p-5 shadow-sm">
-										<MarkdownRenderer content={session.privateNotes} />
-									</div>
-								</section>
-							</>
+							<section>
+								<h2 className="island-kicker mb-3">Private notes</h2>
+								<div className="max-w-2xl rounded-2xl border border-[var(--line)] bg-white/90 p-5 shadow-sm">
+									<MarkdownRenderer content={session.privateNotes} />
+								</div>
+							</section>
 						)}
 					</div>
 
