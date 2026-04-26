@@ -10,6 +10,7 @@ import {
 import StarterKit from "@tiptap/starter-kit";
 import { Markdown, type MarkdownStorage } from "tiptap-markdown";
 import { describe, expect, it } from "vitest";
+import { EnforceTableHeader } from "@/components/markdown/extensions/enforce-table-header";
 
 declare module "@tiptap/core" {
 	interface Storage {
@@ -27,6 +28,7 @@ function makeEditor(content: string): Editor {
 			TableRow,
 			TableCell,
 			TableHeader,
+			EnforceTableHeader,
 			CharacterCount.configure({}),
 			Markdown.configure({
 				html: false,
@@ -115,5 +117,29 @@ describe("markdown editor round-trip", () => {
 		expectIdempotent(
 			"# Session 1\n\nThe party arrives in **Barnslow** to investigate the *Dimmer Sisters*.\n\n## NPCs\n\n- Eos — goddess of dawn\n- Felton — changeling\n\n## Notable rolls\n\n| Player | Roll |\n| ------ | ---- |\n| Maude  | 18 |\n| Milly  | 7 |\n\n> Quote of the night.\n\n---\n\nSee `notes.md` for more.\n",
 		);
+	});
+
+	it("auto-promotes the first row to a header when a table has none", () => {
+		const editor = makeEditor("");
+		editor
+			.chain()
+			.focus()
+			.insertTable({ rows: 2, cols: 2, withHeaderRow: false })
+			.run();
+		const md = editor.storage.markdown.getMarkdown();
+		// Without the EnforceTableHeader extension, this serialises to
+		// `[table]`. With it, the first row is promoted so we get valid GFM.
+		expect(md).toContain("| --- |");
+		editor.destroy();
+	});
+
+	it("re-promotes a body row to header after the original header is removed", () => {
+		const md = roundtrip("| H1 | H2 |\n| --- | --- |\n| a | b |\n| c | d |\n");
+		const editor = makeEditor(md);
+		editor.chain().focus().setTextSelection(2).deleteRow().run();
+		const out = editor.storage.markdown.getMarkdown();
+		expect(out).toContain("| --- |");
+		expect(out).not.toContain("[table]");
+		editor.destroy();
 	});
 });

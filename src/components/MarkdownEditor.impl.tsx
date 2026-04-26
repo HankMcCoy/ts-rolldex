@@ -20,6 +20,7 @@ import {
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Markdown, type MarkdownStorage } from "tiptap-markdown";
+import { EnforceTableHeader } from "@/components/markdown/extensions/enforce-table-header";
 import {
 	type CommandItem,
 	SlashCommand,
@@ -155,6 +156,7 @@ export default function MarkdownEditorImpl({
 			TableHeader,
 			TableKeymap,
 			TsvPaste,
+			EnforceTableHeader,
 			Markdown.configure({
 				html: false,
 				breaks: false,
