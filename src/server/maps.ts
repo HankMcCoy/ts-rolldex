@@ -347,6 +347,34 @@ export const createPin = createServerFn()
 		return ok(pin);
 	});
 
+export const updatePinLabel = createServerFn()
+	.inputValidator(
+		z.object({
+			campaignId: z.string(),
+			pinId: z.string(),
+			label: z.string().max(200),
+		}),
+	)
+	.handler(async ({ data }) => {
+		const { user } = await requireSession();
+		await requireCampaignAccess(data.campaignId, user, "ADMIN");
+
+		const pin = await db.query.mapPins.findFirst({
+			where: eq(mapPins.id, data.pinId),
+			with: { map: { columns: { campaignId: true } } },
+		});
+		if (!pin || pin.map.campaignId !== data.campaignId) {
+			return err("Pin not found.");
+		}
+
+		const trimmed = data.label.trim();
+		await db
+			.update(mapPins)
+			.set({ label: trimmed.length > 0 ? trimmed : null })
+			.where(eq(mapPins.id, data.pinId));
+		return ok({ success: true });
+	});
+
 export const deletePin = createServerFn()
 	.inputValidator(z.object({ campaignId: z.string(), pinId: z.string() }))
 	.handler(async ({ data }) => {

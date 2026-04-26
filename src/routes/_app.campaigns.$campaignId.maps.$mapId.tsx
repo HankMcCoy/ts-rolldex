@@ -16,6 +16,7 @@ import {
 	deletePin,
 	getMap,
 	removeMapImage,
+	updatePinLabel,
 	uploadMapImage,
 } from "@/server/maps";
 import { getNouns } from "@/server/nouns";
@@ -52,6 +53,7 @@ function MapPage() {
 	const remove = useServerFn(deleteMap);
 	const create = useServerFn(createPin);
 	const removePin = useServerFn(deletePin);
+	const updateLabel = useServerFn(updatePinLabel);
 
 	const [imageError, setImageError] = useState<string | null>(null);
 	const [imageBusy, setImageBusy] = useState(false);
@@ -153,6 +155,17 @@ function MapPage() {
 		await router.invalidate();
 	}
 
+	async function handleUpdatePinLabel(pinId: string, label: string) {
+		const result = await updateLabel({
+			data: { campaignId: campaign.id, pinId, label },
+		});
+		if (!result.ok) {
+			alert(result.error);
+			return;
+		}
+		await router.invalidate();
+	}
+
 	return (
 		<Page
 			breadcrumbs={breadcrumbs}
@@ -182,6 +195,7 @@ function MapPage() {
 					sessions={sessions}
 					onCreatePin={handleCreatePin}
 					onDeletePin={handleDeletePin}
+					onUpdatePinLabel={handleUpdatePinLabel}
 				/>
 			) : (
 				<div className="island-shell rounded-xl p-10 text-center">

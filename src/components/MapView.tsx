@@ -51,6 +51,7 @@ interface Props {
 		sessionId?: string;
 	}) => Promise<void>;
 	onDeletePin: (pinId: string) => Promise<void>;
+	onUpdatePinLabel: (pinId: string, label: string) => Promise<void>;
 }
 
 type PendingPin = { x: number; y: number };
@@ -64,6 +65,7 @@ export function MapView({
 	sessions,
 	onCreatePin,
 	onDeletePin,
+	onUpdatePinLabel,
 }: Props) {
 	const [adding, setAdding] = useState(false);
 	const [pending, setPending] = useState<PendingPin | null>(null);
@@ -177,6 +179,7 @@ export function MapView({
 						await onDeletePin(activePin.id);
 						setActivePinId(null);
 					}}
+					onSaveLabel={(label) => onUpdatePinLabel(activePin.id, label)}
 				/>
 			)}
 
@@ -233,13 +236,19 @@ function PinPopover({
 	canEdit,
 	onClose,
 	onDelete,
+	onSaveLabel,
 }: {
 	campaignId: string;
 	pin: MapPin;
 	canEdit: boolean;
 	onClose: () => void;
 	onDelete: () => Promise<void>;
+	onSaveLabel: (label: string) => Promise<void>;
 }) {
+	const [editingLabel, setEditingLabel] = useState(false);
+	const [labelDraft, setLabelDraft] = useState(pin.label ?? "");
+	const [savingLabel, setSavingLabel] = useState(false);
+
 	useEffect(() => {
 		function onKey(e: KeyboardEvent) {
 			if (e.key === "Escape") onClose();
@@ -247,6 +256,16 @@ function PinPopover({
 		document.addEventListener("keydown", onKey);
 		return () => document.removeEventListener("keydown", onKey);
 	}, [onClose]);
+
+	async function handleSaveLabel() {
+		setSavingLabel(true);
+		try {
+			await onSaveLabel(labelDraft);
+			setEditingLabel(false);
+		} finally {
+			setSavingLabel(false);
+		}
+	}
 
 	const targetLabel = pin.noun
 		? NOUN_TYPE_LABELS[pin.noun.nounType]
@@ -296,13 +315,61 @@ function PinPopover({
 						<span className="font-medium">{pin.session.name}</span>
 					</Link>
 				)}
-				{pin.label && (
-					<p className="mt-2 px-2 text-sm text-[var(--sea-ink-soft)]">
-						{pin.label}
-					</p>
+				{editingLabel ? (
+					<div className="mt-3 space-y-2 px-2">
+						<Input
+							autoFocus
+							value={labelDraft}
+							onChange={(e) => setLabelDraft(e.target.value)}
+							placeholder="Optional label"
+							maxLength={200}
+							onKeyDown={(e) => {
+								if (e.key === "Enter") {
+									e.preventDefault();
+									handleSaveLabel();
+								}
+							}}
+						/>
+						<div className="flex gap-2">
+							<Button
+								type="button"
+								size="sm"
+								onClick={handleSaveLabel}
+								disabled={savingLabel}
+							>
+								{savingLabel ? "Saving…" : "Save"}
+							</Button>
+							<Button
+								type="button"
+								size="sm"
+								variant="outline"
+								onClick={() => {
+									setEditingLabel(false);
+									setLabelDraft(pin.label ?? "");
+								}}
+								disabled={savingLabel}
+							>
+								Cancel
+							</Button>
+						</div>
+					</div>
+				) : (
+					pin.label && (
+						<p className="mt-2 px-2 text-sm text-[var(--sea-ink-soft)]">
+							{pin.label}
+						</p>
+					)
 				)}
-				{canEdit && (
-					<div className="mt-3 flex justify-end">
+				{canEdit && !editingLabel && (
+					<div className="mt-3 flex justify-end gap-2">
+						<Button
+							type="button"
+							variant="outline"
+							size="sm"
+							onClick={() => setEditingLabel(true)}
+						>
+							{pin.label ? "Edit label" : "Add label"}
+						</Button>
 						<Button
 							type="button"
 							variant="outline"
@@ -310,7 +377,7 @@ function PinPopover({
 							onClick={onDelete}
 						>
 							<Trash2 className="size-4" />
-							Remove pin
+							Remove
 						</Button>
 					</div>
 				)}
