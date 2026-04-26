@@ -1,4 +1,5 @@
 import { and, eq } from "drizzle-orm";
+import type { AnyPgColumn } from "drizzle-orm/pg-core";
 import { db } from "@/db/index";
 import { gameSessions, nouns } from "@/db/schema/index";
 import type { AccessLevel } from "@/lib/access";
@@ -9,10 +10,7 @@ import { publicUrlFor } from "@/lib/storage";
  * Returns eq(col, false) for READ_ONLY users so secret entities are hidden,
  * or undefined (no filter) for ADMIN users.
  */
-export function visibilityFilter(
-	col: typeof nouns.isSecret | typeof gameSessions.isSecret,
-	accessLevel: AccessLevel,
-) {
+export function visibilityFilter(col: AnyPgColumn, accessLevel: AccessLevel) {
 	return accessLevel === "READ_ONLY" ? eq(col, false) : undefined;
 }
 

@@ -5,7 +5,7 @@ import {
 	useRouter,
 } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { Trash2 } from "lucide-react";
+import { Map as MapIcon, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { EntityAvatar } from "@/components/EntityAvatar";
 import { Page } from "@/components/Page";
@@ -23,7 +23,7 @@ export const Route = createFileRoute("/_app/campaigns/$campaignId/")({
 });
 
 function CampaignDashboard() {
-	const { campaign, accessLevel, entities, recentSessions, members } =
+	const { campaign, accessLevel, entities, recentSessions, members, maps } =
 		Route.useLoaderData();
 	const navigate = useNavigate();
 	const router = useRouter();
@@ -119,70 +119,133 @@ function CampaignDashboard() {
 					)}
 				</section>
 
-				{/* Members section */}
-				<section>
-					<div className="mb-3 flex items-center justify-between">
-						<h2 className="island-kicker">Members</h2>
-						{isAdmin && (
-							<Button size="sm" asChild>
-								<Link
-									to="/campaigns/$campaignId/members/invite"
-									params={{ campaignId: campaign.id }}
-								>
-									+ Invite
-								</Link>
-							</Button>
-						)}
-					</div>
+				<div className="space-y-8">
+					{/* Members section */}
+					<section>
+						<div className="mb-3 flex items-center justify-between">
+							<h2 className="island-kicker">Members</h2>
+							{isAdmin && (
+								<Button size="sm" asChild>
+									<Link
+										to="/campaigns/$campaignId/members/invite"
+										params={{ campaignId: campaign.id }}
+									>
+										+ Invite
+									</Link>
+								</Button>
+							)}
+						</div>
 
-					<ul className="space-y-2">
-						{members.map((m) => {
-							const displayName = m.user?.name ?? m.email ?? "Pending invite";
-							const showEmail = isAdmin && m.user?.name && m.email;
-							const isDM = m.role === "DM";
-							return (
-								<li
-									key={m.id}
-									className="flex items-center justify-between gap-4 rounded-xl border border-[var(--line)] px-4 py-2"
-								>
-									<div>
-										<span className="font-medium">{displayName}</span>
-										{showEmail && (
-											<span className="ml-2 text-sm text-[var(--sea-ink-soft)]">
-												{m.email}
-											</span>
-										)}
-									</div>
-									<div className="flex items-center gap-2">
-										<Badge variant="secondary">
-											{isDM ? "DM" : "Read only"}
-										</Badge>
-										{isAdmin && !isDM && (
-											<button
-												type="button"
-												onClick={async () => {
-													await remove({
-														data: {
-															campaignId: campaign.id,
-															memberId: m.id,
-														},
-													});
-													await router.invalidate();
-													navigate({ to: "." });
-												}}
-												title="Remove member"
-												aria-label="Remove member"
-												className="rounded p-1.5 text-[var(--sea-ink-soft)] transition hover:text-destructive"
-											>
-												<Trash2 className="size-4" />
-											</button>
-										)}
-									</div>
-								</li>
-							);
-						})}
-					</ul>
-				</section>
+						<ul className="space-y-2">
+							{members.map((m) => {
+								const displayName = m.user?.name ?? m.email ?? "Pending invite";
+								const showEmail = isAdmin && m.user?.name && m.email;
+								const isDM = m.role === "DM";
+								return (
+									<li
+										key={m.id}
+										className="flex items-center justify-between gap-4 rounded-xl border border-[var(--line)] px-4 py-2"
+									>
+										<div>
+											<span className="font-medium">{displayName}</span>
+											{showEmail && (
+												<span className="ml-2 text-sm text-[var(--sea-ink-soft)]">
+													{m.email}
+												</span>
+											)}
+										</div>
+										<div className="flex items-center gap-2">
+											<Badge variant="secondary">
+												{isDM ? "DM" : "Read only"}
+											</Badge>
+											{isAdmin && !isDM && (
+												<button
+													type="button"
+													onClick={async () => {
+														await remove({
+															data: {
+																campaignId: campaign.id,
+																memberId: m.id,
+															},
+														});
+														await router.invalidate();
+														navigate({ to: "." });
+													}}
+													title="Remove member"
+													aria-label="Remove member"
+													className="rounded p-1.5 text-[var(--sea-ink-soft)] transition hover:text-destructive"
+												>
+													<Trash2 className="size-4" />
+												</button>
+											)}
+										</div>
+									</li>
+								);
+							})}
+						</ul>
+					</section>
+
+					{/* Maps section */}
+					<section>
+						<div className="mb-3 flex items-center justify-between">
+							<h2 className="island-kicker">Maps</h2>
+							<div className="flex gap-2">
+								<Button variant="outline" size="sm" asChild>
+									<Link
+										to="/campaigns/$campaignId/maps"
+										params={{ campaignId: campaign.id }}
+									>
+										All maps
+									</Link>
+								</Button>
+								{isAdmin && (
+									<Button size="sm" asChild>
+										<Link
+											to="/campaigns/$campaignId/maps/new"
+											params={{ campaignId: campaign.id }}
+										>
+											+ Map
+										</Link>
+									</Button>
+								)}
+							</div>
+						</div>
+
+						{maps.length === 0 ? (
+							<p className="text-sm text-[var(--sea-ink-soft)]">No maps yet.</p>
+						) : (
+							<ul className="space-y-2">
+								{maps.map((m) => (
+									<li key={m.id}>
+										<Link
+											to="/campaigns/$campaignId/maps/$mapId"
+											params={{ campaignId: campaign.id, mapId: m.id }}
+											className="island-shell flex items-center gap-4 rounded-xl p-3 no-underline transition hover:-translate-y-0.5"
+										>
+											<div className="flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-[var(--line)] bg-white/90">
+												{m.imageUrl ? (
+													<img
+														src={m.imageUrl}
+														alt=""
+														className="h-full w-full object-cover"
+													/>
+												) : (
+													<MapIcon className="size-5 text-[var(--sea-ink-soft)]" />
+												)}
+											</div>
+											<div className="flex min-w-0 flex-1 items-center justify-between gap-2">
+												<span className="font-medium">{m.name}</span>
+												{m.isSecret && (
+													<Badge variant="secondary">Secret</Badge>
+												)}
+											</div>
+										</Link>
+									</li>
+								))}
+							</ul>
+						)}
+					</section>
+				</div>
 			</div>
 
 			<Separator className="mb-8" />

@@ -1,6 +1,8 @@
-import { relations } from "drizzle-orm";
+import { relations, sql } from "drizzle-orm";
 import {
 	boolean,
+	check,
+	doublePrecision,
 	pgEnum,
 	pgTable,
 	text,
@@ -76,6 +78,48 @@ export const gameSessions = pgTable(
 	],
 );
 
+export const maps = pgTable(
+	"maps",
+	{
+		id: idColumn(),
+		campaignId: text("campaign_id")
+			.notNull()
+			.references(() => campaigns.id, { onDelete: "cascade" }),
+		name: text("name").notNull(),
+		isSecret: boolean("is_secret").notNull().default(false),
+		imageKey: text("image_key"),
+		createdAt: timestamp("created_at").notNull().defaultNow(),
+		updatedAt: timestamp("updated_at").notNull().defaultNow(),
+	},
+	(t) => [uniqueIndex("maps_campaign_name_unique").on(t.campaignId, t.name)],
+);
+
+export const mapPins = pgTable(
+	"map_pins",
+	{
+		id: idColumn(),
+		mapId: text("map_id")
+			.notNull()
+			.references(() => maps.id, { onDelete: "cascade" }),
+		nounId: text("noun_id").references(() => nouns.id, {
+			onDelete: "cascade",
+		}),
+		sessionId: text("session_id").references(() => gameSessions.id, {
+			onDelete: "cascade",
+		}),
+		x: doublePrecision("x").notNull(),
+		y: doublePrecision("y").notNull(),
+		label: text("label"),
+		createdAt: timestamp("created_at").notNull().defaultNow(),
+	},
+	(t) => [
+		check(
+			"map_pins_target_exclusive",
+			sql`(${t.nounId} IS NULL) <> (${t.sessionId} IS NULL)`,
+		),
+	],
+);
+
 export const members = pgTable(
 	"members",
 	{
@@ -104,6 +148,24 @@ export const campaignsRelations = relations(campaigns, ({ one, many }) => ({
 	nouns: many(nouns),
 	gameSessions: many(gameSessions),
 	members: many(members),
+	maps: many(maps),
+}));
+
+export const mapsRelations = relations(maps, ({ one, many }) => ({
+	campaign: one(campaigns, {
+		fields: [maps.campaignId],
+		references: [campaigns.id],
+	}),
+	pins: many(mapPins),
+}));
+
+export const mapPinsRelations = relations(mapPins, ({ one }) => ({
+	map: one(maps, { fields: [mapPins.mapId], references: [maps.id] }),
+	noun: one(nouns, { fields: [mapPins.nounId], references: [nouns.id] }),
+	session: one(gameSessions, {
+		fields: [mapPins.sessionId],
+		references: [gameSessions.id],
+	}),
 }));
 
 export const nounsRelations = relations(nouns, ({ one }) => ({

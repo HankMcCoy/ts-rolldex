@@ -5,6 +5,7 @@ import { db } from "@/db/index";
 import {
 	campaigns,
 	gameSessions,
+	maps,
 	members,
 	nouns,
 	users,
@@ -65,40 +66,49 @@ export const getCampaignDashboard = createServerFn()
 			user,
 		);
 
-		const [allNouns, recentSessions, allMembers, creator] = await Promise.all([
-			db.query.nouns.findMany({
-				where: and(
-					eq(nouns.campaignId, data.campaignId),
-					visibilityFilter(nouns.isSecret, accessLevel),
-				),
-				orderBy: (n, { asc }) => asc(n.name),
-				columns: {
-					id: true,
-					name: true,
-					nounType: true,
-					summary: true,
-					isSecret: true,
-					imageKey: true,
-				},
-			}),
-			db.query.gameSessions.findMany({
-				where: and(
-					eq(gameSessions.campaignId, data.campaignId),
-					visibilityFilter(gameSessions.isSecret, accessLevel),
-				),
-				orderBy: (s, { desc }) => desc(s.createdAt),
-				limit: 5,
-				columns: { id: true, name: true, summary: true, createdAt: true },
-			}),
-			db.query.members.findMany({
-				where: eq(members.campaignId, data.campaignId),
-				with: { user: { columns: { id: true, name: true, email: true } } },
-			}),
-			db.query.users.findFirst({
-				where: eq(users.id, campaign.createdById),
-				columns: { id: true, name: true, email: true },
-			}),
-		]);
+		const [allNouns, recentSessions, allMembers, creator, allMaps] =
+			await Promise.all([
+				db.query.nouns.findMany({
+					where: and(
+						eq(nouns.campaignId, data.campaignId),
+						visibilityFilter(nouns.isSecret, accessLevel),
+					),
+					orderBy: (n, { asc }) => asc(n.name),
+					columns: {
+						id: true,
+						name: true,
+						nounType: true,
+						summary: true,
+						isSecret: true,
+						imageKey: true,
+					},
+				}),
+				db.query.gameSessions.findMany({
+					where: and(
+						eq(gameSessions.campaignId, data.campaignId),
+						visibilityFilter(gameSessions.isSecret, accessLevel),
+					),
+					orderBy: (s, { desc }) => desc(s.createdAt),
+					limit: 5,
+					columns: { id: true, name: true, summary: true, createdAt: true },
+				}),
+				db.query.members.findMany({
+					where: eq(members.campaignId, data.campaignId),
+					with: { user: { columns: { id: true, name: true, email: true } } },
+				}),
+				db.query.users.findFirst({
+					where: eq(users.id, campaign.createdById),
+					columns: { id: true, name: true, email: true },
+				}),
+				db.query.maps.findMany({
+					where: and(
+						eq(maps.campaignId, data.campaignId),
+						visibilityFilter(maps.isSecret, accessLevel),
+					),
+					orderBy: (m, { asc }) => asc(m.name),
+					columns: { id: true, name: true, isSecret: true, imageKey: true },
+				}),
+			]);
 
 		const entities = allNouns.map(({ imageKey, ...rest }) => ({
 			...rest,
@@ -130,12 +140,18 @@ export const getCampaignDashboard = createServerFn()
 							user: { name: m.user?.name ?? "" },
 						}));
 
+		const mapsList = allMaps.map(({ imageKey, ...rest }) => ({
+			...rest,
+			imageUrl: imageKey ? publicUrlFor(imageKey) : null,
+		}));
+
 		return {
 			campaign,
 			accessLevel,
 			entities,
 			recentSessions,
 			members: [dmEntry, ...memberEntries],
+			maps: mapsList,
 		};
 	});
 
