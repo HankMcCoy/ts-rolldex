@@ -10,6 +10,7 @@ import { useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { EntityImage } from "@/components/EntityImage";
+import { EventDateFields } from "@/components/EventDateFields";
 import { MarkdownEditor } from "@/components/MarkdownEditor";
 import { Page } from "@/components/Page";
 import { Button } from "@/components/ui/button";
@@ -57,6 +58,8 @@ const schema = z.object({
 	notes: z.string(),
 	privateNotes: z.string(),
 	isSecret: z.boolean(),
+	dateLabel: z.string().max(200).optional(),
+	dateSort: z.string().max(200).optional(),
 });
 type Values = z.infer<typeof schema>;
 
@@ -83,6 +86,8 @@ function EditNounPage() {
 			notes: noun.notes,
 			privateNotes: noun.privateNotes,
 			isSecret: noun.isSecret,
+			dateLabel: noun.dateLabel ?? "",
+			dateSort: noun.dateSort ?? "",
 		},
 	});
 
@@ -269,6 +274,9 @@ function EditNounPage() {
 								)}
 							</div>
 						</div>
+						{form.watch("nounType") === "EVENT" && (
+							<EventDateFields form={form} />
+						)}
 						<FormField
 							control={form.control}
 							name="notes"

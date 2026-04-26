@@ -17,6 +17,7 @@ export const nounTypeEnum = pgEnum("noun_type", [
 	"PLACE",
 	"THING",
 	"FACTION",
+	"EVENT",
 ]);
 
 export const memberTypeEnum = pgEnum("member_type", ["READ_ONLY"]);
@@ -52,6 +53,8 @@ export const nouns = pgTable(
 		privateNotes: text("private_notes").notNull().default(""),
 		isSecret: boolean("is_secret").notNull().default(false),
 		imageKey: text("image_key"),
+		dateLabel: text("date_label"),
+		dateSort: text("date_sort"),
 		createdAt: timestamp("created_at").notNull().defaultNow(),
 		updatedAt: timestamp("updated_at").notNull().defaultNow(),
 	},
@@ -70,6 +73,8 @@ export const gameSessions = pgTable(
 		notes: text("notes").notNull().default(""),
 		privateNotes: text("private_notes").notNull().default(""),
 		isSecret: boolean("is_secret").notNull().default(false),
+		dateLabel: text("date_label"),
+		dateSort: text("date_sort"),
 		createdAt: timestamp("created_at").notNull().defaultNow(),
 		updatedAt: timestamp("updated_at").notNull().defaultNow(),
 	},

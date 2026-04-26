@@ -6,6 +6,7 @@ import {
 import { useServerFn } from "@tanstack/react-start";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
+import { EventDateFields } from "@/components/EventDateFields";
 import { MarkdownEditor } from "@/components/MarkdownEditor";
 import { Page } from "@/components/Page";
 import { Button } from "@/components/ui/button";
@@ -38,6 +39,8 @@ const schema = z.object({
 	notes: z.string(),
 	privateNotes: z.string(),
 	isSecret: z.boolean(),
+	dateLabel: z.string().max(200).optional(),
+	dateSort: z.string().max(200).optional(),
 });
 type Values = z.infer<typeof schema>;
 
@@ -54,6 +57,8 @@ function NewSessionPage() {
 			notes: "",
 			privateNotes: "",
 			isSecret: false,
+			dateLabel: "",
+			dateSort: "",
 		},
 	});
 
@@ -123,6 +128,7 @@ function NewSessionPage() {
 								</FormItem>
 							)}
 						/>
+						<EventDateFields form={form} />
 						<FormField
 							control={form.control}
 							name="notes"

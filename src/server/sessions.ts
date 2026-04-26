@@ -79,6 +79,8 @@ export const createSession = createServerFn({ method: "POST" })
 			notes: z.string().max(50_000),
 			privateNotes: z.string().max(50_000),
 			isSecret: z.boolean(),
+			dateLabel: z.string().max(200).optional(),
+			dateSort: z.string().max(200).optional(),
 		}),
 	)
 	.handler(async ({ data }) => {
@@ -105,6 +107,8 @@ export const createSession = createServerFn({ method: "POST" })
 					notes: data.notes,
 					privateNotes: data.privateNotes,
 					isSecret: data.isSecret,
+					dateLabel: data.dateLabel?.trim() || null,
+					dateSort: data.dateSort?.trim() || null,
 				})
 				.returning();
 			return ok(session);
@@ -126,6 +130,8 @@ export const updateSession = createServerFn({ method: "POST" })
 			notes: z.string().max(50_000),
 			privateNotes: z.string().max(50_000),
 			isSecret: z.boolean(),
+			dateLabel: z.string().max(200).optional(),
+			dateSort: z.string().max(200).optional(),
 		}),
 	)
 	.handler(async ({ data }) => {
@@ -152,6 +158,8 @@ export const updateSession = createServerFn({ method: "POST" })
 					notes: data.notes,
 					privateNotes: data.privateNotes,
 					isSecret: data.isSecret,
+					dateLabel: data.dateLabel?.trim() || null,
+					dateSort: data.dateSort?.trim() || null,
 					updatedAt: new Date(),
 				})
 				.where(

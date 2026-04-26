@@ -18,6 +18,7 @@ const TYPE_LABELS: Record<EntityType, string> = {
 	PLACE: "Places",
 	THING: "Things",
 	FACTION: "Factions",
+	EVENT: "Events",
 	SESSION: "Sessions",
 };
 
@@ -26,6 +27,7 @@ const TYPE_ORDER: EntityType[] = [
 	"PLACE",
 	"THING",
 	"FACTION",
+	"EVENT",
 	"SESSION",
 ];
 

@@ -1,4 +1,4 @@
-import { Landmark, Package, User, Users } from "lucide-react";
+import { Calendar, Landmark, Package, User, Users } from "lucide-react";
 import type { ComponentType } from "react";
 import type { NounType } from "@/lib/noun-types";
 import { cn } from "@/lib/utils";
@@ -8,6 +8,7 @@ const ICON_FOR_TYPE: Record<NounType, ComponentType<{ className?: string }>> = {
 	PLACE: Landmark,
 	THING: Package,
 	FACTION: Users,
+	EVENT: Calendar,
 };
 
 interface Props {

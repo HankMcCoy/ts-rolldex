@@ -18,7 +18,7 @@ import {
 import { isUniqueViolation } from "@/lib/db-errors";
 import { err, ok } from "@/lib/result";
 import { publicUrlFor } from "@/lib/storage";
-import { visibilityFilter } from "@/server/query-helpers";
+import { loadTimelineEntries, visibilityFilter } from "@/server/query-helpers";
 
 export const getCampaigns = createServerFn().handler(async () => {
 	const { user } = await requireSession();
@@ -66,49 +66,56 @@ export const getCampaignDashboard = createServerFn()
 			user,
 		);
 
-		const [allNouns, recentSessions, allMembers, creator, allMaps] =
-			await Promise.all([
-				db.query.nouns.findMany({
-					where: and(
-						eq(nouns.campaignId, data.campaignId),
-						visibilityFilter(nouns.isSecret, accessLevel),
-					),
-					orderBy: (n, { asc }) => asc(n.name),
-					columns: {
-						id: true,
-						name: true,
-						nounType: true,
-						summary: true,
-						isSecret: true,
-						imageKey: true,
-					},
-				}),
-				db.query.gameSessions.findMany({
-					where: and(
-						eq(gameSessions.campaignId, data.campaignId),
-						visibilityFilter(gameSessions.isSecret, accessLevel),
-					),
-					orderBy: (s, { desc }) => desc(s.createdAt),
-					limit: 5,
-					columns: { id: true, name: true, summary: true, createdAt: true },
-				}),
-				db.query.members.findMany({
-					where: eq(members.campaignId, data.campaignId),
-					with: { user: { columns: { id: true, name: true, email: true } } },
-				}),
-				db.query.users.findFirst({
-					where: eq(users.id, campaign.createdById),
-					columns: { id: true, name: true, email: true },
-				}),
-				db.query.maps.findMany({
-					where: and(
-						eq(maps.campaignId, data.campaignId),
-						visibilityFilter(maps.isSecret, accessLevel),
-					),
-					orderBy: (m, { asc }) => asc(m.name),
-					columns: { id: true, name: true, isSecret: true, imageKey: true },
-				}),
-			]);
+		const [
+			allNouns,
+			recentSessions,
+			allMembers,
+			creator,
+			allMaps,
+			timelinePreview,
+		] = await Promise.all([
+			db.query.nouns.findMany({
+				where: and(
+					eq(nouns.campaignId, data.campaignId),
+					visibilityFilter(nouns.isSecret, accessLevel),
+				),
+				orderBy: (n, { asc }) => asc(n.name),
+				columns: {
+					id: true,
+					name: true,
+					nounType: true,
+					summary: true,
+					isSecret: true,
+					imageKey: true,
+				},
+			}),
+			db.query.gameSessions.findMany({
+				where: and(
+					eq(gameSessions.campaignId, data.campaignId),
+					visibilityFilter(gameSessions.isSecret, accessLevel),
+				),
+				orderBy: (s, { desc }) => desc(s.createdAt),
+				limit: 5,
+				columns: { id: true, name: true, summary: true, createdAt: true },
+			}),
+			db.query.members.findMany({
+				where: eq(members.campaignId, data.campaignId),
+				with: { user: { columns: { id: true, name: true, email: true } } },
+			}),
+			db.query.users.findFirst({
+				where: eq(users.id, campaign.createdById),
+				columns: { id: true, name: true, email: true },
+			}),
+			db.query.maps.findMany({
+				where: and(
+					eq(maps.campaignId, data.campaignId),
+					visibilityFilter(maps.isSecret, accessLevel),
+				),
+				orderBy: (m, { asc }) => asc(m.name),
+				columns: { id: true, name: true, isSecret: true, imageKey: true },
+			}),
+			loadTimelineEntries(data.campaignId, accessLevel, 5),
+		]);
 
 		const entities = allNouns.map(({ imageKey, ...rest }) => ({
 			...rest,
@@ -152,6 +159,7 @@ export const getCampaignDashboard = createServerFn()
 			recentSessions,
 			members: [dmEntry, ...memberEntries],
 			maps: mapsList,
+			timelinePreview,
 		};
 	});
 

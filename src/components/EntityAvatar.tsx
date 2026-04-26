@@ -1,4 +1,11 @@
-import { Landmark, Package, ScrollText, User, Users } from "lucide-react";
+import {
+	Calendar,
+	Landmark,
+	Package,
+	ScrollText,
+	User,
+	Users,
+} from "lucide-react";
 import type { ComponentType } from "react";
 import type { EntityType } from "@/lib/relationships";
 import { cn } from "@/lib/utils";
@@ -11,6 +18,7 @@ const ICON_FOR_TYPE: Record<
 	PLACE: Landmark,
 	THING: Package,
 	FACTION: Users,
+	EVENT: Calendar,
 	SESSION: ScrollText,
 };
 

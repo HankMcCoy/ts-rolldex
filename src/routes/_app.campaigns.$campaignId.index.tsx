@@ -6,13 +6,12 @@ import {
 } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { Map as MapIcon, Trash2 } from "lucide-react";
-import { useState } from "react";
 import { EntityAvatar } from "@/components/EntityAvatar";
 import { Page } from "@/components/Page";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { NOUN_TYPE_LABELS, NOUN_TYPES, type NounType } from "@/lib/noun-types";
+import { NOUN_TYPE_LABELS, NOUN_TYPES } from "@/lib/noun-types";
 import { getCampaignDashboard } from "@/server/campaigns";
 import { removeMember } from "@/server/members";
 
@@ -23,18 +22,20 @@ export const Route = createFileRoute("/_app/campaigns/$campaignId/")({
 });
 
 function CampaignDashboard() {
-	const { campaign, accessLevel, entities, recentSessions, members, maps } =
-		Route.useLoaderData();
+	const {
+		campaign,
+		accessLevel,
+		entities,
+		recentSessions,
+		members,
+		maps,
+		timelinePreview,
+	} = Route.useLoaderData();
 	const navigate = useNavigate();
 	const router = useRouter();
 	const remove = useServerFn(removeMember);
-	const [entityFilter, setEntityFilter] = useState<NounType | null>(null);
 
 	const isAdmin = accessLevel === "ADMIN";
-
-	const visibleEntities = entityFilter
-		? entities.filter((e) => e.nounType === entityFilter)
-		: entities;
 
 	return (
 		<Page
@@ -120,6 +121,76 @@ function CampaignDashboard() {
 				</section>
 
 				<div className="space-y-8">
+					{timelinePreview.length > 0 && (
+						<section>
+							<div className="mb-3 flex items-center justify-between">
+								<h2 className="island-kicker">Timeline</h2>
+								<Button variant="outline" size="sm" asChild>
+									<Link
+										to="/campaigns/$campaignId/timeline"
+										params={{ campaignId: campaign.id }}
+									>
+										View timeline
+									</Link>
+								</Button>
+							</div>
+							<ul className="space-y-2">
+								{timelinePreview.map((entry) => {
+									const dateText = entry.dateLabel || entry.dateSort;
+									const target =
+										entry.kind === "session" ? (
+											<Link
+												to="/campaigns/$campaignId/sessions/$sessionId"
+												params={{
+													campaignId: campaign.id,
+													sessionId: entry.id,
+												}}
+												className="island-shell flex items-center gap-3 rounded-xl p-3 no-underline transition hover:-translate-y-0.5"
+											>
+												<EntityAvatar
+													entityType="SESSION"
+													imageUrl={null}
+													name={entry.name}
+												/>
+												<div className="min-w-0 flex-1">
+													<div className="truncate font-medium">
+														{entry.name}
+													</div>
+													<div className="text-xs text-[var(--sea-ink-soft)]">
+														{dateText}
+													</div>
+												</div>
+											</Link>
+										) : (
+											<Link
+												to="/campaigns/$campaignId/nouns/$nounId"
+												params={{
+													campaignId: campaign.id,
+													nounId: entry.id,
+												}}
+												className="island-shell flex items-center gap-3 rounded-xl p-3 no-underline transition hover:-translate-y-0.5"
+											>
+												<EntityAvatar
+													entityType={entry.nounType ?? "EVENT"}
+													imageUrl={entry.imageUrl}
+													name={entry.name}
+												/>
+												<div className="min-w-0 flex-1">
+													<div className="truncate font-medium">
+														{entry.name}
+													</div>
+													<div className="text-xs text-[var(--sea-ink-soft)]">
+														{dateText}
+													</div>
+												</div>
+											</Link>
+										);
+									return <li key={entry.kind + entry.id}>{target}</li>;
+								})}
+							</ul>
+						</section>
+					)}
+
 					{/* Members section */}
 					<section>
 						<div className="mb-3 flex items-center justify-between">
@@ -259,7 +330,6 @@ function CampaignDashboard() {
 							<Link
 								to="/campaigns/$campaignId/nouns/new"
 								params={{ campaignId: campaign.id }}
-								search={entityFilter ? { type: entityFilter } : {}}
 							>
 								+ Add
 							</Link>
@@ -268,32 +338,34 @@ function CampaignDashboard() {
 				</div>
 
 				<div className="mb-4 flex flex-wrap gap-2">
-					<Button
-						variant={entityFilter === null ? "default" : "outline"}
-						size="sm"
-						onClick={() => setEntityFilter(null)}
-					>
-						All
+					<Button variant="outline" size="sm" asChild>
+						<Link
+							to="/campaigns/$campaignId/nouns"
+							params={{ campaignId: campaign.id }}
+						>
+							All
+						</Link>
 					</Button>
 					{NOUN_TYPES.map((t) => (
-						<Button
-							key={t}
-							variant={entityFilter === t ? "default" : "outline"}
-							size="sm"
-							onClick={() => setEntityFilter(t)}
-						>
-							{NOUN_TYPE_LABELS[t]}s
+						<Button key={t} variant="outline" size="sm" asChild>
+							<Link
+								to="/campaigns/$campaignId/nouns"
+								params={{ campaignId: campaign.id }}
+								search={{ type: t }}
+							>
+								{NOUN_TYPE_LABELS[t]}s
+							</Link>
 						</Button>
 					))}
 				</div>
 
-				{visibleEntities.length === 0 ? (
+				{entities.length === 0 ? (
 					<p className="text-sm text-[var(--sea-ink-soft)]">
 						Nothing here yet.
 					</p>
 				) : (
 					<ul className="space-y-2">
-						{visibleEntities.map((noun) => (
+						{entities.map((noun) => (
 							<li key={noun.id}>
 								<Link
 									to="/campaigns/$campaignId/nouns/$nounId"

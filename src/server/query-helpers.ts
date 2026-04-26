@@ -1,8 +1,9 @@
-import { and, eq } from "drizzle-orm";
+import { and, asc, eq, isNotNull } from "drizzle-orm";
 import type { AnyPgColumn } from "drizzle-orm/pg-core";
 import { db } from "@/db/index";
 import { gameSessions, mapPins, maps, nouns } from "@/db/schema/index";
 import type { AccessLevel } from "@/lib/access";
+import type { NounType } from "@/lib/noun-types";
 import type { CandidateEntity } from "@/lib/relationships";
 import { publicUrlFor } from "@/lib/storage";
 
@@ -136,4 +137,98 @@ export async function loadCampaignCandidates(
 				: `${s.summary} ${s.notes}`,
 		})),
 	];
+}
+
+export interface TimelineEntry {
+	kind: "noun" | "session";
+	id: string;
+	name: string;
+	summary: string;
+	dateLabel: string | null;
+	dateSort: string;
+	isSecret: boolean;
+	nounType: NounType | null;
+	imageUrl: string | null;
+}
+
+/**
+ * Loads dated nouns and sessions for a campaign and merges them into a single
+ * lex-sorted timeline. Pass a `limit` to slice the result for previews.
+ */
+export async function loadTimelineEntries(
+	campaignId: string,
+	accessLevel: AccessLevel,
+	limit?: number,
+): Promise<TimelineEntry[]> {
+	const [eventNouns, datedSessions] = await Promise.all([
+		db.query.nouns.findMany({
+			where: and(
+				eq(nouns.campaignId, campaignId),
+				isNotNull(nouns.dateSort),
+				visibilityFilter(nouns.isSecret, accessLevel),
+			),
+			orderBy: [asc(nouns.dateSort)],
+			columns: {
+				id: true,
+				name: true,
+				nounType: true,
+				summary: true,
+				isSecret: true,
+				imageKey: true,
+				dateLabel: true,
+				dateSort: true,
+			},
+			limit,
+		}),
+		db.query.gameSessions.findMany({
+			where: and(
+				eq(gameSessions.campaignId, campaignId),
+				isNotNull(gameSessions.dateSort),
+				visibilityFilter(gameSessions.isSecret, accessLevel),
+			),
+			orderBy: [asc(gameSessions.dateSort)],
+			columns: {
+				id: true,
+				name: true,
+				summary: true,
+				isSecret: true,
+				dateLabel: true,
+				dateSort: true,
+			},
+			limit,
+		}),
+	]);
+
+	const entries: TimelineEntry[] = [
+		...eventNouns.map((n) => ({
+			kind: "noun" as const,
+			id: n.id,
+			name: n.name,
+			summary: n.summary,
+			dateLabel: n.dateLabel,
+			dateSort: n.dateSort as string,
+			isSecret: n.isSecret,
+			nounType: n.nounType as NounType,
+			imageUrl: n.imageKey ? publicUrlFor(n.imageKey) : null,
+		})),
+		...datedSessions.map((s) => ({
+			kind: "session" as const,
+			id: s.id,
+			name: s.name,
+			summary: s.summary,
+			dateLabel: s.dateLabel,
+			dateSort: s.dateSort as string,
+			isSecret: s.isSecret,
+			nounType: null,
+			imageUrl: null,
+		})),
+	];
+
+	entries.sort((a, b) => {
+		if (a.dateSort < b.dateSort) return -1;
+		if (a.dateSort > b.dateSort) return 1;
+		return a.name.localeCompare(b.name);
+	});
+
+	return limit ? entries.slice(0, limit) : entries;
 }

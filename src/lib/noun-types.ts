@@ -10,4 +10,5 @@ export const NOUN_TYPE_LABELS: Record<NounType, string> = {
 	PLACE: "Place",
 	THING: "Thing",
 	FACTION: "Faction",
+	EVENT: "Event",
 };
