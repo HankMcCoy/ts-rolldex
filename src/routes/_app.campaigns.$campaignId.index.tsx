@@ -5,6 +5,7 @@ import {
 	useRouter,
 } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
+import { Trash2 } from "lucide-react";
 import { useState } from "react";
 import { EntityAvatar } from "@/components/EntityAvatar";
 import { Page } from "@/components/Page";
@@ -169,9 +170,11 @@ function CampaignDashboard() {
 													await router.invalidate();
 													navigate({ to: "." });
 												}}
-												className="text-sm text-destructive hover:underline"
+												title="Remove member"
+												aria-label="Remove member"
+												className="rounded p-1.5 text-[var(--sea-ink-soft)] transition hover:text-destructive"
 											>
-												Remove
+												<Trash2 className="size-4" />
 											</button>
 										)}
 									</div>
