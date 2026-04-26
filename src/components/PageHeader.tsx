@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import type { ReactNode } from "react";
+import { type ReactNode, useEffect, useRef } from "react";
 
 export type Crumb = {
 	label: string;
@@ -16,8 +16,26 @@ interface Props {
 }
 
 export function PageHeader({ breadcrumbs, title, secret, actions }: Props) {
+	const headerRef = useRef<HTMLElement>(null);
+
+	useEffect(() => {
+		const el = headerRef.current;
+		if (!el) return;
+		const update = () => {
+			document.documentElement.style.setProperty(
+				"--page-header-h",
+				`${el.offsetHeight}px`,
+			);
+		};
+		update();
+		const observer = new ResizeObserver(update);
+		observer.observe(el);
+		return () => observer.disconnect();
+	}, []);
+
 	return (
 		<header
+			ref={headerRef}
 			className="sticky top-0 z-50"
 			style={{ backgroundColor: "var(--header-bg)" }}
 		>

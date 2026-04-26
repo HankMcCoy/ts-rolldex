@@ -1,12 +1,16 @@
 import { Link } from "@tanstack/react-router";
-import { Plus, Trash2, X } from "lucide-react";
+import { ImageOff, Plus, Trash2, Upload, X } from "lucide-react";
 import {
 	type MouseEvent as ReactMouseEvent,
 	useEffect,
 	useRef,
 	useState,
 } from "react";
-import { TransformComponent, TransformWrapper } from "react-zoom-pan-pinch";
+import {
+	KeepScale,
+	TransformComponent,
+	TransformWrapper,
+} from "react-zoom-pan-pinch";
 import { EntityAvatar } from "@/components/EntityAvatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -59,6 +63,8 @@ interface Props {
 	}) => Promise<void>;
 	onDeletePin: (pinId: string) => Promise<void>;
 	onUpdatePinLabel: (pinId: string, label: string) => Promise<void>;
+	onReplaceImage: (file: File) => Promise<void>;
+	onRemoveImage: () => Promise<void>;
 }
 
 type PendingPin = { x: number; y: number };
@@ -73,11 +79,37 @@ export function MapView({
 	onCreatePin,
 	onDeletePin,
 	onUpdatePinLabel,
+	onReplaceImage,
+	onRemoveImage,
 }: Props) {
 	const [adding, setAdding] = useState(false);
 	const [pending, setPending] = useState<PendingPin | null>(null);
 	const [activePinId, setActivePinId] = useState<string | null>(null);
+	const [imageBusy, setImageBusy] = useState(false);
 	const imageRef = useRef<HTMLImageElement>(null);
+	const fileInputRef = useRef<HTMLInputElement>(null);
+
+	async function handleFileChange(event: React.ChangeEvent<HTMLInputElement>) {
+		const file = event.target.files?.[0];
+		if (!file) return;
+		setImageBusy(true);
+		try {
+			await onReplaceImage(file);
+		} finally {
+			setImageBusy(false);
+			if (fileInputRef.current) fileInputRef.current.value = "";
+		}
+	}
+
+	async function handleRemoveImage() {
+		if (!confirm("Remove this map image?")) return;
+		setImageBusy(true);
+		try {
+			await onRemoveImage();
+		} finally {
+			setImageBusy(false);
+		}
+	}
 
 	function handleImageClick(e: ReactMouseEvent<HTMLDivElement>) {
 		if (!adding) return;
@@ -101,105 +133,134 @@ export function MapView({
 
 	return (
 		<TooltipProvider delayDuration={150}>
-			<div className="relative">
-				{canEdit && (
-					<div className="mb-3 flex items-center gap-2">
-						<Button
-							type="button"
-							size="sm"
-							variant={adding ? "default" : "outline"}
-							onClick={() => {
-								setAdding((a) => !a);
-								setPending(null);
-							}}
+			<div
+				className={`relative h-full w-full overflow-hidden border-y border-[var(--line)] bg-white/90 ${adding ? "ring-2 ring-inset ring-[var(--lagoon-deep)]" : ""}`}
+			>
+				<TransformWrapper
+					minScale={1}
+					maxScale={6}
+					initialScale={1}
+					centerOnInit
+					wheel={{ step: 0.1 }}
+					doubleClick={{ disabled: true }}
+					panning={{ disabled: adding }}
+				>
+					<TransformComponent
+						wrapperStyle={{ width: "100%", height: "100%" }}
+						contentStyle={{ width: "100%", height: "100%" }}
+					>
+						{/* biome-ignore lint/a11y/noStaticElementInteractions: pin placement is a mouse-driven map interaction */}
+						{/* biome-ignore lint/a11y/useKeyWithClickEvents: pin placement requires pointer coordinates */}
+						<div
+							className="relative"
+							onClick={handleImageClick}
+							role={adding ? "application" : undefined}
 						>
-							<Plus className="size-4" />
-							{adding ? "Cancel" : "Add pin"}
-						</Button>
+							<img
+								ref={imageRef}
+								src={imageUrl}
+								alt=""
+								className={`block max-h-none w-auto select-none ${adding ? "cursor-crosshair" : "cursor-grab"}`}
+								draggable={false}
+							/>
+							{pins.map((pin) => (
+								<PinMarker
+									key={pin.id}
+									pin={pin}
+									active={pin.id === activePinId}
+									onClick={() => setActivePinId(pin.id)}
+								/>
+							))}
+							{pending && (
+								<KeepScale
+									className="pointer-events-none absolute"
+									style={{
+										left: `${pending.x * 100}%`,
+										top: `${pending.y * 100}%`,
+									}}
+								>
+									<div className="size-3 -translate-x-1/2 -translate-y-1/2 rounded-full bg-[var(--lagoon-deep)] ring-2 ring-white" />
+								</KeepScale>
+							)}
+						</div>
+					</TransformComponent>
+				</TransformWrapper>
+
+				{canEdit && (
+					<div className="absolute top-3 right-3 z-10 flex flex-col items-end gap-2">
+						<input
+							ref={fileInputRef}
+							type="file"
+							accept="image/jpeg,image/png,image/webp"
+							onChange={handleFileChange}
+							disabled={imageBusy}
+							className="hidden"
+						/>
+						<div className="flex flex-col gap-2 rounded-lg bg-white/90 p-1.5 shadow-md backdrop-blur">
+							<Button
+								type="button"
+								size="sm"
+								variant={adding ? "default" : "outline"}
+								onClick={() => {
+									setAdding((a) => !a);
+									setPending(null);
+								}}
+							>
+								<Plus className="size-4" />
+								{adding ? "Cancel" : "Add pin"}
+							</Button>
+							<Button
+								type="button"
+								size="sm"
+								variant="outline"
+								onClick={() => fileInputRef.current?.click()}
+								disabled={imageBusy}
+							>
+								<Upload className="size-4" />
+								Replace
+							</Button>
+							<Button
+								type="button"
+								size="sm"
+								variant="outline"
+								onClick={handleRemoveImage}
+								disabled={imageBusy}
+							>
+								<ImageOff className="size-4" />
+								Remove
+							</Button>
+						</div>
 						{adding && (
-							<span className="text-sm text-[var(--sea-ink-soft)]">
+							<div className="rounded bg-[var(--sea-ink)] px-2 py-1 text-xs text-white shadow">
 								Click the map to place a pin.
-							</span>
+							</div>
 						)}
 					</div>
 				)}
-
-				<div
-					className={`relative overflow-hidden rounded-xl border border-[var(--line)] bg-white/90 ${adding ? "ring-2 ring-[var(--lagoon-deep)]" : ""}`}
-					style={{ height: "min(70vh, 700px)" }}
-				>
-					<TransformWrapper
-						minScale={0.5}
-						maxScale={6}
-						initialScale={1}
-						centerOnInit
-						wheel={{ step: 0.1 }}
-						doubleClick={{ disabled: true }}
-						panning={{ disabled: adding }}
-					>
-						<TransformComponent
-							wrapperStyle={{ width: "100%", height: "100%" }}
-							contentStyle={{ width: "100%", height: "100%" }}
-						>
-							{/* biome-ignore lint/a11y/noStaticElementInteractions: pin placement is a mouse-driven map interaction */}
-							{/* biome-ignore lint/a11y/useKeyWithClickEvents: pin placement requires pointer coordinates */}
-							<div
-								className="relative"
-								onClick={handleImageClick}
-								role={adding ? "application" : undefined}
-							>
-								<img
-									ref={imageRef}
-									src={imageUrl}
-									alt=""
-									className={`block max-h-none w-auto select-none ${adding ? "cursor-crosshair" : "cursor-grab"}`}
-									draggable={false}
-								/>
-								{pins.map((pin) => (
-									<PinMarker
-										key={pin.id}
-										pin={pin}
-										active={pin.id === activePinId}
-										onClick={() => setActivePinId(pin.id)}
-									/>
-								))}
-								{pending && (
-									<div
-										className="pointer-events-none absolute size-3 -translate-x-1/2 -translate-y-1/2 rounded-full bg-[var(--lagoon-deep)] ring-2 ring-white"
-										style={{
-											left: `${pending.x * 100}%`,
-											top: `${pending.y * 100}%`,
-										}}
-									/>
-								)}
-							</div>
-						</TransformComponent>
-					</TransformWrapper>
-				</div>
-
-				{activePin && (
-					<PinPopover
-						campaignId={campaignId}
-						pin={activePin}
-						canEdit={canEdit}
-						onClose={() => setActivePinId(null)}
-						onDelete={async () => {
-							await onDeletePin(activePin.id);
-							setActivePinId(null);
-						}}
-						onSaveLabel={(label) => onUpdatePinLabel(activePin.id, label)}
-					/>
-				)}
-
-				{pending && (
-					<TargetPicker
-						nouns={nouns}
-						sessions={sessions}
-						onCancel={() => setPending(null)}
-						onPick={handlePick}
-					/>
-				)}
 			</div>
+
+			{activePin && (
+				<PinPopover
+					campaignId={campaignId}
+					pin={activePin}
+					canEdit={canEdit}
+					onClose={() => setActivePinId(null)}
+					onDelete={async () => {
+						await onDeletePin(activePin.id);
+						setActivePinId(null);
+					}}
+					onSaveLabel={(label) => onUpdatePinLabel(activePin.id, label)}
+				/>
+			)}
+
+			{pending && (
+				<TargetPicker
+					nouns={nouns}
+					sessions={sessions}
+					onCancel={() => setPending(null)}
+					onPick={handlePick}
+				/>
+			)}
 		</TooltipProvider>
 	);
 }
@@ -216,42 +277,48 @@ function PinMarker({
 	const name = pin.noun?.name ?? pin.session?.name ?? "Pin";
 	const summary = pin.noun?.summary ?? pin.session?.summary ?? "";
 	return (
-		<Tooltip>
-			<TooltipTrigger asChild>
-				<button
-					type="button"
-					onClick={(e) => {
-						e.stopPropagation();
-						onClick();
-					}}
-					className={`absolute flex size-6 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border-2 border-white bg-[var(--sea-ink)] text-white shadow-sm transition hover:scale-110 ${active ? "ring-2 ring-[var(--lagoon-deep)]" : ""}`}
-					style={{ left: `${pin.x * 100}%`, top: `${pin.y * 100}%` }}
+		<KeepScale
+			className="absolute"
+			style={{ left: `${pin.x * 100}%`, top: `${pin.y * 100}%` }}
+		>
+			<Tooltip>
+				<TooltipTrigger asChild>
+					<button
+						type="button"
+						onClick={(e) => {
+							e.stopPropagation();
+							onClick();
+						}}
+						className={`flex size-6 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border-2 border-white bg-[var(--sea-ink)] text-white shadow-sm transition hover:scale-110 ${active ? "ring-2 ring-[var(--lagoon-deep)]" : ""}`}
+					>
+						{pin.noun ? (
+							<EntityAvatar
+								entityType={pin.noun.nounType}
+								imageUrl={pin.noun.imageUrl}
+								name={pin.noun.name}
+								className="size-5 rounded-full border-0"
+							/>
+						) : (
+							<span className="text-[10px] font-bold">S</span>
+						)}
+					</button>
+				</TooltipTrigger>
+				<TooltipContent
+					side="top"
+					className="block max-w-xs items-start gap-0 p-2 text-left"
 				>
-					{pin.noun ? (
-						<EntityAvatar
-							entityType={pin.noun.nounType}
-							imageUrl={pin.noun.imageUrl}
-							name={pin.noun.name}
-							className="size-5 rounded-full border-0"
-						/>
-					) : (
-						<span className="text-[10px] font-bold">S</span>
+					<div className="text-sm font-semibold">{name}</div>
+					{pin.label && (
+						<div className="mt-0.5 text-xs italic opacity-80">{pin.label}</div>
 					)}
-				</button>
-			</TooltipTrigger>
-			<TooltipContent
-				side="top"
-				className="block max-w-xs items-start gap-0 p-2 text-left"
-			>
-				<div className="text-sm font-semibold">{name}</div>
-				{pin.label && (
-					<div className="mt-0.5 text-xs italic opacity-80">{pin.label}</div>
-				)}
-				{summary && (
-					<div className="mt-1 text-xs leading-snug opacity-80">{summary}</div>
-				)}
-			</TooltipContent>
-		</Tooltip>
+					{summary && (
+						<div className="mt-1 text-xs leading-snug opacity-80">
+							{summary}
+						</div>
+					)}
+				</TooltipContent>
+			</Tooltip>
+		</KeepScale>
 	);
 }
 
