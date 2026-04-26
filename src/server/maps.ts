@@ -59,10 +59,16 @@ export const getMap = createServerFn()
 								nounType: true,
 								imageKey: true,
 								isSecret: true,
+								summary: true,
 							},
 						},
 						session: {
-							columns: { id: true, name: true, isSecret: true },
+							columns: {
+								id: true,
+								name: true,
+								isSecret: true,
+								summary: true,
+							},
 						},
 					},
 				},
@@ -90,9 +96,16 @@ export const getMap = createServerFn()
 							name: p.noun.name,
 							nounType: p.noun.nounType,
 							imageUrl: imageUrlFor(p.noun.imageKey),
+							summary: p.noun.summary,
 						}
 					: null,
-				session: p.session ? { id: p.session.id, name: p.session.name } : null,
+				session: p.session
+					? {
+							id: p.session.id,
+							name: p.session.name,
+							summary: p.session.summary,
+						}
+					: null,
 			}));
 
 		return {
