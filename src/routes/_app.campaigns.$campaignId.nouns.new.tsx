@@ -29,6 +29,7 @@ export const Route = createFileRoute("/_app/campaigns/$campaignId/nouns/new")({
 		type: nounTypeSchema.optional(),
 		name: z.string().optional(),
 	}),
+	head: () => ({ meta: [{ title: "New entity - Rolldex" }] }),
 	component: NewNounPage,
 });
 

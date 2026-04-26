@@ -8,6 +8,7 @@ import { getSessions } from "@/server/sessions";
 export const Route = createFileRoute("/_app/campaigns/$campaignId/sessions/")({
 	loader: ({ params }) =>
 		getSessions({ data: { campaignId: params.campaignId } }),
+	head: () => ({ meta: [{ title: "Sessions - Rolldex" }] }),
 	component: SessionsPage,
 });
 

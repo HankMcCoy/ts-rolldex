@@ -6,5 +6,8 @@ export const Route = createFileRoute(
 )({
 	loader: ({ params }) =>
 		getNoun({ data: { campaignId: params.campaignId, nounId: params.nounId } }),
+	head: ({ loaderData }) => ({
+		meta: [{ title: `${loaderData?.noun.name ?? "Entity"} - Rolldex` }],
+	}),
 	component: () => <Outlet />,
 });

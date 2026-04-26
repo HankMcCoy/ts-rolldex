@@ -31,6 +31,18 @@ import { removeNounImage, updateNoun, uploadNounImage } from "@/server/nouns";
 export const Route = createFileRoute(
 	"/_app/campaigns/$campaignId/nouns/$nounId/edit",
 )({
+	head: ({ matches }) => {
+		const parent = matches.find(
+			(m) =>
+				(m.routeId as string) === "/_app/campaigns/$campaignId/nouns/$nounId",
+		);
+		const name = (
+			parent?.loaderData as { noun?: { name?: string } } | undefined
+		)?.noun?.name;
+		return {
+			meta: [{ title: `Edit ${name ?? "entity"} - Rolldex` }],
+		};
+	},
 	component: EditNounPage,
 });
 

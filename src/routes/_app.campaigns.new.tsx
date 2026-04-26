@@ -18,6 +18,7 @@ import { zodResolver } from "@/lib/form-resolver";
 import { createCampaign } from "@/server/campaigns";
 
 export const Route = createFileRoute("/_app/campaigns/new")({
+	head: () => ({ meta: [{ title: "New campaign - Rolldex" }] }),
 	component: NewCampaignPage,
 });
 

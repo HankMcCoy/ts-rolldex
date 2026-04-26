@@ -26,6 +26,19 @@ import { updateSession } from "@/server/sessions";
 export const Route = createFileRoute(
 	"/_app/campaigns/$campaignId/sessions/$sessionId/edit",
 )({
+	head: ({ matches }) => {
+		const parent = matches.find(
+			(m) =>
+				(m.routeId as string) ===
+				"/_app/campaigns/$campaignId/sessions/$sessionId",
+		);
+		const name = (
+			parent?.loaderData as { session?: { name?: string } } | undefined
+		)?.session?.name;
+		return {
+			meta: [{ title: `Edit ${name ?? "session"} - Rolldex` }],
+		};
+	},
 	component: EditSessionPage,
 });
 

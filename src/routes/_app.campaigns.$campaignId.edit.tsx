@@ -23,6 +23,7 @@ import { zodResolver } from "@/lib/form-resolver";
 import { updateCampaign } from "@/server/campaigns";
 
 export const Route = createFileRoute("/_app/campaigns/$campaignId/edit")({
+	head: () => ({ meta: [{ title: "Edit campaign - Rolldex" }] }),
 	component: EditCampaignPage,
 });
 

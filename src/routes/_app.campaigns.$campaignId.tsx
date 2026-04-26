@@ -5,6 +5,9 @@ import { getCampaign } from "@/server/campaigns";
 export const Route = createFileRoute("/_app/campaigns/$campaignId")({
 	loader: ({ params }) =>
 		getCampaign({ data: { campaignId: params.campaignId } }),
+	head: ({ loaderData }) => ({
+		meta: [{ title: `${loaderData?.campaign.name ?? "Campaign"} - Rolldex` }],
+	}),
 	component: CampaignLayout,
 });
 

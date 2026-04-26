@@ -23,6 +23,7 @@ import { inviteMember } from "@/server/members";
 export const Route = createFileRoute(
 	"/_app/campaigns/$campaignId/members/invite",
 )({
+	head: () => ({ meta: [{ title: "Invite member - Rolldex" }] }),
 	component: InviteMemberPage,
 });
 

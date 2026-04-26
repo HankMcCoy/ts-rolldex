@@ -12,6 +12,11 @@ export const Route = createFileRoute("/_app/campaigns/$campaignId/nouns/")({
 	loaderDeps: ({ search }) => ({ type: search.type }),
 	loader: ({ params, deps }) =>
 		getNouns({ data: { campaignId: params.campaignId, nounType: deps.type } }),
+	head: ({ match }) => {
+		const type = match.search.type;
+		const label = type ? `${NOUN_TYPE_LABELS[type]}s` : "All entities";
+		return { meta: [{ title: `${label} - Rolldex` }] };
+	},
 	component: NounsPage,
 });
 

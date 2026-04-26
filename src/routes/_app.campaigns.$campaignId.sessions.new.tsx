@@ -25,6 +25,7 @@ import { createSession } from "@/server/sessions";
 export const Route = createFileRoute(
 	"/_app/campaigns/$campaignId/sessions/new",
 )({
+	head: () => ({ meta: [{ title: "New session - Rolldex" }] }),
 	component: NewSessionPage,
 });
 

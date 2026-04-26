@@ -8,5 +8,8 @@ export const Route = createFileRoute(
 		getSession({
 			data: { campaignId: params.campaignId, sessionId: params.sessionId },
 		}),
+	head: ({ loaderData }) => ({
+		meta: [{ title: `${loaderData?.session.name ?? "Session"} - Rolldex` }],
+	}),
 	component: () => <Outlet />,
 });
