@@ -1,15 +1,17 @@
 import { Link } from "@tanstack/react-router";
 import { ImageOff, Plus, Trash2, Upload, X } from "lucide-react";
 import {
+	type CSSProperties,
 	type MouseEvent as ReactMouseEvent,
+	type ReactNode,
 	useEffect,
 	useRef,
 	useState,
 } from "react";
 import {
-	KeepScale,
 	TransformComponent,
 	TransformWrapper,
+	useTransformComponent,
 } from "react-zoom-pan-pinch";
 import { EntityAvatar } from "@/components/EntityAvatar";
 import { Button } from "@/components/ui/button";
@@ -68,6 +70,38 @@ interface Props {
 }
 
 type PendingPin = { x: number; y: number };
+
+/**
+ * Counter-scales its children so they keep a constant on-screen size while the
+ * surrounding TransformWrapper zooms. Unlike the library's `KeepScale`, this
+ * reads the scale during render via `useTransformComponent` so the inverse is
+ * applied on the very first paint (KeepScale only updates via onChange, which
+ * doesn't fire on mount). Origin is pinned to 0 0 so the anchor — driven by the
+ * caller's `left`/`top` — stays put regardless of zoom.
+ */
+function CounterScale({
+	children,
+	className,
+	style,
+}: {
+	children: ReactNode;
+	className?: string;
+	style?: CSSProperties;
+}) {
+	const scale = useTransformComponent(({ state }) => state.scale);
+	return (
+		<div
+			className={className}
+			style={{
+				...style,
+				transform: `scale(${1 / scale})`,
+				transformOrigin: "0 0",
+			}}
+		>
+			{children}
+		</div>
+	);
+}
 
 export function MapView({
 	campaignId,
@@ -172,7 +206,7 @@ export function MapView({
 								/>
 							))}
 							{pending && (
-								<KeepScale
+								<CounterScale
 									className="pointer-events-none absolute"
 									style={{
 										left: `${pending.x * 100}%`,
@@ -180,7 +214,7 @@ export function MapView({
 									}}
 								>
 									<div className="size-3 -translate-x-1/2 -translate-y-1/2 rounded-full bg-[var(--lagoon-deep)] ring-2 ring-white" />
-								</KeepScale>
+								</CounterScale>
 							)}
 						</div>
 					</TransformComponent>
@@ -277,7 +311,7 @@ function PinMarker({
 	const name = pin.noun?.name ?? pin.session?.name ?? "Pin";
 	const summary = pin.noun?.summary ?? pin.session?.summary ?? "";
 	return (
-		<KeepScale
+		<CounterScale
 			className="absolute"
 			style={{ left: `${pin.x * 100}%`, top: `${pin.y * 100}%` }}
 		>
@@ -318,7 +352,7 @@ function PinMarker({
 					)}
 				</TooltipContent>
 			</Tooltip>
-		</KeepScale>
+		</CounterScale>
 	);
 }
 
