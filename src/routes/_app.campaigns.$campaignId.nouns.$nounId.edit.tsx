@@ -151,7 +151,7 @@ function EditNounPage() {
 		return (
 			<>
 				<PageHeader breadcrumbs={breadcrumbs} title={`Edit ${noun.name}`} />
-				<main className="page-wrap px-4 py-10">
+				<main className="page-wrap px-4 pt-5 pb-10">
 					<p>You don't have permission to edit entities.</p>
 				</main>
 			</>
@@ -161,7 +161,7 @@ function EditNounPage() {
 	return (
 		<>
 			<PageHeader breadcrumbs={breadcrumbs} title={`Edit ${noun.name}`} />
-			<main className="page-wrap px-4 py-10">
+			<main className="page-wrap px-4 pt-5 pb-10">
 				<div className="island-shell max-w-2xl rounded-2xl p-6">
 					<Form {...form}>
 						<form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">

@@ -87,7 +87,7 @@ function NounPage() {
 					)
 				}
 			/>
-			<main className="page-wrap px-4 py-10">
+			<main className="page-wrap px-4 pt-5 pb-10">
 				<div className="flex gap-12">
 					<div className="min-w-0 flex-1 space-y-6">
 						{noun.isSecret && <Badge variant="secondary">Secret</Badge>}

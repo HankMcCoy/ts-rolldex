@@ -50,7 +50,7 @@ function NounsPage() {
 					)
 				}
 			/>
-			<main className="page-wrap px-4 py-10">
+			<main className="page-wrap px-4 pt-5 pb-10">
 				<div className="mb-6 flex flex-wrap gap-2">
 					<Button variant={!type ? "default" : "outline"} size="sm" asChild>
 						<Link

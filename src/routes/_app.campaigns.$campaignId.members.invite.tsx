@@ -67,7 +67,7 @@ function InviteMemberPage() {
 		return (
 			<>
 				<PageHeader breadcrumbs={breadcrumbs} title="Invite member" />
-				<main className="page-wrap px-4 py-10">
+				<main className="page-wrap px-4 pt-5 pb-10">
 					<p>You don't have permission to invite members.</p>
 				</main>
 			</>
@@ -77,7 +77,7 @@ function InviteMemberPage() {
 	return (
 		<>
 			<PageHeader breadcrumbs={breadcrumbs} title="Invite member" />
-			<main className="page-wrap px-4 py-10">
+			<main className="page-wrap px-4 pt-5 pb-10">
 				<p className="mb-6 text-sm text-[var(--sea-ink-soft)]">
 					Enter the email address of the person you want to invite to{" "}
 					<strong>{campaign.name}</strong>. They'll get read-only access when

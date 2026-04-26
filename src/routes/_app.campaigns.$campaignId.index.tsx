@@ -47,7 +47,7 @@ function CampaignDashboard() {
 					)
 				}
 			/>
-			<main className="page-wrap px-4 py-10">
+			<main className="page-wrap px-4 pt-5 pb-10">
 				{campaign.summary && (
 					<p className="mb-8 max-w-2xl text-[var(--sea-ink-soft)]">
 						{campaign.summary}

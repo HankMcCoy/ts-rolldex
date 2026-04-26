@@ -43,7 +43,7 @@ function SessionsPage() {
 					)
 				}
 			/>
-			<main className="page-wrap px-4 py-10">
+			<main className="page-wrap px-4 pt-5 pb-10">
 				{sessions.length === 0 ? (
 					<p className="text-sm text-[var(--sea-ink-soft)]">No sessions yet.</p>
 				) : (

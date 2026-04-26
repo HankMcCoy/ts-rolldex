@@ -21,7 +21,7 @@ function CampaignsPage() {
 					</Button>
 				}
 			/>
-			<main className="page-wrap px-4 py-10">
+			<main className="page-wrap px-4 pt-5 pb-10">
 				<p
 					className="mb-8 text-[var(--sea-ink-soft)]"
 					style={{
