@@ -4,6 +4,10 @@ import Suggestion, {
 	type SuggestionProps,
 } from "@tiptap/suggestion";
 import {
+	ArrowDownToLine,
+	ArrowLeftToLine,
+	ArrowRightToLine,
+	ArrowUpToLine,
 	Heading1,
 	Heading2,
 	Heading3,
@@ -11,8 +15,10 @@ import {
 	ListOrdered,
 	Minus,
 	Quote,
+	Rows3,
 	SquareCode,
 	Table as TableIcon,
+	Trash2,
 } from "lucide-react";
 import type { SlashMenuItem } from "@/components/markdown/SlashMenu";
 
@@ -21,7 +27,7 @@ interface CommandItem extends SlashMenuItem {
 	command: (ctx: { editor: Editor; range: Range }) => void;
 }
 
-const ITEMS: CommandItem[] = [
+const TEXT_ITEMS: CommandItem[] = [
 	{
 		id: "h1",
 		label: "Heading 1",
@@ -99,7 +105,20 @@ const ITEMS: CommandItem[] = [
 			editor.chain().focus().deleteRange(range).setBlockquote().run(),
 	},
 	{
-		id: "table",
+		id: "table-2x2",
+		label: "Table 2 × 2",
+		icon: TableIcon,
+		keywords: ["table", "tbl", "grid", "small"],
+		command: ({ editor, range }) =>
+			editor
+				.chain()
+				.focus()
+				.deleteRange(range)
+				.insertTable({ rows: 2, cols: 2, withHeaderRow: true })
+				.run(),
+	},
+	{
+		id: "table-3x3",
 		label: "Table 3 × 3",
 		icon: TableIcon,
 		keywords: ["table", "tbl", "grid"],
@@ -109,6 +128,19 @@ const ITEMS: CommandItem[] = [
 				.focus()
 				.deleteRange(range)
 				.insertTable({ rows: 3, cols: 3, withHeaderRow: true })
+				.run(),
+	},
+	{
+		id: "table-5x3",
+		label: "Table 5 × 3",
+		icon: TableIcon,
+		keywords: ["table", "tbl", "grid", "big", "large"],
+		command: ({ editor, range }) =>
+			editor
+				.chain()
+				.focus()
+				.deleteRange(range)
+				.insertTable({ rows: 5, cols: 3, withHeaderRow: true })
 				.run(),
 	},
 	{
@@ -122,10 +154,69 @@ const ITEMS: CommandItem[] = [
 	},
 ];
 
-function filter(query: string): CommandItem[] {
+const TABLE_ITEMS: CommandItem[] = [
+	{
+		id: "row-after",
+		label: "Add row below",
+		icon: ArrowDownToLine,
+		keywords: ["row", "add", "below", "after", "insert"],
+		command: ({ editor, range }) =>
+			editor.chain().focus().deleteRange(range).addRowAfter().run(),
+	},
+	{
+		id: "row-before",
+		label: "Add row above",
+		icon: ArrowUpToLine,
+		keywords: ["row", "add", "above", "before", "insert"],
+		command: ({ editor, range }) =>
+			editor.chain().focus().deleteRange(range).addRowBefore().run(),
+	},
+	{
+		id: "col-after",
+		label: "Add column right",
+		icon: ArrowRightToLine,
+		keywords: ["column", "col", "add", "after", "right"],
+		command: ({ editor, range }) =>
+			editor.chain().focus().deleteRange(range).addColumnAfter().run(),
+	},
+	{
+		id: "col-before",
+		label: "Add column left",
+		icon: ArrowLeftToLine,
+		keywords: ["column", "col", "add", "before", "left"],
+		command: ({ editor, range }) =>
+			editor.chain().focus().deleteRange(range).addColumnBefore().run(),
+	},
+	{
+		id: "delete-row",
+		label: "Delete row",
+		icon: Rows3,
+		keywords: ["delete", "remove", "row"],
+		command: ({ editor, range }) =>
+			editor.chain().focus().deleteRange(range).deleteRow().run(),
+	},
+	{
+		id: "delete-col",
+		label: "Delete column",
+		icon: Rows3,
+		keywords: ["delete", "remove", "column", "col"],
+		command: ({ editor, range }) =>
+			editor.chain().focus().deleteRange(range).deleteColumn().run(),
+	},
+	{
+		id: "delete-table",
+		label: "Delete table",
+		icon: Trash2,
+		keywords: ["delete", "remove", "table"],
+		command: ({ editor, range }) =>
+			editor.chain().focus().deleteRange(range).deleteTable().run(),
+	},
+];
+
+function filter(items: CommandItem[], query: string): CommandItem[] {
 	const q = query.trim().toLowerCase();
-	if (!q) return ITEMS;
-	return ITEMS.filter((item) => {
+	if (!q) return items;
+	return items.filter((item) => {
 		if (item.label.toLowerCase().includes(q)) return true;
 		return item.keywords.some((k) => k.includes(q));
 	});
@@ -160,7 +251,10 @@ export const SlashCommand = Extension.create<SlashCommandOptions>({
 				char: "/",
 				startOfLine: false,
 				allowSpaces: false,
-				items: ({ query }) => filter(query),
+				items: ({ query, editor }) => {
+					const inTable = editor.isActive("table");
+					return filter(inTable ? TABLE_ITEMS : TEXT_ITEMS, query);
+				},
 				command: ({ editor, range, props }) => props.command({ editor, range }),
 				render: this.options.createRenderer,
 			}),
