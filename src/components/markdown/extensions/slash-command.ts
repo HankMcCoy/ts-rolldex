@@ -222,6 +222,37 @@ function filter(items: CommandItem[], query: string): CommandItem[] {
 	});
 }
 
+function clamp(n: number, lo: number, hi: number): number {
+	return Math.min(hi, Math.max(lo, n));
+}
+
+const DIMENSION_RE = /^\s*(\d{1,2})\s*[x×X]\s*(\d{1,2})\s*$/;
+
+/**
+ * If the slash query parses as `N x M` (e.g. `5x3`, `2×4`), surface a
+ * dynamic "Table N × M" item alongside the static presets so users aren't
+ * stuck with only the preset sizes.
+ */
+function dynamicTableItem(query: string): CommandItem | null {
+	const match = query.match(DIMENSION_RE);
+	if (!match) return null;
+	const rows = clamp(Number.parseInt(match[1], 10), 1, 50);
+	const cols = clamp(Number.parseInt(match[2], 10), 1, 20);
+	return {
+		id: `table-dyn-${rows}x${cols}`,
+		label: `Table ${rows} × ${cols}`,
+		icon: TableIcon,
+		keywords: [],
+		command: ({ editor, range }) =>
+			editor
+				.chain()
+				.focus()
+				.deleteRange(range)
+				.insertTable({ rows, cols, withHeaderRow: true })
+				.run(),
+	};
+}
+
 export interface SlashCommandRendererHandlers {
 	onStart: (props: SuggestionProps<CommandItem>) => void;
 	onUpdate: (props: SuggestionProps<CommandItem>) => void;
@@ -252,8 +283,15 @@ export const SlashCommand = Extension.create<SlashCommandOptions>({
 				startOfLine: false,
 				allowSpaces: false,
 				items: ({ query, editor }) => {
-					const inTable = editor.isActive("table");
-					return filter(inTable ? TABLE_ITEMS : TEXT_ITEMS, query);
+					if (editor.isActive("table")) {
+						return filter(TABLE_ITEMS, query);
+					}
+					const filtered = filter(TEXT_ITEMS, query);
+					const dynamic = dynamicTableItem(query);
+					if (dynamic && !filtered.some((i) => i.id === dynamic.id)) {
+						filtered.unshift(dynamic);
+					}
+					return filtered;
 				},
 				command: ({ editor, range, props }) => props.command({ editor, range }),
 				render: this.options.createRenderer,

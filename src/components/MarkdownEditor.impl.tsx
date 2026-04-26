@@ -1,3 +1,4 @@
+import type { Editor } from "@tiptap/core";
 import CharacterCount from "@tiptap/extension-character-count";
 import Placeholder from "@tiptap/extension-placeholder";
 import {
@@ -6,8 +7,16 @@ import {
 	TableHeader,
 	TableRow,
 } from "@tiptap/extension-table";
+import { TextSelection } from "@tiptap/pm/state";
 import { EditorContent, useEditor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
+import {
+	ArrowDownToLine,
+	ArrowLeftToLine,
+	ArrowRightToLine,
+	ArrowUpToLine,
+	Trash2,
+} from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Markdown, type MarkdownStorage } from "tiptap-markdown";
@@ -18,8 +27,63 @@ import {
 } from "@/components/markdown/extensions/slash-command";
 import { TableKeymap } from "@/components/markdown/extensions/table-keymap";
 import { TsvPaste } from "@/components/markdown/extensions/tsv-paste";
-import { SlashMenu } from "@/components/markdown/SlashMenu";
+import { SlashMenu, type SlashMenuItem } from "@/components/markdown/SlashMenu";
 import { MARKDOWN_PROSE_CLASS } from "@/components/markdown-styles";
+
+interface ContextItem extends SlashMenuItem {
+	run: (editor: Editor) => void;
+}
+
+const TABLE_CONTEXT_ACTIONS: ContextItem[] = [
+	{
+		id: "row-above",
+		label: "Add row above",
+		icon: ArrowUpToLine,
+		run: (editor) => editor.chain().focus().addRowBefore().run(),
+	},
+	{
+		id: "row-below",
+		label: "Add row below",
+		icon: ArrowDownToLine,
+		run: (editor) => editor.chain().focus().addRowAfter().run(),
+	},
+	{
+		id: "col-left",
+		label: "Add column left",
+		icon: ArrowLeftToLine,
+		run: (editor) => editor.chain().focus().addColumnBefore().run(),
+	},
+	{
+		id: "col-right",
+		label: "Add column right",
+		icon: ArrowRightToLine,
+		run: (editor) => editor.chain().focus().addColumnAfter().run(),
+	},
+	{
+		id: "delete-row",
+		label: "Delete row",
+		icon: Trash2,
+		run: (editor) => editor.chain().focus().deleteRow().run(),
+	},
+	{
+		id: "delete-col",
+		label: "Delete column",
+		icon: Trash2,
+		run: (editor) => editor.chain().focus().deleteColumn().run(),
+	},
+	{
+		id: "delete-table",
+		label: "Delete table",
+		icon: Trash2,
+		run: (editor) => editor.chain().focus().deleteTable().run(),
+	},
+];
+
+interface ContextMenuState {
+	x: number;
+	y: number;
+	activeIndex: number;
+}
 
 declare module "@tiptap/core" {
 	interface Storage {
@@ -58,6 +122,9 @@ export default function MarkdownEditorImpl({
 	const [slash, setSlash] = useState<SlashState | null>(null);
 	const slashRef = useRef<SlashState | null>(null);
 	slashRef.current = slash;
+
+	const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
+	const contextMenuRef = useRef<HTMLDivElement | null>(null);
 
 	const onChangeRef = useRef(onChange);
 	onChangeRef.current = onChange;
@@ -176,6 +243,29 @@ export default function MarkdownEditorImpl({
 				style: `min-height: ${minHeight}`,
 				...(ariaLabel ? { "aria-label": ariaLabel } : {}),
 			},
+			handleDOMEvents: {
+				contextmenu: (view, event) => {
+					const target = event.target as HTMLElement | null;
+					if (!target?.closest("table")) return false;
+
+					const coords = { left: event.clientX, top: event.clientY };
+					const posResult = view.posAtCoords(coords);
+					if (posResult) {
+						const tr = view.state.tr.setSelection(
+							TextSelection.near(view.state.doc.resolve(posResult.pos)),
+						);
+						view.dispatch(tr);
+					}
+
+					event.preventDefault();
+					setContextMenu({
+						x: event.clientX,
+						y: event.clientY,
+						activeIndex: 0,
+					});
+					return true;
+				},
+			},
 		},
 		onUpdate: ({ editor }) => {
 			const md = editor.storage.markdown.getMarkdown() as string;
@@ -198,6 +288,64 @@ export default function MarkdownEditorImpl({
 		if (!editor) return;
 		editor.setEditable(!disabled);
 	}, [editor, disabled]);
+
+	useEffect(() => {
+		if (!contextMenu) return;
+		const onMouseDown = (e: MouseEvent) => {
+			if (
+				e.target instanceof Node &&
+				contextMenuRef.current?.contains(e.target)
+			) {
+				return;
+			}
+			setContextMenu(null);
+		};
+		const onKey = (e: KeyboardEvent) => {
+			if (e.key === "Escape") {
+				setContextMenu(null);
+				return;
+			}
+			if (e.key === "ArrowDown") {
+				e.preventDefault();
+				setContextMenu((prev) =>
+					prev
+						? {
+								...prev,
+								activeIndex:
+									(prev.activeIndex + 1) % TABLE_CONTEXT_ACTIONS.length,
+							}
+						: prev,
+				);
+				return;
+			}
+			if (e.key === "ArrowUp") {
+				e.preventDefault();
+				setContextMenu((prev) =>
+					prev
+						? {
+								...prev,
+								activeIndex:
+									(prev.activeIndex - 1 + TABLE_CONTEXT_ACTIONS.length) %
+									TABLE_CONTEXT_ACTIONS.length,
+							}
+						: prev,
+				);
+				return;
+			}
+			if (e.key === "Enter" && editor) {
+				e.preventDefault();
+				const action = TABLE_CONTEXT_ACTIONS[contextMenu.activeIndex];
+				if (action) action.run(editor);
+				setContextMenu(null);
+			}
+		};
+		document.addEventListener("mousedown", onMouseDown);
+		document.addEventListener("keydown", onKey);
+		return () => {
+			document.removeEventListener("mousedown", onMouseDown);
+			document.removeEventListener("keydown", onKey);
+		};
+	}, [contextMenu, editor]);
 
 	const charCount = editor?.storage.characterCount?.characters?.() ?? 0;
 	const overLimit = maxLength != null && charCount > maxLength;
@@ -229,6 +377,30 @@ export default function MarkdownEditorImpl({
 							onSelect={(item) => slash.selectItem(item)}
 							onHoverIndex={(index) =>
 								setSlash((prev) =>
+									prev ? { ...prev, activeIndex: index } : prev,
+								)
+							}
+						/>
+					</div>,
+					document.body,
+				)}
+			{contextMenu &&
+				typeof document !== "undefined" &&
+				createPortal(
+					<div
+						ref={contextMenuRef}
+						className="fixed z-50"
+						style={{ top: contextMenu.y, left: contextMenu.x }}
+					>
+						<SlashMenu
+							items={TABLE_CONTEXT_ACTIONS}
+							activeIndex={contextMenu.activeIndex}
+							onSelect={(item) => {
+								if (editor) item.run(editor);
+								setContextMenu(null);
+							}}
+							onHoverIndex={(index) =>
+								setContextMenu((prev) =>
 									prev ? { ...prev, activeIndex: index } : prev,
 								)
 							}
