@@ -10,6 +10,7 @@ import {
 } from "@/lib/access";
 import { isUniqueViolation } from "@/lib/db-errors";
 import { err, ok } from "@/lib/result";
+import { publicUrlFor } from "@/lib/storage";
 import { visibilityFilter } from "@/server/query-helpers";
 
 export const getCampaigns = createServerFn().handler(async () => {
@@ -64,7 +65,15 @@ export const getCampaignDashboard = createServerFn()
 					eq(nouns.campaignId, data.campaignId),
 					visibilityFilter(nouns.isSecret, accessLevel),
 				),
-				columns: { id: true, nounType: true },
+				orderBy: (n, { asc }) => asc(n.name),
+				columns: {
+					id: true,
+					name: true,
+					nounType: true,
+					summary: true,
+					isSecret: true,
+					imageKey: true,
+				},
 			}),
 			db.query.gameSessions.findMany({
 				where: and(
@@ -81,12 +90,10 @@ export const getCampaignDashboard = createServerFn()
 			}),
 		]);
 
-		const nounCounts = {
-			PERSON: allNouns.filter((n) => n.nounType === "PERSON").length,
-			PLACE: allNouns.filter((n) => n.nounType === "PLACE").length,
-			THING: allNouns.filter((n) => n.nounType === "THING").length,
-			FACTION: allNouns.filter((n) => n.nounType === "FACTION").length,
-		};
+		const entities = allNouns.map(({ imageKey, ...rest }) => ({
+			...rest,
+			imageUrl: imageKey ? publicUrlFor(imageKey) : null,
+		}));
 
 		// Hide pending invites and member emails from non-admin viewers.
 		const visibleMembers =
@@ -99,7 +106,7 @@ export const getCampaignDashboard = createServerFn()
 		return {
 			campaign,
 			accessLevel,
-			nounCounts,
+			entities,
 			recentSessions,
 			members: visibleMembers,
 		};
