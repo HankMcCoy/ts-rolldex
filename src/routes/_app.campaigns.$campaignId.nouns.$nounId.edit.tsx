@@ -5,6 +5,7 @@ import {
 	useRouter,
 } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
+import { Trash2 } from "lucide-react";
 import { useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -160,95 +161,100 @@ function EditNounPage() {
 			<div className="island-shell max-w-2xl rounded-2xl p-6">
 				<Form {...form}>
 					<form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-						<div className="space-y-2">
-							<div className="text-sm font-medium">Image</div>
-							<div className="flex items-start gap-4">
-								<div className="w-32 shrink-0">
-									<EntityImage
-										nounType={noun.nounType}
-										imageUrl={imageUrl}
-										name={noun.name}
-									/>
-								</div>
-								<div className="flex flex-col gap-2">
-									<input
-										ref={fileInputRef}
-										type="file"
-										accept="image/jpeg,image/png,image/webp"
-										onChange={handleFileChange}
+						<div className="grid gap-4 sm:grid-cols-[1fr_180px]">
+							<div className="space-y-4">
+								<FormField
+									control={form.control}
+									name="name"
+									render={({ field }) => (
+										<FormItem>
+											<FormLabel>Name</FormLabel>
+											<FormControl>
+												<Input {...field} />
+											</FormControl>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+								<FormField
+									control={form.control}
+									name="nounType"
+									render={({ field }) => (
+										<FormItem>
+											<FormLabel>Type</FormLabel>
+											<FormControl>
+												<select
+													{...field}
+													className="h-8 w-full min-w-0 rounded-lg border border-input bg-transparent px-2.5 py-1 text-base outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 md:text-sm"
+												>
+													{NOUN_TYPES.map((t) => (
+														<option key={t} value={t}>
+															{NOUN_TYPE_LABELS[t]}
+														</option>
+													))}
+												</select>
+											</FormControl>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+								<FormField
+									control={form.control}
+									name="summary"
+									render={({ field }) => (
+										<FormItem>
+											<FormLabel>Summary</FormLabel>
+											<FormControl>
+												<Textarea rows={2} {...field} />
+											</FormControl>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+							</div>
+							<div className="space-y-2">
+								<EntityImage
+									nounType={noun.nounType}
+									imageUrl={imageUrl}
+									name={noun.name}
+								/>
+								<input
+									ref={fileInputRef}
+									type="file"
+									accept="image/jpeg,image/png,image/webp"
+									onChange={handleFileChange}
+									disabled={imageBusy}
+									className="hidden"
+								/>
+								<div className="flex items-center gap-2">
+									<Button
+										type="button"
+										variant="outline"
+										size="sm"
+										onClick={() => fileInputRef.current?.click()}
 										disabled={imageBusy}
-										className="text-sm file:mr-3 file:rounded-md file:border-0 file:bg-secondary file:px-3 file:py-1.5 file:text-sm file:font-medium hover:file:bg-secondary/80 disabled:opacity-50"
-									/>
+										className="flex-1"
+									>
+										Choose
+									</Button>
 									{imageUrl && (
 										<Button
 											type="button"
 											variant="outline"
-											size="sm"
+											size="icon-sm"
 											onClick={handleRemoveImage}
 											disabled={imageBusy}
+											aria-label="Remove image"
 										>
-											Remove image
+											<Trash2 />
 										</Button>
 									)}
-									<p className="text-xs text-[var(--sea-ink-soft)]">
-										JPEG, PNG, or WebP. Up to 5 MB.
-									</p>
-									{imageError && (
-										<p className="text-xs text-destructive">{imageError}</p>
-									)}
 								</div>
+								{imageError && (
+									<p className="text-xs text-destructive">{imageError}</p>
+								)}
 							</div>
 						</div>
-						<div className="grid grid-cols-2 gap-4">
-							<FormField
-								control={form.control}
-								name="name"
-								render={({ field }) => (
-									<FormItem>
-										<FormLabel>Name</FormLabel>
-										<FormControl>
-											<Input {...field} />
-										</FormControl>
-										<FormMessage />
-									</FormItem>
-								)}
-							/>
-							<FormField
-								control={form.control}
-								name="nounType"
-								render={({ field }) => (
-									<FormItem>
-										<FormLabel>Type</FormLabel>
-										<FormControl>
-											<select
-												{...field}
-												className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-xs"
-											>
-												{NOUN_TYPES.map((t) => (
-													<option key={t} value={t}>
-														{NOUN_TYPE_LABELS[t]}
-													</option>
-												))}
-											</select>
-										</FormControl>
-										<FormMessage />
-									</FormItem>
-								)}
-							/>
-						</div>
-						<FormField
-							control={form.control}
-							name="summary"
-							render={({ field }) => (
-								<FormItem>
-									<FormLabel>Summary</FormLabel>
-									<FormControl>
-										<Textarea rows={2} {...field} />
-									</FormControl>
-									<FormMessage />
-								</FormItem>
-							)}
-						/>
 						<FormField
 							control={form.control}
 							name="notes"
