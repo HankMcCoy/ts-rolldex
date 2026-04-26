@@ -36,8 +36,10 @@ import { Route as AppCampaignsCampaignIdMapsNewRouteImport } from './routes/_app
 import { Route as AppCampaignsCampaignIdMapsMapIdRouteImport } from './routes/_app.campaigns.$campaignId.maps.$mapId'
 import { Route as AppCampaignsCampaignIdSessionsSessionIdIndexRouteImport } from './routes/_app.campaigns.$campaignId.sessions.$sessionId.index'
 import { Route as AppCampaignsCampaignIdNounsNounIdIndexRouteImport } from './routes/_app.campaigns.$campaignId.nouns.$nounId.index'
+import { Route as AppCampaignsCampaignIdMapsMapIdIndexRouteImport } from './routes/_app.campaigns.$campaignId.maps.$mapId.index'
 import { Route as AppCampaignsCampaignIdSessionsSessionIdEditRouteImport } from './routes/_app.campaigns.$campaignId.sessions.$sessionId.edit'
 import { Route as AppCampaignsCampaignIdNounsNounIdEditRouteImport } from './routes/_app.campaigns.$campaignId.nouns.$nounId.edit'
+import { Route as AppCampaignsCampaignIdMapsMapIdEditRouteImport } from './routes/_app.campaigns.$campaignId.maps.$mapId.edit'
 
 const AboutRoute = AboutRouteImport.update({
   id: '/about',
@@ -188,6 +190,12 @@ const AppCampaignsCampaignIdNounsNounIdIndexRoute =
     path: '/',
     getParentRoute: () => AppCampaignsCampaignIdNounsNounIdRoute,
   } as any)
+const AppCampaignsCampaignIdMapsMapIdIndexRoute =
+  AppCampaignsCampaignIdMapsMapIdIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => AppCampaignsCampaignIdMapsMapIdRoute,
+  } as any)
 const AppCampaignsCampaignIdSessionsSessionIdEditRoute =
   AppCampaignsCampaignIdSessionsSessionIdEditRouteImport.update({
     id: '/edit',
@@ -199,6 +207,12 @@ const AppCampaignsCampaignIdNounsNounIdEditRoute =
     id: '/edit',
     path: '/edit',
     getParentRoute: () => AppCampaignsCampaignIdNounsNounIdRoute,
+  } as any)
+const AppCampaignsCampaignIdMapsMapIdEditRoute =
+  AppCampaignsCampaignIdMapsMapIdEditRouteImport.update({
+    id: '/edit',
+    path: '/edit',
+    getParentRoute: () => AppCampaignsCampaignIdMapsMapIdRoute,
   } as any)
 
 export interface FileRoutesByFullPath {
@@ -215,7 +229,7 @@ export interface FileRoutesByFullPath {
   '/campaigns/$campaignId/nouns': typeof AppCampaignsCampaignIdNounsRouteWithChildren
   '/campaigns/$campaignId/sessions': typeof AppCampaignsCampaignIdSessionsRouteWithChildren
   '/campaigns/$campaignId/': typeof AppCampaignsCampaignIdIndexRoute
-  '/campaigns/$campaignId/maps/$mapId': typeof AppCampaignsCampaignIdMapsMapIdRoute
+  '/campaigns/$campaignId/maps/$mapId': typeof AppCampaignsCampaignIdMapsMapIdRouteWithChildren
   '/campaigns/$campaignId/maps/new': typeof AppCampaignsCampaignIdMapsNewRoute
   '/campaigns/$campaignId/members/invite': typeof AppCampaignsCampaignIdMembersInviteRoute
   '/campaigns/$campaignId/nouns/$nounId': typeof AppCampaignsCampaignIdNounsNounIdRouteWithChildren
@@ -225,8 +239,10 @@ export interface FileRoutesByFullPath {
   '/campaigns/$campaignId/maps/': typeof AppCampaignsCampaignIdMapsIndexRoute
   '/campaigns/$campaignId/nouns/': typeof AppCampaignsCampaignIdNounsIndexRoute
   '/campaigns/$campaignId/sessions/': typeof AppCampaignsCampaignIdSessionsIndexRoute
+  '/campaigns/$campaignId/maps/$mapId/edit': typeof AppCampaignsCampaignIdMapsMapIdEditRoute
   '/campaigns/$campaignId/nouns/$nounId/edit': typeof AppCampaignsCampaignIdNounsNounIdEditRoute
   '/campaigns/$campaignId/sessions/$sessionId/edit': typeof AppCampaignsCampaignIdSessionsSessionIdEditRoute
+  '/campaigns/$campaignId/maps/$mapId/': typeof AppCampaignsCampaignIdMapsMapIdIndexRoute
   '/campaigns/$campaignId/nouns/$nounId/': typeof AppCampaignsCampaignIdNounsNounIdIndexRoute
   '/campaigns/$campaignId/sessions/$sessionId/': typeof AppCampaignsCampaignIdSessionsSessionIdIndexRoute
 }
@@ -240,7 +256,6 @@ export interface FileRoutesByTo {
   '/campaigns': typeof AppCampaignsIndexRoute
   '/campaigns/$campaignId/edit': typeof AppCampaignsCampaignIdEditRoute
   '/campaigns/$campaignId': typeof AppCampaignsCampaignIdIndexRoute
-  '/campaigns/$campaignId/maps/$mapId': typeof AppCampaignsCampaignIdMapsMapIdRoute
   '/campaigns/$campaignId/maps/new': typeof AppCampaignsCampaignIdMapsNewRoute
   '/campaigns/$campaignId/members/invite': typeof AppCampaignsCampaignIdMembersInviteRoute
   '/campaigns/$campaignId/nouns/new': typeof AppCampaignsCampaignIdNounsNewRoute
@@ -248,8 +263,10 @@ export interface FileRoutesByTo {
   '/campaigns/$campaignId/maps': typeof AppCampaignsCampaignIdMapsIndexRoute
   '/campaigns/$campaignId/nouns': typeof AppCampaignsCampaignIdNounsIndexRoute
   '/campaigns/$campaignId/sessions': typeof AppCampaignsCampaignIdSessionsIndexRoute
+  '/campaigns/$campaignId/maps/$mapId/edit': typeof AppCampaignsCampaignIdMapsMapIdEditRoute
   '/campaigns/$campaignId/nouns/$nounId/edit': typeof AppCampaignsCampaignIdNounsNounIdEditRoute
   '/campaigns/$campaignId/sessions/$sessionId/edit': typeof AppCampaignsCampaignIdSessionsSessionIdEditRoute
+  '/campaigns/$campaignId/maps/$mapId': typeof AppCampaignsCampaignIdMapsMapIdIndexRoute
   '/campaigns/$campaignId/nouns/$nounId': typeof AppCampaignsCampaignIdNounsNounIdIndexRoute
   '/campaigns/$campaignId/sessions/$sessionId': typeof AppCampaignsCampaignIdSessionsSessionIdIndexRoute
 }
@@ -270,7 +287,7 @@ export interface FileRoutesById {
   '/_app/campaigns/$campaignId/nouns': typeof AppCampaignsCampaignIdNounsRouteWithChildren
   '/_app/campaigns/$campaignId/sessions': typeof AppCampaignsCampaignIdSessionsRouteWithChildren
   '/_app/campaigns/$campaignId/': typeof AppCampaignsCampaignIdIndexRoute
-  '/_app/campaigns/$campaignId/maps/$mapId': typeof AppCampaignsCampaignIdMapsMapIdRoute
+  '/_app/campaigns/$campaignId/maps/$mapId': typeof AppCampaignsCampaignIdMapsMapIdRouteWithChildren
   '/_app/campaigns/$campaignId/maps/new': typeof AppCampaignsCampaignIdMapsNewRoute
   '/_app/campaigns/$campaignId/members/invite': typeof AppCampaignsCampaignIdMembersInviteRoute
   '/_app/campaigns/$campaignId/nouns/$nounId': typeof AppCampaignsCampaignIdNounsNounIdRouteWithChildren
@@ -280,8 +297,10 @@ export interface FileRoutesById {
   '/_app/campaigns/$campaignId/maps/': typeof AppCampaignsCampaignIdMapsIndexRoute
   '/_app/campaigns/$campaignId/nouns/': typeof AppCampaignsCampaignIdNounsIndexRoute
   '/_app/campaigns/$campaignId/sessions/': typeof AppCampaignsCampaignIdSessionsIndexRoute
+  '/_app/campaigns/$campaignId/maps/$mapId/edit': typeof AppCampaignsCampaignIdMapsMapIdEditRoute
   '/_app/campaigns/$campaignId/nouns/$nounId/edit': typeof AppCampaignsCampaignIdNounsNounIdEditRoute
   '/_app/campaigns/$campaignId/sessions/$sessionId/edit': typeof AppCampaignsCampaignIdSessionsSessionIdEditRoute
+  '/_app/campaigns/$campaignId/maps/$mapId/': typeof AppCampaignsCampaignIdMapsMapIdIndexRoute
   '/_app/campaigns/$campaignId/nouns/$nounId/': typeof AppCampaignsCampaignIdNounsNounIdIndexRoute
   '/_app/campaigns/$campaignId/sessions/$sessionId/': typeof AppCampaignsCampaignIdSessionsSessionIdIndexRoute
 }
@@ -311,8 +330,10 @@ export interface FileRouteTypes {
     | '/campaigns/$campaignId/maps/'
     | '/campaigns/$campaignId/nouns/'
     | '/campaigns/$campaignId/sessions/'
+    | '/campaigns/$campaignId/maps/$mapId/edit'
     | '/campaigns/$campaignId/nouns/$nounId/edit'
     | '/campaigns/$campaignId/sessions/$sessionId/edit'
+    | '/campaigns/$campaignId/maps/$mapId/'
     | '/campaigns/$campaignId/nouns/$nounId/'
     | '/campaigns/$campaignId/sessions/$sessionId/'
   fileRoutesByTo: FileRoutesByTo
@@ -326,7 +347,6 @@ export interface FileRouteTypes {
     | '/campaigns'
     | '/campaigns/$campaignId/edit'
     | '/campaigns/$campaignId'
-    | '/campaigns/$campaignId/maps/$mapId'
     | '/campaigns/$campaignId/maps/new'
     | '/campaigns/$campaignId/members/invite'
     | '/campaigns/$campaignId/nouns/new'
@@ -334,8 +354,10 @@ export interface FileRouteTypes {
     | '/campaigns/$campaignId/maps'
     | '/campaigns/$campaignId/nouns'
     | '/campaigns/$campaignId/sessions'
+    | '/campaigns/$campaignId/maps/$mapId/edit'
     | '/campaigns/$campaignId/nouns/$nounId/edit'
     | '/campaigns/$campaignId/sessions/$sessionId/edit'
+    | '/campaigns/$campaignId/maps/$mapId'
     | '/campaigns/$campaignId/nouns/$nounId'
     | '/campaigns/$campaignId/sessions/$sessionId'
   id:
@@ -365,8 +387,10 @@ export interface FileRouteTypes {
     | '/_app/campaigns/$campaignId/maps/'
     | '/_app/campaigns/$campaignId/nouns/'
     | '/_app/campaigns/$campaignId/sessions/'
+    | '/_app/campaigns/$campaignId/maps/$mapId/edit'
     | '/_app/campaigns/$campaignId/nouns/$nounId/edit'
     | '/_app/campaigns/$campaignId/sessions/$sessionId/edit'
+    | '/_app/campaigns/$campaignId/maps/$mapId/'
     | '/_app/campaigns/$campaignId/nouns/$nounId/'
     | '/_app/campaigns/$campaignId/sessions/$sessionId/'
   fileRoutesById: FileRoutesById
@@ -570,6 +594,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppCampaignsCampaignIdNounsNounIdIndexRouteImport
       parentRoute: typeof AppCampaignsCampaignIdNounsNounIdRoute
     }
+    '/_app/campaigns/$campaignId/maps/$mapId/': {
+      id: '/_app/campaigns/$campaignId/maps/$mapId/'
+      path: '/'
+      fullPath: '/campaigns/$campaignId/maps/$mapId/'
+      preLoaderRoute: typeof AppCampaignsCampaignIdMapsMapIdIndexRouteImport
+      parentRoute: typeof AppCampaignsCampaignIdMapsMapIdRoute
+    }
     '/_app/campaigns/$campaignId/sessions/$sessionId/edit': {
       id: '/_app/campaigns/$campaignId/sessions/$sessionId/edit'
       path: '/edit'
@@ -583,6 +614,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/campaigns/$campaignId/nouns/$nounId/edit'
       preLoaderRoute: typeof AppCampaignsCampaignIdNounsNounIdEditRouteImport
       parentRoute: typeof AppCampaignsCampaignIdNounsNounIdRoute
+    }
+    '/_app/campaigns/$campaignId/maps/$mapId/edit': {
+      id: '/_app/campaigns/$campaignId/maps/$mapId/edit'
+      path: '/edit'
+      fullPath: '/campaigns/$campaignId/maps/$mapId/edit'
+      preLoaderRoute: typeof AppCampaignsCampaignIdMapsMapIdEditRouteImport
+      parentRoute: typeof AppCampaignsCampaignIdMapsMapIdRoute
     }
   }
 }
@@ -664,12 +702,30 @@ const AppCampaignsCampaignIdSessionsRouteWithChildren =
     AppCampaignsCampaignIdSessionsRouteChildren,
   )
 
+interface AppCampaignsCampaignIdMapsMapIdRouteChildren {
+  AppCampaignsCampaignIdMapsMapIdEditRoute: typeof AppCampaignsCampaignIdMapsMapIdEditRoute
+  AppCampaignsCampaignIdMapsMapIdIndexRoute: typeof AppCampaignsCampaignIdMapsMapIdIndexRoute
+}
+
+const AppCampaignsCampaignIdMapsMapIdRouteChildren: AppCampaignsCampaignIdMapsMapIdRouteChildren =
+  {
+    AppCampaignsCampaignIdMapsMapIdEditRoute:
+      AppCampaignsCampaignIdMapsMapIdEditRoute,
+    AppCampaignsCampaignIdMapsMapIdIndexRoute:
+      AppCampaignsCampaignIdMapsMapIdIndexRoute,
+  }
+
+const AppCampaignsCampaignIdMapsMapIdRouteWithChildren =
+  AppCampaignsCampaignIdMapsMapIdRoute._addFileChildren(
+    AppCampaignsCampaignIdMapsMapIdRouteChildren,
+  )
+
 interface AppCampaignsCampaignIdRouteChildren {
   AppCampaignsCampaignIdEditRoute: typeof AppCampaignsCampaignIdEditRoute
   AppCampaignsCampaignIdNounsRoute: typeof AppCampaignsCampaignIdNounsRouteWithChildren
   AppCampaignsCampaignIdSessionsRoute: typeof AppCampaignsCampaignIdSessionsRouteWithChildren
   AppCampaignsCampaignIdIndexRoute: typeof AppCampaignsCampaignIdIndexRoute
-  AppCampaignsCampaignIdMapsMapIdRoute: typeof AppCampaignsCampaignIdMapsMapIdRoute
+  AppCampaignsCampaignIdMapsMapIdRoute: typeof AppCampaignsCampaignIdMapsMapIdRouteWithChildren
   AppCampaignsCampaignIdMapsNewRoute: typeof AppCampaignsCampaignIdMapsNewRoute
   AppCampaignsCampaignIdMembersInviteRoute: typeof AppCampaignsCampaignIdMembersInviteRoute
   AppCampaignsCampaignIdMapsIndexRoute: typeof AppCampaignsCampaignIdMapsIndexRoute
@@ -683,7 +739,8 @@ const AppCampaignsCampaignIdRouteChildren: AppCampaignsCampaignIdRouteChildren =
     AppCampaignsCampaignIdSessionsRoute:
       AppCampaignsCampaignIdSessionsRouteWithChildren,
     AppCampaignsCampaignIdIndexRoute: AppCampaignsCampaignIdIndexRoute,
-    AppCampaignsCampaignIdMapsMapIdRoute: AppCampaignsCampaignIdMapsMapIdRoute,
+    AppCampaignsCampaignIdMapsMapIdRoute:
+      AppCampaignsCampaignIdMapsMapIdRouteWithChildren,
     AppCampaignsCampaignIdMapsNewRoute: AppCampaignsCampaignIdMapsNewRoute,
     AppCampaignsCampaignIdMembersInviteRoute:
       AppCampaignsCampaignIdMembersInviteRoute,
