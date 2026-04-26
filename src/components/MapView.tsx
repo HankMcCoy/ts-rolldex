@@ -179,10 +179,7 @@ export function MapView({
 					doubleClick={{ disabled: true }}
 					panning={{ disabled: adding }}
 				>
-					<TransformComponent
-						wrapperStyle={{ width: "100%", height: "100%" }}
-						contentStyle={{ width: "100%", height: "100%" }}
-					>
+					<TransformComponent wrapperStyle={{ width: "100%", height: "100%" }}>
 						{/* biome-ignore lint/a11y/noStaticElementInteractions: pin placement is a mouse-driven map interaction */}
 						{/* biome-ignore lint/a11y/useKeyWithClickEvents: pin placement requires pointer coordinates */}
 						<div
