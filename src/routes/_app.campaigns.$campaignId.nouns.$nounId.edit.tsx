@@ -9,7 +9,7 @@ import { useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { EntityImage } from "@/components/EntityImage";
-import { PageHeader } from "@/components/PageHeader";
+import { Page } from "@/components/Page";
 import { Button } from "@/components/ui/button";
 import {
 	Form,
@@ -149,106 +149,65 @@ function EditNounPage() {
 
 	if (accessLevel !== "ADMIN") {
 		return (
-			<>
-				<PageHeader breadcrumbs={breadcrumbs} title={`Edit ${noun.name}`} />
-				<main className="page-wrap px-4 pt-5 pb-10">
-					<p>You don't have permission to edit entities.</p>
-				</main>
-			</>
+			<Page breadcrumbs={breadcrumbs} title={`Edit ${noun.name}`}>
+				<p>You don't have permission to edit entities.</p>
+			</Page>
 		);
 	}
 
 	return (
-		<>
-			<PageHeader breadcrumbs={breadcrumbs} title={`Edit ${noun.name}`} />
-			<main className="page-wrap px-4 pt-5 pb-10">
-				<div className="island-shell max-w-2xl rounded-2xl p-6">
-					<Form {...form}>
-						<form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-							<div className="space-y-2">
-								<div className="text-sm font-medium">Image</div>
-								<div className="flex items-start gap-4">
-									<div className="w-32 shrink-0">
-										<EntityImage
-											nounType={noun.nounType}
-											imageUrl={imageUrl}
-											name={noun.name}
-										/>
-									</div>
-									<div className="flex flex-col gap-2">
-										<input
-											ref={fileInputRef}
-											type="file"
-											accept="image/jpeg,image/png,image/webp"
-											onChange={handleFileChange}
+		<Page breadcrumbs={breadcrumbs} title={`Edit ${noun.name}`}>
+			<div className="island-shell max-w-2xl rounded-2xl p-6">
+				<Form {...form}>
+					<form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+						<div className="space-y-2">
+							<div className="text-sm font-medium">Image</div>
+							<div className="flex items-start gap-4">
+								<div className="w-32 shrink-0">
+									<EntityImage
+										nounType={noun.nounType}
+										imageUrl={imageUrl}
+										name={noun.name}
+									/>
+								</div>
+								<div className="flex flex-col gap-2">
+									<input
+										ref={fileInputRef}
+										type="file"
+										accept="image/jpeg,image/png,image/webp"
+										onChange={handleFileChange}
+										disabled={imageBusy}
+										className="text-sm file:mr-3 file:rounded-md file:border-0 file:bg-secondary file:px-3 file:py-1.5 file:text-sm file:font-medium hover:file:bg-secondary/80 disabled:opacity-50"
+									/>
+									{imageUrl && (
+										<Button
+											type="button"
+											variant="outline"
+											size="sm"
+											onClick={handleRemoveImage}
 											disabled={imageBusy}
-											className="text-sm file:mr-3 file:rounded-md file:border-0 file:bg-secondary file:px-3 file:py-1.5 file:text-sm file:font-medium hover:file:bg-secondary/80 disabled:opacity-50"
-										/>
-										{imageUrl && (
-											<Button
-												type="button"
-												variant="outline"
-												size="sm"
-												onClick={handleRemoveImage}
-												disabled={imageBusy}
-											>
-												Remove image
-											</Button>
-										)}
-										<p className="text-xs text-[var(--sea-ink-soft)]">
-											JPEG, PNG, or WebP. Up to 5 MB.
-										</p>
-										{imageError && (
-											<p className="text-xs text-destructive">{imageError}</p>
-										)}
-									</div>
+										>
+											Remove image
+										</Button>
+									)}
+									<p className="text-xs text-[var(--sea-ink-soft)]">
+										JPEG, PNG, or WebP. Up to 5 MB.
+									</p>
+									{imageError && (
+										<p className="text-xs text-destructive">{imageError}</p>
+									)}
 								</div>
 							</div>
-							<div className="grid grid-cols-2 gap-4">
-								<FormField
-									control={form.control}
-									name="name"
-									render={({ field }) => (
-										<FormItem>
-											<FormLabel>Name</FormLabel>
-											<FormControl>
-												<Input {...field} />
-											</FormControl>
-											<FormMessage />
-										</FormItem>
-									)}
-								/>
-								<FormField
-									control={form.control}
-									name="nounType"
-									render={({ field }) => (
-										<FormItem>
-											<FormLabel>Type</FormLabel>
-											<FormControl>
-												<select
-													{...field}
-													className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-xs"
-												>
-													{NOUN_TYPES.map((t) => (
-														<option key={t} value={t}>
-															{NOUN_TYPE_LABELS[t]}
-														</option>
-													))}
-												</select>
-											</FormControl>
-											<FormMessage />
-										</FormItem>
-									)}
-								/>
-							</div>
+						</div>
+						<div className="grid grid-cols-2 gap-4">
 							<FormField
 								control={form.control}
-								name="summary"
+								name="name"
 								render={({ field }) => (
 									<FormItem>
-										<FormLabel>Summary</FormLabel>
+										<FormLabel>Name</FormLabel>
 										<FormControl>
-											<Textarea rows={2} {...field} />
+											<Input {...field} />
 										</FormControl>
 										<FormMessage />
 									</FormItem>
@@ -256,68 +215,103 @@ function EditNounPage() {
 							/>
 							<FormField
 								control={form.control}
-								name="notes"
+								name="nounType"
 								render={({ field }) => (
 									<FormItem>
-										<FormLabel>Notes</FormLabel>
+										<FormLabel>Type</FormLabel>
 										<FormControl>
-											<Textarea rows={5} {...field} />
+											<select
+												{...field}
+												className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-xs"
+											>
+												{NOUN_TYPES.map((t) => (
+													<option key={t} value={t}>
+														{NOUN_TYPE_LABELS[t]}
+													</option>
+												))}
+											</select>
 										</FormControl>
 										<FormMessage />
 									</FormItem>
 								)}
 							/>
-							<FormField
-								control={form.control}
-								name="privateNotes"
-								render={({ field }) => (
-									<FormItem>
-										<FormLabel>Private notes</FormLabel>
-										<FormControl>
-											<Textarea rows={3} {...field} />
-										</FormControl>
-										<FormMessage />
-									</FormItem>
-								)}
-							/>
-							<FormField
-								control={form.control}
-								name="isSecret"
-								render={({ field }) => (
-									<FormItem className="flex items-center gap-3">
-										<FormControl>
-											<Switch
-												checked={field.value}
-												onCheckedChange={field.onChange}
-											/>
-										</FormControl>
-										<FormLabel className="!mt-0">
-											Secret (hidden from players)
-										</FormLabel>
-									</FormItem>
-								)}
-							/>
-							<div className="flex gap-3">
-								<Button type="submit" disabled={form.formState.isSubmitting}>
-									{form.formState.isSubmitting ? "Saving…" : "Save changes"}
-								</Button>
-								<Button
-									type="button"
-									variant="outline"
-									onClick={() =>
-										navigate({
-											to: "/campaigns/$campaignId/nouns/$nounId",
-											params: { campaignId: campaign.id, nounId: noun.id },
-										})
-									}
-								>
-									Cancel
-								</Button>
-							</div>
-						</form>
-					</Form>
-				</div>
-			</main>
-		</>
+						</div>
+						<FormField
+							control={form.control}
+							name="summary"
+							render={({ field }) => (
+								<FormItem>
+									<FormLabel>Summary</FormLabel>
+									<FormControl>
+										<Textarea rows={2} {...field} />
+									</FormControl>
+									<FormMessage />
+								</FormItem>
+							)}
+						/>
+						<FormField
+							control={form.control}
+							name="notes"
+							render={({ field }) => (
+								<FormItem>
+									<FormLabel>Notes</FormLabel>
+									<FormControl>
+										<Textarea rows={5} {...field} />
+									</FormControl>
+									<FormMessage />
+								</FormItem>
+							)}
+						/>
+						<FormField
+							control={form.control}
+							name="privateNotes"
+							render={({ field }) => (
+								<FormItem>
+									<FormLabel>Private notes</FormLabel>
+									<FormControl>
+										<Textarea rows={3} {...field} />
+									</FormControl>
+									<FormMessage />
+								</FormItem>
+							)}
+						/>
+						<FormField
+							control={form.control}
+							name="isSecret"
+							render={({ field }) => (
+								<FormItem className="flex items-center gap-3">
+									<FormControl>
+										<Switch
+											checked={field.value}
+											onCheckedChange={field.onChange}
+										/>
+									</FormControl>
+									<FormLabel className="!mt-0">
+										Secret (hidden from players)
+									</FormLabel>
+								</FormItem>
+							)}
+						/>
+						<div className="flex gap-3">
+							<Button type="submit" disabled={form.formState.isSubmitting}>
+								{form.formState.isSubmitting ? "Saving…" : "Save changes"}
+							</Button>
+							<Button
+								type="button"
+								variant="outline"
+								onClick={() =>
+									navigate({
+										to: "/campaigns/$campaignId/nouns/$nounId",
+										params: { campaignId: campaign.id, nounId: noun.id },
+									})
+								}
+							>
+								Cancel
+							</Button>
+						</div>
+					</form>
+				</Form>
+			</div>
+		</Page>
 	);
 }

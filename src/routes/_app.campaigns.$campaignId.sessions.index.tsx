@@ -1,6 +1,6 @@
 import { createFileRoute, getRouteApi, Link } from "@tanstack/react-router";
 import { EntityAvatar } from "@/components/EntityAvatar";
-import { PageHeader } from "@/components/PageHeader";
+import { Page } from "@/components/Page";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { getSessions } from "@/server/sessions";
@@ -20,61 +20,58 @@ function SessionsPage() {
 	const isAdmin = accessLevel === "ADMIN";
 
 	return (
-		<>
-			<PageHeader
-				breadcrumbs={[
-					{
-						label: campaign.name,
-						to: "/campaigns/$campaignId",
-						params: { campaignId: campaign.id },
-					},
-				]}
-				title="Sessions"
-				actions={
-					isAdmin && (
-						<Button asChild size="sm">
+		<Page
+			breadcrumbs={[
+				{
+					label: campaign.name,
+					to: "/campaigns/$campaignId",
+					params: { campaignId: campaign.id },
+				},
+			]}
+			title="Sessions"
+			actions={
+				isAdmin && (
+					<Button asChild size="sm">
+						<Link
+							to="/campaigns/$campaignId/sessions/new"
+							params={{ campaignId: campaign.id }}
+						>
+							+ Session
+						</Link>
+					</Button>
+				)
+			}
+		>
+			{sessions.length === 0 ? (
+				<p className="text-sm text-[var(--sea-ink-soft)]">No sessions yet.</p>
+			) : (
+				<ul className="space-y-2">
+					{sessions.map((s) => (
+						<li key={s.id}>
 							<Link
-								to="/campaigns/$campaignId/sessions/new"
-								params={{ campaignId: campaign.id }}
+								to="/campaigns/$campaignId/sessions/$sessionId"
+								params={{ campaignId: campaign.id, sessionId: s.id }}
+								className="island-shell flex items-center gap-4 rounded-xl p-4 no-underline transition hover:-translate-y-0.5"
 							>
-								+ Session
+								<EntityAvatar
+									entityType="SESSION"
+									imageUrl={null}
+									name={s.name}
+								/>
+								<div className="min-w-0 flex-1">
+									<span className="font-medium">{s.name}</span>
+									{s.summary && (
+										<p className="mt-0.5 text-sm text-[var(--sea-ink-soft)] line-clamp-1">
+											{s.summary}
+										</p>
+									)}
+								</div>
+								{s.isSecret && <Badge variant="secondary">Secret</Badge>}
 							</Link>
-						</Button>
-					)
-				}
-			/>
-			<main className="page-wrap px-4 pt-5 pb-10">
-				{sessions.length === 0 ? (
-					<p className="text-sm text-[var(--sea-ink-soft)]">No sessions yet.</p>
-				) : (
-					<ul className="space-y-2">
-						{sessions.map((s) => (
-							<li key={s.id}>
-								<Link
-									to="/campaigns/$campaignId/sessions/$sessionId"
-									params={{ campaignId: campaign.id, sessionId: s.id }}
-									className="island-shell flex items-center gap-4 rounded-xl p-4 no-underline transition hover:-translate-y-0.5"
-								>
-									<EntityAvatar
-										entityType="SESSION"
-										imageUrl={null}
-										name={s.name}
-									/>
-									<div className="min-w-0 flex-1">
-										<span className="font-medium">{s.name}</span>
-										{s.summary && (
-											<p className="mt-0.5 text-sm text-[var(--sea-ink-soft)] line-clamp-1">
-												{s.summary}
-											</p>
-										)}
-									</div>
-									{s.isSecret && <Badge variant="secondary">Secret</Badge>}
-								</Link>
-							</li>
-						))}
-					</ul>
-				)}
-			</main>
-		</>
+						</li>
+					))}
+				</ul>
+			)}
+		</Page>
 	);
 }

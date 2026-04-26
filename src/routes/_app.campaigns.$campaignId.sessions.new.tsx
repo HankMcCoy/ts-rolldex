@@ -6,7 +6,7 @@ import {
 import { useServerFn } from "@tanstack/react-start";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-import { PageHeader } from "@/components/PageHeader";
+import { Page } from "@/components/Page";
 import { Button } from "@/components/ui/button";
 import {
 	Form,
@@ -84,112 +84,106 @@ function NewSessionPage() {
 
 	if (accessLevel !== "ADMIN") {
 		return (
-			<>
-				<PageHeader breadcrumbs={breadcrumbs} title="New session" />
-				<main className="page-wrap px-4 pt-5 pb-10">
-					<p>You don't have permission to create sessions.</p>
-				</main>
-			</>
+			<Page breadcrumbs={breadcrumbs} title="New session">
+				<p>You don't have permission to create sessions.</p>
+			</Page>
 		);
 	}
 
 	return (
-		<>
-			<PageHeader breadcrumbs={breadcrumbs} title="New session" />
-			<main className="page-wrap px-4 pt-5 pb-10">
-				<div className="island-shell max-w-2xl rounded-2xl p-6">
-					<Form {...form}>
-						<form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-							<FormField
-								control={form.control}
-								name="name"
-								render={({ field }) => (
-									<FormItem>
-										<FormLabel>Name</FormLabel>
-										<FormControl>
-											<Input {...field} />
-										</FormControl>
-										<FormMessage />
-									</FormItem>
-								)}
-							/>
-							<FormField
-								control={form.control}
-								name="summary"
-								render={({ field }) => (
-									<FormItem>
-										<FormLabel>Summary</FormLabel>
-										<FormControl>
-											<Textarea rows={2} {...field} />
-										</FormControl>
-										<FormMessage />
-									</FormItem>
-								)}
-							/>
-							<FormField
-								control={form.control}
-								name="notes"
-								render={({ field }) => (
-									<FormItem>
-										<FormLabel>Notes</FormLabel>
-										<FormControl>
-											<Textarea rows={5} {...field} />
-										</FormControl>
-										<FormMessage />
-									</FormItem>
-								)}
-							/>
-							<FormField
-								control={form.control}
-								name="privateNotes"
-								render={({ field }) => (
-									<FormItem>
-										<FormLabel>Private notes</FormLabel>
-										<FormControl>
-											<Textarea rows={3} {...field} />
-										</FormControl>
-										<FormMessage />
-									</FormItem>
-								)}
-							/>
-							<FormField
-								control={form.control}
-								name="isSecret"
-								render={({ field }) => (
-									<FormItem className="flex items-center gap-3">
-										<FormControl>
-											<Switch
-												checked={field.value}
-												onCheckedChange={field.onChange}
-											/>
-										</FormControl>
-										<FormLabel className="!mt-0">
-											Secret (hidden from players)
-										</FormLabel>
-									</FormItem>
-								)}
-							/>
-							<div className="flex gap-3">
-								<Button type="submit" disabled={form.formState.isSubmitting}>
-									{form.formState.isSubmitting ? "Creating…" : "Create session"}
-								</Button>
-								<Button
-									type="button"
-									variant="outline"
-									onClick={() =>
-										navigate({
-											to: "/campaigns/$campaignId/sessions",
-											params: { campaignId: campaign.id },
-										})
-									}
-								>
-									Cancel
-								</Button>
-							</div>
-						</form>
-					</Form>
-				</div>
-			</main>
-		</>
+		<Page breadcrumbs={breadcrumbs} title="New session">
+			<div className="island-shell max-w-2xl rounded-2xl p-6">
+				<Form {...form}>
+					<form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+						<FormField
+							control={form.control}
+							name="name"
+							render={({ field }) => (
+								<FormItem>
+									<FormLabel>Name</FormLabel>
+									<FormControl>
+										<Input {...field} />
+									</FormControl>
+									<FormMessage />
+								</FormItem>
+							)}
+						/>
+						<FormField
+							control={form.control}
+							name="summary"
+							render={({ field }) => (
+								<FormItem>
+									<FormLabel>Summary</FormLabel>
+									<FormControl>
+										<Textarea rows={2} {...field} />
+									</FormControl>
+									<FormMessage />
+								</FormItem>
+							)}
+						/>
+						<FormField
+							control={form.control}
+							name="notes"
+							render={({ field }) => (
+								<FormItem>
+									<FormLabel>Notes</FormLabel>
+									<FormControl>
+										<Textarea rows={5} {...field} />
+									</FormControl>
+									<FormMessage />
+								</FormItem>
+							)}
+						/>
+						<FormField
+							control={form.control}
+							name="privateNotes"
+							render={({ field }) => (
+								<FormItem>
+									<FormLabel>Private notes</FormLabel>
+									<FormControl>
+										<Textarea rows={3} {...field} />
+									</FormControl>
+									<FormMessage />
+								</FormItem>
+							)}
+						/>
+						<FormField
+							control={form.control}
+							name="isSecret"
+							render={({ field }) => (
+								<FormItem className="flex items-center gap-3">
+									<FormControl>
+										<Switch
+											checked={field.value}
+											onCheckedChange={field.onChange}
+										/>
+									</FormControl>
+									<FormLabel className="!mt-0">
+										Secret (hidden from players)
+									</FormLabel>
+								</FormItem>
+							)}
+						/>
+						<div className="flex gap-3">
+							<Button type="submit" disabled={form.formState.isSubmitting}>
+								{form.formState.isSubmitting ? "Creating…" : "Create session"}
+							</Button>
+							<Button
+								type="button"
+								variant="outline"
+								onClick={() =>
+									navigate({
+										to: "/campaigns/$campaignId/sessions",
+										params: { campaignId: campaign.id },
+									})
+								}
+							>
+								Cancel
+							</Button>
+						</div>
+					</form>
+				</Form>
+			</div>
+		</Page>
 	);
 }

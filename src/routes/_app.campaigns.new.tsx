@@ -2,7 +2,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-import { PageHeader } from "@/components/PageHeader";
+import { Page } from "@/components/Page";
 import { Button } from "@/components/ui/button";
 import {
 	Form,
@@ -49,66 +49,61 @@ function NewCampaignPage() {
 	}
 
 	return (
-		<>
-			<PageHeader
-				breadcrumbs={[{ label: "Campaigns", to: "/campaigns" }]}
-				title="New campaign"
-			/>
-			<main className="page-wrap px-4 pt-5 pb-10">
-				<div className="island-shell max-w-lg rounded-2xl p-6">
-					<Form {...form}>
-						<form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-							<FormField
-								control={form.control}
-								name="name"
-								render={({ field }) => (
-									<FormItem>
-										<FormLabel>Name</FormLabel>
-										<FormControl>
-											<Input
-												placeholder="The Lost Mines of Phandelver"
-												{...field}
-											/>
-										</FormControl>
-										<FormMessage />
-									</FormItem>
-								)}
-							/>
-							<FormField
-								control={form.control}
-								name="summary"
-								render={({ field }) => (
-									<FormItem>
-										<FormLabel>Summary</FormLabel>
-										<FormControl>
-											<Textarea
-												placeholder="A short description of the campaign…"
-												rows={3}
-												{...field}
-											/>
-										</FormControl>
-										<FormMessage />
-									</FormItem>
-								)}
-							/>
-							<div className="flex gap-3">
-								<Button type="submit" disabled={form.formState.isSubmitting}>
-									{form.formState.isSubmitting
-										? "Creating…"
-										: "Create campaign"}
-								</Button>
-								<Button
-									type="button"
-									variant="outline"
-									onClick={() => navigate({ to: "/campaigns" })}
-								>
-									Cancel
-								</Button>
-							</div>
-						</form>
-					</Form>
-				</div>
-			</main>
-		</>
+		<Page
+			breadcrumbs={[{ label: "Campaigns", to: "/campaigns" }]}
+			title="New campaign"
+		>
+			<div className="island-shell max-w-lg rounded-2xl p-6">
+				<Form {...form}>
+					<form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+						<FormField
+							control={form.control}
+							name="name"
+							render={({ field }) => (
+								<FormItem>
+									<FormLabel>Name</FormLabel>
+									<FormControl>
+										<Input
+											placeholder="The Lost Mines of Phandelver"
+											{...field}
+										/>
+									</FormControl>
+									<FormMessage />
+								</FormItem>
+							)}
+						/>
+						<FormField
+							control={form.control}
+							name="summary"
+							render={({ field }) => (
+								<FormItem>
+									<FormLabel>Summary</FormLabel>
+									<FormControl>
+										<Textarea
+											placeholder="A short description of the campaign…"
+											rows={3}
+											{...field}
+										/>
+									</FormControl>
+									<FormMessage />
+								</FormItem>
+							)}
+						/>
+						<div className="flex gap-3">
+							<Button type="submit" disabled={form.formState.isSubmitting}>
+								{form.formState.isSubmitting ? "Creating…" : "Create campaign"}
+							</Button>
+							<Button
+								type="button"
+								variant="outline"
+								onClick={() => navigate({ to: "/campaigns" })}
+							>
+								Cancel
+							</Button>
+						</div>
+					</form>
+				</Form>
+			</div>
+		</Page>
 	);
 }

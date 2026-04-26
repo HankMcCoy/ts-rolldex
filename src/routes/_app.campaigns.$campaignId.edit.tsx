@@ -7,7 +7,7 @@ import {
 import { useServerFn } from "@tanstack/react-start";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-import { PageHeader } from "@/components/PageHeader";
+import { Page } from "@/components/Page";
 import { Button } from "@/components/ui/button";
 import {
 	Form,
@@ -60,91 +60,74 @@ function EditCampaignPage() {
 		});
 	}
 
+	const breadcrumbs = [
+		{ label: "Campaigns", to: "/campaigns" },
+		{
+			label: campaign.name,
+			to: "/campaigns/$campaignId",
+			params: { campaignId: campaign.id },
+		},
+	];
+
 	if (accessLevel !== "ADMIN") {
 		return (
-			<>
-				<PageHeader
-					breadcrumbs={[
-						{ label: "Campaigns", to: "/campaigns" },
-						{
-							label: campaign.name,
-							to: "/campaigns/$campaignId",
-							params: { campaignId: campaign.id },
-						},
-					]}
-					title="Edit campaign"
-				/>
-				<main className="page-wrap px-4 pt-5 pb-10">
-					<p>You don't have permission to edit this campaign.</p>
-				</main>
-			</>
+			<Page breadcrumbs={breadcrumbs} title="Edit campaign">
+				<p>You don't have permission to edit this campaign.</p>
+			</Page>
 		);
 	}
 
 	return (
-		<>
-			<PageHeader
-				breadcrumbs={[
-					{ label: "Campaigns", to: "/campaigns" },
-					{
-						label: campaign.name,
-						to: "/campaigns/$campaignId",
-						params: { campaignId: campaign.id },
-					},
-				]}
-				title="Edit campaign"
-			/>
-			<main className="page-wrap px-4 pt-5 pb-10">
-				<div className="island-shell max-w-lg rounded-2xl p-6">
-					<Form {...form}>
-						<form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-							<FormField
-								control={form.control}
-								name="name"
-								render={({ field }) => (
-									<FormItem>
-										<FormLabel>Name</FormLabel>
-										<FormControl>
-											<Input {...field} />
-										</FormControl>
-										<FormMessage />
-									</FormItem>
-								)}
-							/>
-							<FormField
-								control={form.control}
-								name="summary"
-								render={({ field }) => (
-									<FormItem>
-										<FormLabel>Summary</FormLabel>
-										<FormControl>
-											<Textarea rows={3} {...field} />
-										</FormControl>
-										<FormMessage />
-									</FormItem>
-								)}
-							/>
-							<div className="flex gap-3">
-								<Button type="submit" disabled={form.formState.isSubmitting}>
-									{form.formState.isSubmitting ? "Saving…" : "Save changes"}
-								</Button>
-								<Button
-									type="button"
-									variant="outline"
-									onClick={() =>
-										navigate({
-											to: "/campaigns/$campaignId",
-											params: { campaignId: campaign.id },
-										})
-									}
-								>
-									Cancel
-								</Button>
-							</div>
-						</form>
-					</Form>
-				</div>
-			</main>
-		</>
+		<Page breadcrumbs={breadcrumbs} title="Edit campaign">
+			<div className="island-shell max-w-lg rounded-2xl p-6">
+				<Form {...form}>
+					<form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+						<FormField
+							control={form.control}
+							name="name"
+							render={({ field }) => (
+								<FormItem>
+									<FormLabel>Name</FormLabel>
+									<FormControl>
+										<Input {...field} />
+									</FormControl>
+									<FormMessage />
+								</FormItem>
+							)}
+						/>
+						<FormField
+							control={form.control}
+							name="summary"
+							render={({ field }) => (
+								<FormItem>
+									<FormLabel>Summary</FormLabel>
+									<FormControl>
+										<Textarea rows={3} {...field} />
+									</FormControl>
+									<FormMessage />
+								</FormItem>
+							)}
+						/>
+						<div className="flex gap-3">
+							<Button type="submit" disabled={form.formState.isSubmitting}>
+								{form.formState.isSubmitting ? "Saving…" : "Save changes"}
+							</Button>
+							<Button
+								type="button"
+								variant="outline"
+								onClick={() =>
+									navigate({
+										to: "/campaigns/$campaignId",
+										params: { campaignId: campaign.id },
+									})
+								}
+							>
+								Cancel
+							</Button>
+						</div>
+					</form>
+				</Form>
+			</div>
+		</Page>
 	);
 }

@@ -9,7 +9,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { Trash2 } from "lucide-react";
 import { EntityImage } from "@/components/EntityImage";
 import { MarkdownRenderer } from "@/components/MarkdownRenderer";
-import { PageHeader } from "@/components/PageHeader";
+import { Page } from "@/components/Page";
 import { RelatedEntities } from "@/components/RelatedEntities";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -47,91 +47,88 @@ function NounPage() {
 	}
 
 	return (
-		<>
-			<PageHeader
-				breadcrumbs={[
-					{
-						label: campaign.name,
-						to: "/campaigns/$campaignId",
-						params: { campaignId: campaign.id },
-					},
-					{
-						label: `${typeLabel}s`,
-						to: "/campaigns/$campaignId/nouns",
-						params: { campaignId: campaign.id },
-						search: { type: noun.nounType },
-					},
-				]}
-				title={noun.name}
-				actions={
-					isAdmin && (
-						<>
-							<Button variant="outline" size="sm" asChild>
-								<Link
-									to="/campaigns/$campaignId/nouns/$nounId/edit"
-									params={{ campaignId: campaign.id, nounId: noun.id }}
-								>
-									Edit
-								</Link>
-							</Button>
-							<button
-								type="button"
-								onClick={handleDelete}
-								title="Delete entity"
-								aria-label="Delete entity"
-								className="rounded p-1.5 text-white/55 transition hover:text-destructive"
+		<Page
+			breadcrumbs={[
+				{
+					label: campaign.name,
+					to: "/campaigns/$campaignId",
+					params: { campaignId: campaign.id },
+				},
+				{
+					label: `${typeLabel}s`,
+					to: "/campaigns/$campaignId/nouns",
+					params: { campaignId: campaign.id },
+					search: { type: noun.nounType },
+				},
+			]}
+			title={noun.name}
+			actions={
+				isAdmin && (
+					<>
+						<Button variant="outline" size="sm" asChild>
+							<Link
+								to="/campaigns/$campaignId/nouns/$nounId/edit"
+								params={{ campaignId: campaign.id, nounId: noun.id }}
 							>
-								<Trash2 className="size-4" />
-							</button>
-						</>
-					)
-				}
-			/>
-			<main className="page-wrap px-4 pt-5 pb-10">
-				<div className="flex gap-12">
-					<div className="min-w-0 flex-1 space-y-6">
-						{noun.isSecret && <Badge variant="secondary">Secret</Badge>}
+								Edit
+							</Link>
+						</Button>
+						<button
+							type="button"
+							onClick={handleDelete}
+							title="Delete entity"
+							aria-label="Delete entity"
+							className="rounded p-1.5 text-white/55 transition hover:text-destructive"
+						>
+							<Trash2 className="size-4" />
+						</button>
+					</>
+				)
+			}
+		>
+			<div className="flex gap-12">
+				<div className="min-w-0 flex-1 space-y-6">
+					{noun.isSecret && <Badge variant="secondary">Secret</Badge>}
 
-						{noun.summary && (
-							<section>
-								<h2 className="island-kicker mb-3">Summary</h2>
-								<div className="max-w-2xl rounded-2xl border border-[var(--line)] bg-white/90 p-5 text-[var(--sea-ink-soft)] shadow-sm">
-									{noun.summary}
-								</div>
-							</section>
-						)}
+					{noun.summary && (
+						<section>
+							<h2 className="island-kicker mb-3">Summary</h2>
+							<div className="max-w-2xl rounded-2xl border border-[var(--line)] bg-white/90 p-5 text-[var(--sea-ink-soft)] shadow-sm">
+								{noun.summary}
+							</div>
+						</section>
+					)}
 
-						{noun.notes && (
-							<section>
-								<h2 className="island-kicker mb-3">Notes</h2>
-								<div className="max-w-2xl rounded-2xl border border-[var(--line)] bg-white/90 p-5 shadow-sm">
-									<MarkdownRenderer content={noun.notes} />
-								</div>
-							</section>
-						)}
+					{noun.notes && (
+						<section>
+							<h2 className="island-kicker mb-3">Notes</h2>
+							<div className="max-w-2xl rounded-2xl border border-[var(--line)] bg-white/90 p-5 shadow-sm">
+								<MarkdownRenderer content={noun.notes} />
+							</div>
+						</section>
+					)}
 
-						{isAdmin && noun.privateNotes && (
-							<section>
-								<h2 className="island-kicker mb-3">Private notes</h2>
-								<div className="max-w-2xl rounded-2xl border border-[var(--line)] bg-white/90 p-5 shadow-sm">
-									<MarkdownRenderer content={noun.privateNotes} />
-								</div>
-							</section>
-						)}
-					</div>
-
-					<div className="w-44 shrink-0 space-y-6">
-						<EntityImage
-							nounType={noun.nounType}
-							imageUrl={noun.imageUrl}
-							name={noun.name}
-						/>
-						{related.length > 0 && (
-							<RelatedEntities campaignId={campaign.id} related={related} />
-						)}
-					</div>
+					{isAdmin && noun.privateNotes && (
+						<section>
+							<h2 className="island-kicker mb-3">Private notes</h2>
+							<div className="max-w-2xl rounded-2xl border border-[var(--line)] bg-white/90 p-5 shadow-sm">
+								<MarkdownRenderer content={noun.privateNotes} />
+							</div>
+						</section>
+					)}
 				</div>
-			</main>
-		</>
+
+				<div className="w-44 shrink-0 space-y-6">
+					<EntityImage
+						nounType={noun.nounType}
+						imageUrl={noun.imageUrl}
+						name={noun.name}
+					/>
+					{related.length > 0 && (
+						<RelatedEntities campaignId={campaign.id} related={related} />
+					)}
+				</div>
+			</div>
+		</Page>
 	);
 }
