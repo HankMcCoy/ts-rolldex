@@ -108,8 +108,8 @@ export function QuickFindDialog({ campaignId }: Props) {
 										name={n.name}
 										className="size-6 rounded-md"
 									/>
-									<span>{n.name}</span>
-									<span className="ml-auto text-xs text-muted-foreground">
+									<span className="flex-1 truncate">{n.name}</span>
+									<span className="text-xs text-muted-foreground">
 										{NOUN_TYPE_LABELS[n.nounType]}
 									</span>
 								</CommandItem>
