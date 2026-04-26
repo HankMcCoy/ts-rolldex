@@ -35,7 +35,7 @@ const parentRoute = getRouteApi("/_app/campaigns/$campaignId");
 
 const schema = z.object({
 	name: z.string().min(1, "Name is required").max(200),
-	summary: z.string(),
+	summary: z.string().min(1, "Summary is required").max(5_000),
 	notes: z.string(),
 	privateNotes: z.string(),
 	isSecret: z.boolean(),

@@ -75,7 +75,7 @@ export const createSession = createServerFn({ method: "POST" })
 		z.object({
 			campaignId: z.string(),
 			name: z.string().min(1).max(200),
-			summary: z.string().max(5_000),
+			summary: z.string().min(1).max(5_000),
 			notes: z.string().max(50_000),
 			privateNotes: z.string().max(50_000),
 			isSecret: z.boolean(),
@@ -126,7 +126,7 @@ export const updateSession = createServerFn({ method: "POST" })
 			campaignId: z.string(),
 			sessionId: z.string(),
 			name: z.string().min(1).max(200),
-			summary: z.string().max(5_000),
+			summary: z.string().min(1).max(5_000),
 			notes: z.string().max(50_000),
 			privateNotes: z.string().max(50_000),
 			isSecret: z.boolean(),
