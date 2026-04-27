@@ -4,7 +4,6 @@ import { EntityAvatar } from "@/components/EntityAvatar";
 import { Page } from "@/components/Page";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
 import { NOUN_TYPE_LABELS, NOUN_TYPES } from "@/lib/noun-types";
 import { getCampaignDashboard } from "@/server/campaigns";
 
@@ -60,67 +59,128 @@ function CampaignDashboard() {
 				</p>
 			)}
 
-			<div className="mb-8 grid gap-8 lg:grid-cols-2">
-				{/* Sessions section */}
-				<section>
-					<div className="mb-3 flex items-center justify-between">
-						<h2 className="island-kicker">Sessions</h2>
-						<div className="flex gap-2">
-							<Button variant="outline" size="sm" asChild>
-								<Link
-									to="/campaigns/$campaignId/sessions"
-									params={{ campaignId: campaign.id }}
-								>
-									All sessions
-								</Link>
-							</Button>
-							{isAdmin && (
-								<Button size="sm" asChild>
+			<div className="grid gap-8 lg:grid-cols-2">
+				<div className="space-y-8">
+					{/* Sessions section */}
+					<section>
+						<div className="mb-3 flex items-center justify-between">
+							<h2 className="island-kicker">Sessions</h2>
+							<div className="flex gap-2">
+								<Button variant="outline" size="sm" asChild>
 									<Link
-										to="/campaigns/$campaignId/sessions/new"
+										to="/campaigns/$campaignId/sessions"
 										params={{ campaignId: campaign.id }}
 									>
-										+ Session
+										All sessions
 									</Link>
 								</Button>
-							)}
+								{isAdmin && (
+									<Button size="sm" asChild>
+										<Link
+											to="/campaigns/$campaignId/sessions/new"
+											params={{ campaignId: campaign.id }}
+										>
+											+ Session
+										</Link>
+									</Button>
+								)}
+							</div>
 						</div>
-					</div>
 
-					{recentSessions.length === 0 ? (
-						<p className="text-sm text-[var(--sea-ink-soft)]">
-							No sessions yet.
-						</p>
-					) : (
-						<ul className="space-y-2">
-							{recentSessions.map((s) => (
-								<li key={s.id}>
+						{recentSessions.length === 0 ? (
+							<p className="text-sm text-[var(--sea-ink-soft)]">
+								No sessions yet.
+							</p>
+						) : (
+							<ul className="space-y-2">
+								{recentSessions.map((s) => (
+									<li key={s.id}>
+										<Link
+											to="/campaigns/$campaignId/sessions/$sessionId"
+											params={{ campaignId: campaign.id, sessionId: s.id }}
+											className="island-shell flex items-center gap-4 rounded-xl p-4 no-underline transition hover:-translate-y-0.5"
+										>
+											<EntityAvatar
+												entityType="SESSION"
+												imageUrl={null}
+												name={s.name}
+											/>
+											<div className="min-w-0 flex-1">
+												<div className="font-medium">{s.name}</div>
+												{s.summary && (
+													<div className="mt-1 line-clamp-1 text-sm text-[var(--sea-ink-soft)]">
+														{s.summary}
+													</div>
+												)}
+											</div>
+										</Link>
+									</li>
+								))}
+							</ul>
+						)}
+					</section>
+
+					{/* Maps section */}
+					<section>
+						<div className="mb-3 flex items-center justify-between">
+							<h2 className="island-kicker">Maps</h2>
+							<div className="flex gap-2">
+								<Button variant="outline" size="sm" asChild>
 									<Link
-										to="/campaigns/$campaignId/sessions/$sessionId"
-										params={{ campaignId: campaign.id, sessionId: s.id }}
-										className="island-shell flex items-center gap-4 rounded-xl p-4 no-underline transition hover:-translate-y-0.5"
+										to="/campaigns/$campaignId/maps"
+										params={{ campaignId: campaign.id }}
 									>
-										<EntityAvatar
-											entityType="SESSION"
-											imageUrl={null}
-											name={s.name}
-										/>
-										<div className="min-w-0 flex-1">
-											<div className="font-medium">{s.name}</div>
-											{s.summary && (
-												<div className="mt-1 line-clamp-1 text-sm text-[var(--sea-ink-soft)]">
-													{s.summary}
-												</div>
-											)}
-										</div>
+										All maps
 									</Link>
-								</li>
-							))}
-						</ul>
-					)}
-				</section>
+								</Button>
+								{isAdmin && (
+									<Button size="sm" asChild>
+										<Link
+											to="/campaigns/$campaignId/maps/new"
+											params={{ campaignId: campaign.id }}
+										>
+											+ Map
+										</Link>
+									</Button>
+								)}
+							</div>
+						</div>
 
-				<div className="space-y-8">
+						{maps.length === 0 ? (
+							<p className="text-sm text-[var(--sea-ink-soft)]">No maps yet.</p>
+						) : (
+							<ul className="space-y-2">
+								{maps.map((m) => (
+									<li key={m.id}>
+										<Link
+											to="/campaigns/$campaignId/maps/$mapId"
+											params={{ campaignId: campaign.id, mapId: m.id }}
+											className="island-shell flex items-center gap-4 rounded-xl p-3 no-underline transition hover:-translate-y-0.5"
+										>
+											<div className="flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-[var(--line)] bg-white/90">
+												{m.imageUrl ? (
+													<img
+														src={m.imageUrl}
+														alt=""
+														className="h-full w-full object-cover"
+													/>
+												) : (
+													<MapIcon className="size-5 text-[var(--sea-ink-soft)]" />
+												)}
+											</div>
+											<div className="flex min-w-0 flex-1 items-center justify-between gap-2">
+												<span className="font-medium">{m.name}</span>
+												{m.isSecret && (
+													<Badge variant="secondary">Secret</Badge>
+												)}
+											</div>
+										</Link>
+									</li>
+								))}
+							</ul>
+						)}
+					</section>
+
 					{timelinePreview.length > 0 && (
 						<section>
 							<div className="mb-3 flex items-center justify-between">
@@ -233,148 +293,87 @@ function CampaignDashboard() {
 							})}
 						</ul>
 					</section>
+				</div>
 
-					{/* Maps section */}
-					<section>
-						<div className="mb-3 flex items-center justify-between">
-							<h2 className="island-kicker">Maps</h2>
-							<div className="flex gap-2">
-								<Button variant="outline" size="sm" asChild>
-									<Link
-										to="/campaigns/$campaignId/maps"
-										params={{ campaignId: campaign.id }}
-									>
-										All maps
-									</Link>
-								</Button>
-								{isAdmin && (
-									<Button size="sm" asChild>
-										<Link
-											to="/campaigns/$campaignId/maps/new"
-											params={{ campaignId: campaign.id }}
-										>
-											+ Map
-										</Link>
-									</Button>
-								)}
-							</div>
-						</div>
-
-						{maps.length === 0 ? (
-							<p className="text-sm text-[var(--sea-ink-soft)]">No maps yet.</p>
-						) : (
-							<ul className="space-y-2">
-								{maps.map((m) => (
-									<li key={m.id}>
-										<Link
-											to="/campaigns/$campaignId/maps/$mapId"
-											params={{ campaignId: campaign.id, mapId: m.id }}
-											className="island-shell flex items-center gap-4 rounded-xl p-3 no-underline transition hover:-translate-y-0.5"
-										>
-											<div className="flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-[var(--line)] bg-white/90">
-												{m.imageUrl ? (
-													<img
-														src={m.imageUrl}
-														alt=""
-														className="h-full w-full object-cover"
-													/>
-												) : (
-													<MapIcon className="size-5 text-[var(--sea-ink-soft)]" />
-												)}
-											</div>
-											<div className="flex min-w-0 flex-1 items-center justify-between gap-2">
-												<span className="font-medium">{m.name}</span>
-												{m.isSecret && (
-													<Badge variant="secondary">Secret</Badge>
-												)}
-											</div>
-										</Link>
-									</li>
-								))}
-							</ul>
+				{/* Entities section */}
+				<section>
+					<div className="mb-3 flex items-center justify-between">
+						<h2 className="island-kicker">Entities</h2>
+						{isAdmin && (
+							<Button size="sm" asChild>
+								<Link
+									to="/campaigns/$campaignId/nouns/new"
+									params={{ campaignId: campaign.id }}
+								>
+									+ Add
+								</Link>
+							</Button>
 						)}
-					</section>
-				</div>
-			</div>
+					</div>
 
-			<Separator className="mb-8" />
-
-			{/* Entities section */}
-			<section>
-				<div className="mb-3 flex items-center justify-between">
-					<h2 className="island-kicker">Entities</h2>
-					{isAdmin && (
-						<Button size="sm" asChild>
-							<Link
-								to="/campaigns/$campaignId/nouns/new"
-								params={{ campaignId: campaign.id }}
-							>
-								+ Add
-							</Link>
-						</Button>
-					)}
-				</div>
-
-				<div className="mb-4 flex flex-wrap gap-2">
-					<Button variant="outline" size="sm" asChild>
-						<Link
-							to="/campaigns/$campaignId/nouns"
-							params={{ campaignId: campaign.id }}
-						>
-							All
-						</Link>
-					</Button>
-					{NOUN_TYPES.map((t) => (
-						<Button key={t} variant="outline" size="sm" asChild>
+					<div className="mb-4 flex flex-wrap gap-2">
+						<Button variant="outline" size="sm" asChild>
 							<Link
 								to="/campaigns/$campaignId/nouns"
 								params={{ campaignId: campaign.id }}
-								search={{ type: t }}
 							>
-								{NOUN_TYPE_LABELS[t]}s
+								All
 							</Link>
 						</Button>
-					))}
-				</div>
-
-				{entities.length === 0 ? (
-					<p className="text-sm text-[var(--sea-ink-soft)]">
-						Nothing here yet.
-					</p>
-				) : (
-					<ul className="space-y-2">
-						{entities.map((noun) => (
-							<li key={noun.id}>
+						{NOUN_TYPES.map((t) => (
+							<Button key={t} variant="outline" size="sm" asChild>
 								<Link
-									to="/campaigns/$campaignId/nouns/$nounId"
-									params={{ campaignId: campaign.id, nounId: noun.id }}
-									className="island-shell flex items-center gap-4 rounded-xl p-4 no-underline transition hover:-translate-y-0.5"
+									to="/campaigns/$campaignId/nouns"
+									params={{ campaignId: campaign.id }}
+									search={{ type: t }}
 								>
-									<EntityAvatar
-										entityType={noun.nounType}
-										imageUrl={noun.imageUrl}
-										name={noun.name}
-									/>
-									<div className="min-w-0 flex-1">
-										<span className="font-medium">{noun.name}</span>
-										{noun.summary && (
-											<p className="mt-0.5 text-sm text-[var(--sea-ink-soft)] line-clamp-1">
-												{noun.summary}
-											</p>
-										)}
-									</div>
-									<div className="flex shrink-0 items-center gap-2">
-										{noun.isSecret && <Badge variant="secondary">Secret</Badge>}
-										<Badge variant="outline">
-											{NOUN_TYPE_LABELS[noun.nounType]}
-										</Badge>
-									</div>
+									{NOUN_TYPE_LABELS[t]}s
 								</Link>
-							</li>
+							</Button>
 						))}
-					</ul>
-				)}
-			</section>
+					</div>
+
+					{entities.length === 0 ? (
+						<p className="text-sm text-[var(--sea-ink-soft)]">
+							Nothing here yet.
+						</p>
+					) : (
+						<ul className="space-y-2">
+							{entities.map((noun) => (
+								<li key={noun.id}>
+									<Link
+										to="/campaigns/$campaignId/nouns/$nounId"
+										params={{ campaignId: campaign.id, nounId: noun.id }}
+										className="island-shell flex items-center gap-4 rounded-xl p-4 no-underline transition hover:-translate-y-0.5"
+									>
+										<EntityAvatar
+											entityType={noun.nounType}
+											imageUrl={noun.imageUrl}
+											name={noun.name}
+										/>
+										<div className="min-w-0 flex-1">
+											<span className="font-medium">{noun.name}</span>
+											{noun.summary && (
+												<p className="mt-0.5 text-sm text-[var(--sea-ink-soft)] line-clamp-1">
+													{noun.summary}
+												</p>
+											)}
+										</div>
+										<div className="flex shrink-0 items-center gap-2">
+											{noun.isSecret && (
+												<Badge variant="secondary">Secret</Badge>
+											)}
+											<Badge variant="outline">
+												{NOUN_TYPE_LABELS[noun.nounType]}
+											</Badge>
+										</div>
+									</Link>
+								</li>
+							))}
+						</ul>
+					)}
+				</section>
+			</div>
 		</Page>
 	);
 }
