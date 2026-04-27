@@ -60,6 +60,34 @@ export function formatDate(d: CampaignDate, c: Calendar): string {
 	return `${d.year} ${monthName} ${d.day}`;
 }
 
+/**
+ * Renders a start/end pair, collapsing the redundant parts when start and end
+ * share a year and/or month. Returns just `formatDate(start)` when end is absent
+ * or equal to start.
+ */
+export function formatDateRange(
+	start: CampaignDate,
+	end: CampaignDate | null,
+	c: Calendar,
+): string {
+	if (!end) return formatDate(start, c);
+	if (
+		start.year === end.year &&
+		start.monthIndex === end.monthIndex &&
+		start.day === end.day
+	) {
+		return formatDate(start, c);
+	}
+	const startText = formatDate(start, c);
+	if (start.year !== end.year) return `${startText} – ${formatDate(end, c)}`;
+	const endMonth = c.months[end.monthIndex];
+	const endMonthName = endMonth?.name ?? `Month ${end.monthIndex + 1}`;
+	if (start.monthIndex !== end.monthIndex) {
+		return `${startText} – ${endMonthName} ${end.day}`;
+	}
+	return `${startText}–${end.day}`;
+}
+
 export type DateValidation =
 	| { ok: true }
 	| { ok: false; field: "year" | "month" | "day"; error: string };

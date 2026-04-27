@@ -63,6 +63,9 @@ export const nouns = pgTable(
 		dateYear: integer("date_year"),
 		dateMonth: integer("date_month"),
 		dateDay: integer("date_day"),
+		endDateYear: integer("end_date_year"),
+		endDateMonth: integer("end_date_month"),
+		endDateDay: integer("end_date_day"),
 		createdAt: timestamp("created_at").notNull().defaultNow(),
 		updatedAt: timestamp("updated_at").notNull().defaultNow(),
 	},
@@ -71,6 +74,14 @@ export const nouns = pgTable(
 		check(
 			"nouns_date_all_or_none",
 			sql`(${t.dateYear} IS NULL) = (${t.dateMonth} IS NULL) AND (${t.dateYear} IS NULL) = (${t.dateDay} IS NULL)`,
+		),
+		check(
+			"nouns_end_date_all_or_none",
+			sql`(${t.endDateYear} IS NULL) = (${t.endDateMonth} IS NULL) AND (${t.endDateYear} IS NULL) = (${t.endDateDay} IS NULL)`,
+		),
+		check(
+			"nouns_end_date_requires_start",
+			sql`${t.endDateYear} IS NULL OR ${t.dateYear} IS NOT NULL`,
 		),
 	],
 );
@@ -90,6 +101,9 @@ export const gameSessions = pgTable(
 		dateYear: integer("date_year"),
 		dateMonth: integer("date_month"),
 		dateDay: integer("date_day"),
+		endDateYear: integer("end_date_year"),
+		endDateMonth: integer("end_date_month"),
+		endDateDay: integer("end_date_day"),
 		createdAt: timestamp("created_at").notNull().defaultNow(),
 		updatedAt: timestamp("updated_at").notNull().defaultNow(),
 	},
@@ -98,6 +112,14 @@ export const gameSessions = pgTable(
 		check(
 			"game_sessions_date_all_or_none",
 			sql`(${t.dateYear} IS NULL) = (${t.dateMonth} IS NULL) AND (${t.dateYear} IS NULL) = (${t.dateDay} IS NULL)`,
+		),
+		check(
+			"game_sessions_end_date_all_or_none",
+			sql`(${t.endDateYear} IS NULL) = (${t.endDateMonth} IS NULL) AND (${t.endDateYear} IS NULL) = (${t.endDateDay} IS NULL)`,
+		),
+		check(
+			"game_sessions_end_date_requires_start",
+			sql`${t.endDateYear} IS NULL OR ${t.dateYear} IS NOT NULL`,
 		),
 	],
 );

@@ -50,6 +50,13 @@
       "when": 1777225550287,
       "tag": "0006_massive_deathbird",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1777269648985,
+      "tag": "0007_clever_jack_power",
+      "breakpoints": true
     }
   ]
 }

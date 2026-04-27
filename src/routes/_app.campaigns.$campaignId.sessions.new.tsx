@@ -43,6 +43,9 @@ const schema = z
 		dateYear: z.number().int().optional(),
 		dateMonth: z.number().int().optional(),
 		dateDay: z.number().int().optional(),
+		endDateYear: z.number().int().optional(),
+		endDateMonth: z.number().int().optional(),
+		endDateDay: z.number().int().optional(),
 	})
 	.refine(
 		(d) => {
@@ -54,6 +57,18 @@ const schema = z
 		{
 			message: "Year, month, and day must be set together",
 			path: ["dateDay"],
+		},
+	)
+	.refine(
+		(d) => {
+			const present = [d.endDateYear, d.endDateMonth, d.endDateDay].filter(
+				(v) => v !== undefined,
+			).length;
+			return present === 0 || present === 3;
+		},
+		{
+			message: "End year, month, and day must be set together",
+			path: ["endDateDay"],
 		},
 	);
 type Values = z.infer<typeof schema>;
@@ -74,6 +89,9 @@ function NewSessionPage() {
 			dateYear: undefined,
 			dateMonth: undefined,
 			dateDay: undefined,
+			endDateYear: undefined,
+			endDateMonth: undefined,
+			endDateDay: undefined,
 		},
 	});
 

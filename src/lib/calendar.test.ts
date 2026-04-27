@@ -5,6 +5,7 @@ import {
 	daysPerYear,
 	EARTH_GREGORIAN_CALENDAR,
 	formatDate,
+	formatDateRange,
 	toAbsoluteDay,
 	validateDateAgainstCalendar,
 } from "@/lib/calendar";
@@ -90,6 +91,58 @@ describe("formatDate", () => {
 		expect(
 			formatDate({ year: 1, monthIndex: 99, day: 1 }, FANTASY_CALENDAR),
 		).toBe("1 Month 100 1");
+	});
+});
+
+describe("formatDateRange", () => {
+	it("renders a single date when end is null", () => {
+		expect(
+			formatDateRange(
+				{ year: 1492, monthIndex: 0, day: 15 },
+				null,
+				FANTASY_CALENDAR,
+			),
+		).toBe("1492 Hammer 15");
+	});
+
+	it("renders a single date when end equals start", () => {
+		expect(
+			formatDateRange(
+				{ year: 1492, monthIndex: 0, day: 15 },
+				{ year: 1492, monthIndex: 0, day: 15 },
+				FANTASY_CALENDAR,
+			),
+		).toBe("1492 Hammer 15");
+	});
+
+	it("collapses to a day range within one month", () => {
+		expect(
+			formatDateRange(
+				{ year: 1492, monthIndex: 0, day: 15 },
+				{ year: 1492, monthIndex: 0, day: 18 },
+				FANTASY_CALENDAR,
+			),
+		).toBe("1492 Hammer 15–18");
+	});
+
+	it("includes the end month when months differ", () => {
+		expect(
+			formatDateRange(
+				{ year: 1492, monthIndex: 0, day: 28 },
+				{ year: 1492, monthIndex: 1, day: 3 },
+				FANTASY_CALENDAR,
+			),
+		).toBe("1492 Hammer 28 – Alturiak 3");
+	});
+
+	it("renders both full dates when years differ", () => {
+		expect(
+			formatDateRange(
+				{ year: 1492, monthIndex: 2, day: 28 },
+				{ year: 1493, monthIndex: 0, day: 5 },
+				FANTASY_CALENDAR,
+			),
+		).toBe("1492 Mirtul 28 – 1493 Hammer 5");
 	});
 });
 

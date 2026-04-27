@@ -8,6 +8,7 @@ import { requireCampaignAccess, requireSession } from "@/lib/access";
 import {
 	type Calendar,
 	EARTH_GREGORIAN_CALENDAR,
+	toAbsoluteDay,
 	validateDateAgainstCalendar,
 } from "@/lib/calendar";
 import { isUniqueViolation } from "@/lib/db-errors";
@@ -26,6 +27,9 @@ const dateInputSchema = z
 		dateYear: z.number().int().optional(),
 		dateMonth: z.number().int().optional(),
 		dateDay: z.number().int().optional(),
+		endDateYear: z.number().int().optional(),
+		endDateMonth: z.number().int().optional(),
+		endDateDay: z.number().int().optional(),
 	})
 	.refine(
 		(d) => {
@@ -35,52 +39,108 @@ const dateInputSchema = z
 			return present === 0 || present === 3;
 		},
 		{ message: "Year, month, and day must be set together" },
+	)
+	.refine(
+		(d) => {
+			const present = [d.endDateYear, d.endDateMonth, d.endDateDay].filter(
+				(v) => v !== undefined,
+			).length;
+			return present === 0 || present === 3;
+		},
+		{ message: "End year, month, and day must be set together" },
+	)
+	.refine(
+		(d) => {
+			const hasEnd =
+				d.endDateYear !== undefined ||
+				d.endDateMonth !== undefined ||
+				d.endDateDay !== undefined;
+			if (!hasEnd) return true;
+			return (
+				d.dateYear !== undefined &&
+				d.dateMonth !== undefined &&
+				d.dateDay !== undefined
+			);
+		},
+		{ message: "End date requires a start date" },
 	);
 
 type DateInput = z.infer<typeof dateInputSchema>;
+
+interface ResolvedDateColumns {
+	dateYear: number | null;
+	dateMonth: number | null;
+	dateDay: number | null;
+	endDateYear: number | null;
+	endDateMonth: number | null;
+	endDateDay: number | null;
+}
 
 async function resolveDateColumns(
 	campaignId: string,
 	input: DateInput,
 ): Promise<
-	| {
-			ok: true;
-			cols: {
-				dateYear: number | null;
-				dateMonth: number | null;
-				dateDay: number | null;
-			};
-	  }
-	| { ok: false; error: string }
+	{ ok: true; cols: ResolvedDateColumns } | { ok: false; error: string }
 > {
+	const empty: ResolvedDateColumns = {
+		dateYear: null,
+		dateMonth: null,
+		dateDay: null,
+		endDateYear: null,
+		endDateMonth: null,
+		endDateDay: null,
+	};
 	if (
 		input.dateYear === undefined ||
 		input.dateMonth === undefined ||
 		input.dateDay === undefined
 	) {
-		return {
-			ok: true,
-			cols: { dateYear: null, dateMonth: null, dateDay: null },
-		};
+		return { ok: true, cols: empty };
 	}
 	const row = await db.query.campaigns.findFirst({
 		where: eq(campaigns.id, campaignId),
 		columns: { calendar: true },
 	});
 	const calendar: Calendar = row?.calendar ?? EARTH_GREGORIAN_CALENDAR;
-	const v = validateDateAgainstCalendar(
-		{ year: input.dateYear, monthIndex: input.dateMonth, day: input.dateDay },
-		calendar,
-	);
-	if (!v.ok) return { ok: false, error: v.error };
-	return {
-		ok: true,
-		cols: {
-			dateYear: input.dateYear,
-			dateMonth: input.dateMonth,
-			dateDay: input.dateDay,
-		},
+	const start = {
+		year: input.dateYear,
+		monthIndex: input.dateMonth,
+		day: input.dateDay,
 	};
+	const v = validateDateAgainstCalendar(start, calendar);
+	if (!v.ok) return { ok: false, error: v.error };
+
+	const cols: ResolvedDateColumns = {
+		...empty,
+		dateYear: input.dateYear,
+		dateMonth: input.dateMonth,
+		dateDay: input.dateDay,
+	};
+
+	if (
+		input.endDateYear !== undefined &&
+		input.endDateMonth !== undefined &&
+		input.endDateDay !== undefined
+	) {
+		const end = {
+			year: input.endDateYear,
+			monthIndex: input.endDateMonth,
+			day: input.endDateDay,
+		};
+		const ev = validateDateAgainstCalendar(end, calendar);
+		if (!ev.ok) return { ok: false, error: `End date: ${ev.error}` };
+		if (toAbsoluteDay(end, calendar) < toAbsoluteDay(start, calendar)) {
+			return {
+				ok: false,
+				error: "End date must be on or after the start date",
+			};
+		}
+		cols.endDateYear = input.endDateYear;
+		cols.endDateMonth = input.endDateMonth;
+		cols.endDateDay = input.endDateDay;
+	}
+
+	return { ok: true, cols };
 }
 
 const ALLOWED_IMAGE_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);

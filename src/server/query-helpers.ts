@@ -12,7 +12,7 @@ import type { AccessLevel } from "@/lib/access";
 import {
 	type Calendar,
 	EARTH_GREGORIAN_CALENDAR,
-	formatDate,
+	formatDateRange,
 	toAbsoluteDay,
 } from "@/lib/calendar";
 import type { NounType } from "@/lib/noun-types";
@@ -194,6 +194,9 @@ export async function loadTimelineEntries(
 				dateYear: true,
 				dateMonth: true,
 				dateDay: true,
+				endDateYear: true,
+				endDateMonth: true,
+				endDateDay: true,
 			},
 		}),
 		db.query.gameSessions.findMany({
@@ -210,11 +213,33 @@ export async function loadTimelineEntries(
 				dateYear: true,
 				dateMonth: true,
 				dateDay: true,
+				endDateYear: true,
+				endDateMonth: true,
+				endDateDay: true,
 			},
 		}),
 	]);
 
 	const calendar: Calendar = campaignRow?.calendar ?? EARTH_GREGORIAN_CALENDAR;
+
+	function endDate(row: {
+		endDateYear: number | null;
+		endDateMonth: number | null;
+		endDateDay: number | null;
+	}) {
+		if (
+			row.endDateYear === null ||
+			row.endDateMonth === null ||
+			row.endDateDay === null
+		) {
+			return null;
+		}
+		return {
+			year: row.endDateYear,
+			monthIndex: row.endDateMonth,
+			day: row.endDateDay,
+		};
+	}
 
 	const entries: TimelineEntry[] = [
 		...eventNouns.map((n) => {
@@ -229,7 +254,7 @@ export async function loadTimelineEntries(
 				name: n.name,
 				summary: n.summary,
 				date,
-				dateText: formatDate(date, calendar),
+				dateText: formatDateRange(date, endDate(n), calendar),
 				isSecret: n.isSecret,
 				nounType: n.nounType as NounType,
 				imageUrl: n.imageKey ? publicUrlFor(n.imageKey) : null,
@@ -247,7 +272,7 @@ export async function loadTimelineEntries(
 				name: s.name,
 				summary: s.summary,
 				date,
-				dateText: formatDate(date, calendar),
+				dateText: formatDateRange(date, endDate(s), calendar),
 				isSecret: s.isSecret,
 				nounType: null,
 				imageUrl: null,
