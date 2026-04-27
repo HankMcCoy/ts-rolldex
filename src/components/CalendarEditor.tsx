@@ -1,5 +1,5 @@
 import { useServerFn } from "@tanstack/react-start";
-import { Plus } from "lucide-react";
+import { Plus, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -34,6 +34,10 @@ export function CalendarEditor({ campaignId, initial, onSaved }: Props) {
 
 	function addMonth() {
 		setRows((r) => [...r, { name: "", days: "30" }]);
+	}
+
+	function removeMonth(i: number) {
+		setRows((r) => r.filter((_, idx) => idx !== i));
 	}
 
 	async function onSave() {
@@ -83,7 +87,7 @@ export function CalendarEditor({ campaignId, initial, onSaved }: Props) {
 					<div
 						// biome-ignore lint/suspicious/noArrayIndexKey: row identity is its position
 						key={i}
-						className="grid grid-cols-[1fr_120px] gap-3"
+						className="grid grid-cols-[1fr_120px_auto] gap-3"
 					>
 						<div>
 							{i === 0 && <Label className="mb-1 block">Month name</Label>}
@@ -102,6 +106,19 @@ export function CalendarEditor({ campaignId, initial, onSaved }: Props) {
 								value={row.days}
 								onChange={(e) => update(i, { days: e.target.value })}
 							/>
+						</div>
+						<div className="flex items-end">
+							<Button
+								type="button"
+								variant="ghost"
+								size="icon-sm"
+								onClick={() => removeMonth(i)}
+								disabled={busy || rows.length <= 1}
+								aria-label={`Remove ${row.name.trim() || `month ${i + 1}`}`}
+								title="Remove month"
+							>
+								<Trash2 className="size-4" />
+							</Button>
 						</div>
 					</div>
 				))}
