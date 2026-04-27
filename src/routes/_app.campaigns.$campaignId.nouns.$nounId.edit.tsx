@@ -51,16 +51,30 @@ export const Route = createFileRoute(
 const parentRoute = getRouteApi("/_app/campaigns/$campaignId");
 const nounRoute = getRouteApi("/_app/campaigns/$campaignId/nouns/$nounId");
 
-const schema = z.object({
-	name: z.string().min(1, "Name is required").max(200),
-	nounType: nounTypeSchema,
-	summary: z.string().min(1, "Summary is required").max(5_000),
-	notes: z.string(),
-	privateNotes: z.string(),
-	isSecret: z.boolean(),
-	dateLabel: z.string().max(200).optional(),
-	dateSort: z.string().max(200).optional(),
-});
+const schema = z
+	.object({
+		name: z.string().min(1, "Name is required").max(200),
+		nounType: nounTypeSchema,
+		summary: z.string().min(1, "Summary is required").max(5_000),
+		notes: z.string(),
+		privateNotes: z.string(),
+		isSecret: z.boolean(),
+		dateYear: z.number().int().optional(),
+		dateMonth: z.number().int().optional(),
+		dateDay: z.number().int().optional(),
+	})
+	.refine(
+		(d) => {
+			const present = [d.dateYear, d.dateMonth, d.dateDay].filter(
+				(v) => v !== undefined,
+			).length;
+			return present === 0 || present === 3;
+		},
+		{
+			message: "Year, month, and day must be set together",
+			path: ["dateDay"],
+		},
+	);
 type Values = z.infer<typeof schema>;
 
 function EditNounPage() {
@@ -86,8 +100,9 @@ function EditNounPage() {
 			notes: noun.notes,
 			privateNotes: noun.privateNotes,
 			isSecret: noun.isSecret,
-			dateLabel: noun.dateLabel ?? "",
-			dateSort: noun.dateSort ?? "",
+			dateYear: noun.dateYear ?? undefined,
+			dateMonth: noun.dateMonth ?? undefined,
+			dateDay: noun.dateDay ?? undefined,
 		},
 	});
 
@@ -275,7 +290,7 @@ function EditNounPage() {
 							</div>
 						</div>
 						{form.watch("nounType") === "EVENT" && (
-							<EventDateFields form={form} />
+							<EventDateFields form={form} calendar={campaign.calendar} />
 						)}
 						<FormField
 							control={form.control}

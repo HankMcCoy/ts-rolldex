@@ -1,8 +1,20 @@
-import { and, asc, eq, isNotNull } from "drizzle-orm";
+import { and, eq, isNotNull } from "drizzle-orm";
 import type { AnyPgColumn } from "drizzle-orm/pg-core";
 import { db } from "@/db/index";
-import { gameSessions, mapPins, maps, nouns } from "@/db/schema/index";
+import {
+	campaigns,
+	gameSessions,
+	mapPins,
+	maps,
+	nouns,
+} from "@/db/schema/index";
 import type { AccessLevel } from "@/lib/access";
+import {
+	type Calendar,
+	EARTH_GREGORIAN_CALENDAR,
+	formatDate,
+	toAbsoluteDay,
+} from "@/lib/calendar";
 import type { NounType } from "@/lib/noun-types";
 import type { CandidateEntity } from "@/lib/relationships";
 import { publicUrlFor } from "@/lib/storage";
@@ -144,8 +156,8 @@ export interface TimelineEntry {
 	id: string;
 	name: string;
 	summary: string;
-	dateLabel: string | null;
-	dateSort: string;
+	date: { year: number; monthIndex: number; day: number };
+	dateText: string;
 	isSecret: boolean;
 	nounType: NounType | null;
 	imageUrl: string | null;
@@ -153,21 +165,25 @@ export interface TimelineEntry {
 
 /**
  * Loads dated nouns and sessions for a campaign and merges them into a single
- * lex-sorted timeline. Pass a `limit` to slice the result for previews.
+ * timeline ordered by an absolute-day key computed from the campaign's calendar.
+ * Pass a `limit` to slice the result for previews.
  */
 export async function loadTimelineEntries(
 	campaignId: string,
 	accessLevel: AccessLevel,
 	limit?: number,
 ): Promise<TimelineEntry[]> {
-	const [eventNouns, datedSessions] = await Promise.all([
+	const [campaignRow, eventNouns, datedSessions] = await Promise.all([
+		db.query.campaigns.findFirst({
+			where: eq(campaigns.id, campaignId),
+			columns: { calendar: true },
+		}),
 		db.query.nouns.findMany({
 			where: and(
 				eq(nouns.campaignId, campaignId),
-				isNotNull(nouns.dateSort),
+				isNotNull(nouns.dateYear),
 				visibilityFilter(nouns.isSecret, accessLevel),
 			),
-			orderBy: [asc(nouns.dateSort)],
 			columns: {
 				id: true,
 				name: true,
@@ -175,58 +191,74 @@ export async function loadTimelineEntries(
 				summary: true,
 				isSecret: true,
 				imageKey: true,
-				dateLabel: true,
-				dateSort: true,
+				dateYear: true,
+				dateMonth: true,
+				dateDay: true,
 			},
-			limit,
 		}),
 		db.query.gameSessions.findMany({
 			where: and(
 				eq(gameSessions.campaignId, campaignId),
-				isNotNull(gameSessions.dateSort),
+				isNotNull(gameSessions.dateYear),
 				visibilityFilter(gameSessions.isSecret, accessLevel),
 			),
-			orderBy: [asc(gameSessions.dateSort)],
 			columns: {
 				id: true,
 				name: true,
 				summary: true,
 				isSecret: true,
-				dateLabel: true,
-				dateSort: true,
+				dateYear: true,
+				dateMonth: true,
+				dateDay: true,
 			},
-			limit,
 		}),
 	]);
 
+	const calendar: Calendar = campaignRow?.calendar ?? EARTH_GREGORIAN_CALENDAR;
+
 	const entries: TimelineEntry[] = [
-		...eventNouns.map((n) => ({
-			kind: "noun" as const,
-			id: n.id,
-			name: n.name,
-			summary: n.summary,
-			dateLabel: n.dateLabel,
-			dateSort: n.dateSort as string,
-			isSecret: n.isSecret,
-			nounType: n.nounType as NounType,
-			imageUrl: n.imageKey ? publicUrlFor(n.imageKey) : null,
-		})),
-		...datedSessions.map((s) => ({
-			kind: "session" as const,
-			id: s.id,
-			name: s.name,
-			summary: s.summary,
-			dateLabel: s.dateLabel,
-			dateSort: s.dateSort as string,
-			isSecret: s.isSecret,
-			nounType: null,
-			imageUrl: null,
-		})),
+		...eventNouns.map((n) => {
+			const date = {
+				year: n.dateYear as number,
+				monthIndex: n.dateMonth as number,
+				day: n.dateDay as number,
+			};
+			return {
+				kind: "noun" as const,
+				id: n.id,
+				name: n.name,
+				summary: n.summary,
+				date,
+				dateText: formatDate(date, calendar),
+				isSecret: n.isSecret,
+				nounType: n.nounType as NounType,
+				imageUrl: n.imageKey ? publicUrlFor(n.imageKey) : null,
+			};
+		}),
+		...datedSessions.map((s) => {
+			const date = {
+				year: s.dateYear as number,
+				monthIndex: s.dateMonth as number,
+				day: s.dateDay as number,
+			};
+			return {
+				kind: "session" as const,
+				id: s.id,
+				name: s.name,
+				summary: s.summary,
+				date,
+				dateText: formatDate(date, calendar),
+				isSecret: s.isSecret,
+				nounType: null,
+				imageUrl: null,
+			};
+		}),
 	];
 
 	entries.sort((a, b) => {
-		if (a.dateSort < b.dateSort) return -1;
-		if (a.dateSort > b.dateSort) return 1;
+		const da = toAbsoluteDay(a.date, calendar);
+		const dbn = toAbsoluteDay(b.date, calendar);
+		if (da !== dbn) return da - dbn;
 		return a.name.localeCompare(b.name);
 	});
 

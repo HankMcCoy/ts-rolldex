@@ -33,15 +33,29 @@ export const Route = createFileRoute(
 
 const parentRoute = getRouteApi("/_app/campaigns/$campaignId");
 
-const schema = z.object({
-	name: z.string().min(1, "Name is required").max(200),
-	summary: z.string().min(1, "Summary is required").max(5_000),
-	notes: z.string(),
-	privateNotes: z.string(),
-	isSecret: z.boolean(),
-	dateLabel: z.string().max(200).optional(),
-	dateSort: z.string().max(200).optional(),
-});
+const schema = z
+	.object({
+		name: z.string().min(1, "Name is required").max(200),
+		summary: z.string().min(1, "Summary is required").max(5_000),
+		notes: z.string(),
+		privateNotes: z.string(),
+		isSecret: z.boolean(),
+		dateYear: z.number().int().optional(),
+		dateMonth: z.number().int().optional(),
+		dateDay: z.number().int().optional(),
+	})
+	.refine(
+		(d) => {
+			const present = [d.dateYear, d.dateMonth, d.dateDay].filter(
+				(v) => v !== undefined,
+			).length;
+			return present === 0 || present === 3;
+		},
+		{
+			message: "Year, month, and day must be set together",
+			path: ["dateDay"],
+		},
+	);
 type Values = z.infer<typeof schema>;
 
 function NewSessionPage() {
@@ -57,8 +71,9 @@ function NewSessionPage() {
 			notes: "",
 			privateNotes: "",
 			isSecret: false,
-			dateLabel: "",
-			dateSort: "",
+			dateYear: undefined,
+			dateMonth: undefined,
+			dateDay: undefined,
 		},
 	});
 
@@ -128,7 +143,7 @@ function NewSessionPage() {
 								</FormItem>
 							)}
 						/>
-						<EventDateFields form={form} />
+						<EventDateFields form={form} calendar={campaign.calendar} />
 						<FormField
 							control={form.control}
 							name="notes"

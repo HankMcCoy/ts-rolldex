@@ -1,4 +1,3 @@
-import { useEffect } from "react";
 import type { FieldValues, Path, UseFormReturn } from "react-hook-form";
 import {
 	FormControl,
@@ -8,55 +7,60 @@ import {
 	FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import type { Calendar } from "@/lib/calendar";
 
 interface DateFieldShape {
-	dateLabel?: string;
-	dateSort?: string;
+	dateYear?: number;
+	dateMonth?: number;
+	dateDay?: number;
 }
 
 interface Props<T extends FieldValues & DateFieldShape> {
 	form: UseFormReturn<T>;
+	calendar: Calendar;
 }
 
 /**
- * Date label + sort key inputs for entries that should appear on the
- * timeline (events and sessions). The sort key is what we lex-sort by;
- * the label is what we show. Until the user explicitly touches the sort
- * key, it auto-mirrors whatever they type into the label so most people
- * never have to think about the second field.
+ * Year + month-select + day inputs for entries that should appear on the
+ * timeline. The day's max is bounded by the chosen month's day count from
+ * the campaign's calendar. All three fields are written together — the form
+ * schema enforces all-or-none.
  */
 export function EventDateFields<T extends FieldValues & DateFieldShape>({
 	form,
+	calendar,
 }: Props<T>) {
-	const dateLabelName = "dateLabel" as Path<T>;
-	const dateSortName = "dateSort" as Path<T>;
-	const dateLabel = form.watch(dateLabelName);
-	const sortDirty = Boolean(
-		(form.formState.dirtyFields as Record<string, unknown>).dateSort,
-	);
-
-	useEffect(() => {
-		if (sortDirty) return;
-		if (typeof dateLabel !== "string") return;
-		form.setValue(dateSortName, dateLabel as T[Path<T>], {
-			shouldDirty: false,
-		});
-	}, [dateLabel, sortDirty, form, dateSortName]);
+	const yearName = "dateYear" as Path<T>;
+	const monthName = "dateMonth" as Path<T>;
+	const dayName = "dateDay" as Path<T>;
+	const selectedMonth = form.watch(monthName);
+	const selectedIndex =
+		typeof selectedMonth === "number" ? selectedMonth : undefined;
+	const maxDays =
+		selectedIndex !== undefined && calendar.months[selectedIndex]
+			? calendar.months[selectedIndex].days
+			: undefined;
 
 	return (
 		<div className="space-y-2">
-			<div className="grid gap-4 sm:grid-cols-2">
+			<div className="grid gap-4 sm:grid-cols-3">
 				<FormField
 					control={form.control}
-					name={dateLabelName}
+					name={yearName}
 					render={({ field }) => (
 						<FormItem>
-							<FormLabel>In-world date</FormLabel>
+							<FormLabel>Year</FormLabel>
 							<FormControl>
 								<Input
-									{...field}
-									value={typeof field.value === "string" ? field.value : ""}
-									placeholder="e.g. 1492 Hammer 15"
+									type="number"
+									step="1"
+									placeholder="e.g. 1492"
+									value={typeof field.value === "number" ? field.value : ""}
+									onChange={(e) => {
+										const raw = e.target.value;
+										field.onChange(raw === "" ? undefined : Number(raw));
+									}}
+									onBlur={field.onBlur}
 								/>
 							</FormControl>
 							<FormMessage />
@@ -65,15 +69,54 @@ export function EventDateFields<T extends FieldValues & DateFieldShape>({
 				/>
 				<FormField
 					control={form.control}
-					name={dateSortName}
+					name={monthName}
 					render={({ field }) => (
 						<FormItem>
-							<FormLabel>Sort key</FormLabel>
+							<FormLabel>Month</FormLabel>
+							<FormControl>
+								<select
+									value={
+										typeof field.value === "number" ? String(field.value) : ""
+									}
+									onChange={(e) => {
+										const raw = e.target.value;
+										field.onChange(raw === "" ? undefined : Number(raw));
+									}}
+									onBlur={field.onBlur}
+									className="h-8 w-full min-w-0 rounded-lg border border-input bg-transparent px-2.5 py-1 text-base outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 md:text-sm"
+								>
+									<option value="">—</option>
+									{calendar.months.map((m, i) => (
+										// biome-ignore lint/suspicious/noArrayIndexKey: month identity is its position
+										<option key={i} value={i}>
+											{m.name}
+										</option>
+									))}
+								</select>
+							</FormControl>
+							<FormMessage />
+						</FormItem>
+					)}
+				/>
+				<FormField
+					control={form.control}
+					name={dayName}
+					render={({ field }) => (
+						<FormItem>
+							<FormLabel>Day</FormLabel>
 							<FormControl>
 								<Input
-									{...field}
-									value={typeof field.value === "string" ? field.value : ""}
-									placeholder="e.g. 1492-Hammer-15"
+									type="number"
+									step="1"
+									min={1}
+									max={maxDays}
+									placeholder={maxDays ? `1–${maxDays}` : "1"}
+									value={typeof field.value === "number" ? field.value : ""}
+									onChange={(e) => {
+										const raw = e.target.value;
+										field.onChange(raw === "" ? undefined : Number(raw));
+									}}
+									onBlur={field.onBlur}
 								/>
 							</FormControl>
 							<FormMessage />
@@ -82,9 +125,8 @@ export function EventDateFields<T extends FieldValues & DateFieldShape>({
 				/>
 			</div>
 			<p className="text-xs text-[var(--sea-ink-soft)]">
-				The timeline sorts entries lexically by the sort key. Pick a zero-padded
-				format (ISO dates, <code>1492-Hammer-15</code>, or{" "}
-				<code>Year 0001 Day 005</code>) so neighbours order correctly.
+				Leave blank to keep this entry off the timeline. Months are defined in
+				the campaign settings.
 			</p>
 		</div>
 	);

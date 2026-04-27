@@ -41,7 +41,7 @@ function TimelinePage() {
 							entry.kind === "session"
 								? "Session"
 								: NOUN_TYPE_LABELS[entry.nounType ?? "EVENT"];
-						const dateText = entry.dateLabel || entry.dateSort;
+						const dateText = entry.dateText;
 						const link =
 							entry.kind === "session" ? (
 								<Link

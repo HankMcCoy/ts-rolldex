@@ -1,11 +1,5 @@
-import {
-	createFileRoute,
-	Link,
-	useNavigate,
-	useRouter,
-} from "@tanstack/react-router";
-import { useServerFn } from "@tanstack/react-start";
-import { Map as MapIcon, Trash2 } from "lucide-react";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { Map as MapIcon } from "lucide-react";
 import { EntityAvatar } from "@/components/EntityAvatar";
 import { Page } from "@/components/Page";
 import { Badge } from "@/components/ui/badge";
@@ -13,7 +7,6 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { NOUN_TYPE_LABELS, NOUN_TYPES } from "@/lib/noun-types";
 import { getCampaignDashboard } from "@/server/campaigns";
-import { removeMember } from "@/server/members";
 
 export const Route = createFileRoute("/_app/campaigns/$campaignId/")({
 	loader: ({ params }) =>
@@ -31,9 +24,6 @@ function CampaignDashboard() {
 		maps,
 		timelinePreview,
 	} = Route.useLoaderData();
-	const navigate = useNavigate();
-	const router = useRouter();
-	const remove = useServerFn(removeMember);
 
 	const isAdmin = accessLevel === "ADMIN";
 
@@ -43,14 +33,24 @@ function CampaignDashboard() {
 			title={campaign.name}
 			actions={
 				isAdmin && (
-					<Button variant="outline" asChild size="sm">
-						<Link
-							to="/campaigns/$campaignId/edit"
-							params={{ campaignId: campaign.id }}
-						>
-							Edit
-						</Link>
-					</Button>
+					<div className="flex gap-2">
+						<Button variant="outline" asChild size="sm">
+							<Link
+								to="/campaigns/$campaignId/edit"
+								params={{ campaignId: campaign.id }}
+							>
+								Edit
+							</Link>
+						</Button>
+						<Button variant="outline" asChild size="sm">
+							<Link
+								to="/campaigns/$campaignId/settings"
+								params={{ campaignId: campaign.id }}
+							>
+								Settings
+							</Link>
+						</Button>
+					</div>
 				)
 			}
 		>
@@ -136,7 +136,7 @@ function CampaignDashboard() {
 							</div>
 							<ul className="space-y-2">
 								{timelinePreview.map((entry) => {
-									const dateText = entry.dateLabel || entry.dateSort;
+									const dateText = entry.dateText;
 									const target =
 										entry.kind === "session" ? (
 											<Link
@@ -196,12 +196,12 @@ function CampaignDashboard() {
 						<div className="mb-3 flex items-center justify-between">
 							<h2 className="island-kicker">Members</h2>
 							{isAdmin && (
-								<Button size="sm" asChild>
+								<Button variant="outline" size="sm" asChild>
 									<Link
-										to="/campaigns/$campaignId/members/invite"
+										to="/campaigns/$campaignId/settings"
 										params={{ campaignId: campaign.id }}
 									>
-										+ Invite
+										Manage in Settings
 									</Link>
 								</Button>
 							)}
@@ -225,31 +225,9 @@ function CampaignDashboard() {
 												</span>
 											)}
 										</div>
-										<div className="flex items-center gap-2">
-											<Badge variant="secondary">
-												{isDM ? "DM" : "Read only"}
-											</Badge>
-											{isAdmin && !isDM && (
-												<button
-													type="button"
-													onClick={async () => {
-														await remove({
-															data: {
-																campaignId: campaign.id,
-																memberId: m.id,
-															},
-														});
-														await router.invalidate();
-														navigate({ to: "." });
-													}}
-													title="Remove member"
-													aria-label="Remove member"
-													className="rounded p-1.5 text-[var(--sea-ink-soft)] transition hover:text-destructive"
-												>
-													<Trash2 className="size-4" />
-												</button>
-											)}
-										</div>
+										<Badge variant="secondary">
+											{isDM ? "DM" : "Read only"}
+										</Badge>
 									</li>
 								);
 							})}

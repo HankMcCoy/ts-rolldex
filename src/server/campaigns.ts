@@ -15,6 +15,7 @@ import {
 	requireCampaignAccess,
 	requireSession,
 } from "@/lib/access";
+import { EARTH_GREGORIAN_CALENDAR } from "@/lib/calendar";
 import { isUniqueViolation } from "@/lib/db-errors";
 import { err, ok } from "@/lib/result";
 import { publicUrlFor } from "@/lib/storage";
@@ -189,6 +190,7 @@ export const createCampaign = createServerFn({ method: "POST" })
 				.values({
 					name: data.name,
 					summary: data.summary,
+					calendar: EARTH_GREGORIAN_CALENDAR,
 					createdById: user.id,
 				})
 				.returning();

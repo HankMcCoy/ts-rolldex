@@ -43,6 +43,13 @@
       "when": 1777223062416,
       "tag": "0005_backfill_empty_summary",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1777225550287,
+      "tag": "0006_massive_deathbird",
+      "breakpoints": true
     }
   ]
 }

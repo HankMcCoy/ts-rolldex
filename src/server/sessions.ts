@@ -3,8 +3,13 @@ import { createServerFn } from "@tanstack/react-start";
 import { and, eq, ne } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/db/index";
-import { gameSessions } from "@/db/schema/index";
+import { campaigns, gameSessions } from "@/db/schema/index";
 import { requireCampaignAccess, requireSession } from "@/lib/access";
+import {
+	type Calendar,
+	EARTH_GREGORIAN_CALENDAR,
+	validateDateAgainstCalendar,
+} from "@/lib/calendar";
 import { isUniqueViolation } from "@/lib/db-errors";
 import { computeRelatedEntities } from "@/lib/relationships";
 import { err, ok } from "@/lib/result";
@@ -13,6 +18,68 @@ import {
 	loadMapPinLocations,
 	visibilityFilter,
 } from "@/server/query-helpers";
+
+const dateInputSchema = z
+	.object({
+		dateYear: z.number().int().optional(),
+		dateMonth: z.number().int().optional(),
+		dateDay: z.number().int().optional(),
+	})
+	.refine(
+		(d) => {
+			const present = [d.dateYear, d.dateMonth, d.dateDay].filter(
+				(v) => v !== undefined,
+			).length;
+			return present === 0 || present === 3;
+		},
+		{ message: "Year, month, and day must be set together" },
+	);
+
+type DateInput = z.infer<typeof dateInputSchema>;
+
+async function resolveDateColumns(
+	campaignId: string,
+	input: DateInput,
+): Promise<
+	| {
+			ok: true;
+			cols: {
+				dateYear: number | null;
+				dateMonth: number | null;
+				dateDay: number | null;
+			};
+	  }
+	| { ok: false; error: string }
+> {
+	if (
+		input.dateYear === undefined ||
+		input.dateMonth === undefined ||
+		input.dateDay === undefined
+	) {
+		return {
+			ok: true,
+			cols: { dateYear: null, dateMonth: null, dateDay: null },
+		};
+	}
+	const row = await db.query.campaigns.findFirst({
+		where: eq(campaigns.id, campaignId),
+		columns: { calendar: true },
+	});
+	const calendar: Calendar = row?.calendar ?? EARTH_GREGORIAN_CALENDAR;
+	const v = validateDateAgainstCalendar(
+		{ year: input.dateYear, monthIndex: input.dateMonth, day: input.dateDay },
+		calendar,
+	);
+	if (!v.ok) return { ok: false, error: v.error };
+	return {
+		ok: true,
+		cols: {
+			dateYear: input.dateYear,
+			dateMonth: input.dateMonth,
+			dateDay: input.dateDay,
+		},
+	};
+}
 
 export const getSessions = createServerFn()
 	.inputValidator(z.object({ campaignId: z.string() }))
@@ -72,20 +139,23 @@ export const getSession = createServerFn()
 
 export const createSession = createServerFn({ method: "POST" })
 	.inputValidator(
-		z.object({
-			campaignId: z.string(),
-			name: z.string().min(1).max(200),
-			summary: z.string().min(1).max(5_000),
-			notes: z.string().max(50_000),
-			privateNotes: z.string().max(50_000),
-			isSecret: z.boolean(),
-			dateLabel: z.string().max(200).optional(),
-			dateSort: z.string().max(200).optional(),
-		}),
+		z
+			.object({
+				campaignId: z.string(),
+				name: z.string().min(1).max(200),
+				summary: z.string().min(1).max(5_000),
+				notes: z.string().max(50_000),
+				privateNotes: z.string().max(50_000),
+				isSecret: z.boolean(),
+			})
+			.and(dateInputSchema),
 	)
 	.handler(async ({ data }) => {
 		const { user } = await requireSession();
 		await requireCampaignAccess(data.campaignId, user, "ADMIN");
+
+		const dateResult = await resolveDateColumns(data.campaignId, data);
+		if (!dateResult.ok) return err(dateResult.error);
 
 		const existing = await db.query.gameSessions.findFirst({
 			where: and(
@@ -107,8 +177,7 @@ export const createSession = createServerFn({ method: "POST" })
 					notes: data.notes,
 					privateNotes: data.privateNotes,
 					isSecret: data.isSecret,
-					dateLabel: data.dateLabel?.trim() || null,
-					dateSort: data.dateSort?.trim() || null,
+					...dateResult.cols,
 				})
 				.returning();
 			return ok(session);
@@ -122,21 +191,24 @@ export const createSession = createServerFn({ method: "POST" })
 
 export const updateSession = createServerFn({ method: "POST" })
 	.inputValidator(
-		z.object({
-			campaignId: z.string(),
-			sessionId: z.string(),
-			name: z.string().min(1).max(200),
-			summary: z.string().min(1).max(5_000),
-			notes: z.string().max(50_000),
-			privateNotes: z.string().max(50_000),
-			isSecret: z.boolean(),
-			dateLabel: z.string().max(200).optional(),
-			dateSort: z.string().max(200).optional(),
-		}),
+		z
+			.object({
+				campaignId: z.string(),
+				sessionId: z.string(),
+				name: z.string().min(1).max(200),
+				summary: z.string().min(1).max(5_000),
+				notes: z.string().max(50_000),
+				privateNotes: z.string().max(50_000),
+				isSecret: z.boolean(),
+			})
+			.and(dateInputSchema),
 	)
 	.handler(async ({ data }) => {
 		const { user } = await requireSession();
 		await requireCampaignAccess(data.campaignId, user, "ADMIN");
+
+		const dateResult = await resolveDateColumns(data.campaignId, data);
+		if (!dateResult.ok) return err(dateResult.error);
 
 		const existing = await db.query.gameSessions.findFirst({
 			where: and(
@@ -158,8 +230,7 @@ export const updateSession = createServerFn({ method: "POST" })
 					notes: data.notes,
 					privateNotes: data.privateNotes,
 					isSecret: data.isSecret,
-					dateLabel: data.dateLabel?.trim() || null,
-					dateSort: data.dateSort?.trim() || null,
+					...dateResult.cols,
 					updatedAt: new Date(),
 				})
 				.where(

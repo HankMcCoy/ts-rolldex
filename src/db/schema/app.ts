@@ -3,12 +3,15 @@ import {
 	boolean,
 	check,
 	doublePrecision,
+	integer,
+	jsonb,
 	pgEnum,
 	pgTable,
 	text,
 	timestamp,
 	uniqueIndex,
 } from "drizzle-orm/pg-core";
+import { type Calendar, EARTH_GREGORIAN_CALENDAR } from "@/lib/calendar";
 import { users } from "./auth";
 import { idColumn } from "./columns";
 
@@ -28,6 +31,10 @@ export const campaigns = pgTable(
 		id: idColumn(),
 		name: text("name").notNull(),
 		summary: text("summary").notNull().default(""),
+		calendar: jsonb("calendar")
+			.$type<Calendar>()
+			.notNull()
+			.default(EARTH_GREGORIAN_CALENDAR),
 		createdById: text("created_by_id")
 			.notNull()
 			.references(() => users.id, { onDelete: "cascade" }),
@@ -53,12 +60,19 @@ export const nouns = pgTable(
 		privateNotes: text("private_notes").notNull().default(""),
 		isSecret: boolean("is_secret").notNull().default(false),
 		imageKey: text("image_key"),
-		dateLabel: text("date_label"),
-		dateSort: text("date_sort"),
+		dateYear: integer("date_year"),
+		dateMonth: integer("date_month"),
+		dateDay: integer("date_day"),
 		createdAt: timestamp("created_at").notNull().defaultNow(),
 		updatedAt: timestamp("updated_at").notNull().defaultNow(),
 	},
-	(t) => [uniqueIndex("nouns_campaign_name_unique").on(t.campaignId, t.name)],
+	(t) => [
+		uniqueIndex("nouns_campaign_name_unique").on(t.campaignId, t.name),
+		check(
+			"nouns_date_all_or_none",
+			sql`(${t.dateYear} IS NULL) = (${t.dateMonth} IS NULL) AND (${t.dateYear} IS NULL) = (${t.dateDay} IS NULL)`,
+		),
+	],
 );
 
 export const gameSessions = pgTable(
@@ -73,13 +87,18 @@ export const gameSessions = pgTable(
 		notes: text("notes").notNull().default(""),
 		privateNotes: text("private_notes").notNull().default(""),
 		isSecret: boolean("is_secret").notNull().default(false),
-		dateLabel: text("date_label"),
-		dateSort: text("date_sort"),
+		dateYear: integer("date_year"),
+		dateMonth: integer("date_month"),
+		dateDay: integer("date_day"),
 		createdAt: timestamp("created_at").notNull().defaultNow(),
 		updatedAt: timestamp("updated_at").notNull().defaultNow(),
 	},
 	(t) => [
 		uniqueIndex("game_sessions_campaign_name_unique").on(t.campaignId, t.name),
+		check(
+			"game_sessions_date_all_or_none",
+			sql`(${t.dateYear} IS NULL) = (${t.dateMonth} IS NULL) AND (${t.dateYear} IS NULL) = (${t.dateDay} IS NULL)`,
+		),
 	],
 );
 
