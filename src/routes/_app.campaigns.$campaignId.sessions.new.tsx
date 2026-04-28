@@ -47,7 +47,7 @@ const schema = applyDateRefinements(
 type Values = z.infer<typeof schema>;
 
 function NewSessionPage() {
-	const { campaign, accessLevel } = parentRoute.useLoaderData();
+	const { campaign, accessLevel, templates } = parentRoute.useLoaderData();
 	const navigate = useNavigate();
 	const create = useServerFn(createSession);
 
@@ -149,6 +149,7 @@ function NewSessionPage() {
 											minRows={5}
 											maxLength={50_000}
 											ariaLabel="Notes"
+											templates={templates}
 										/>
 									</FormControl>
 									<FormMessage />
@@ -169,6 +170,7 @@ function NewSessionPage() {
 											minRows={3}
 											maxLength={50_000}
 											ariaLabel="Private notes"
+											templates={templates}
 										/>
 									</FormControl>
 									<FormMessage />

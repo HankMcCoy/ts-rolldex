@@ -52,7 +52,7 @@ const schema = applyDateRefinements(
 type Values = z.infer<typeof schema>;
 
 function NewNounPage() {
-	const { campaign, accessLevel } = parentRoute.useLoaderData();
+	const { campaign, accessLevel, templates } = parentRoute.useLoaderData();
 	const { type, name } = Route.useSearch();
 	const navigate = useNavigate();
 	const create = useServerFn(createNoun);
@@ -183,6 +183,7 @@ function NewNounPage() {
 											minRows={5}
 											maxLength={50_000}
 											ariaLabel="Notes"
+											templates={templates}
 										/>
 									</FormControl>
 									<FormMessage />
@@ -203,6 +204,7 @@ function NewNounPage() {
 											minRows={3}
 											maxLength={50_000}
 											ariaLabel="Private notes"
+											templates={templates}
 										/>
 									</FormControl>
 									<FormMessage />

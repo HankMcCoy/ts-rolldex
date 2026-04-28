@@ -1,6 +1,7 @@
 import {
 	createFileRoute,
 	getRouteApi,
+	Link,
 	useRouter,
 } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
@@ -14,10 +15,16 @@ import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { getCampaignDashboard } from "@/server/campaigns";
 import { inviteMember, removeMember } from "@/server/members";
+import { deleteTemplate, getTemplates } from "@/server/templates";
 
 export const Route = createFileRoute("/_app/campaigns/$campaignId/settings")({
-	loader: ({ params }) =>
-		getCampaignDashboard({ data: { campaignId: params.campaignId } }),
+	loader: async ({ params }) => {
+		const [dashboard, templates] = await Promise.all([
+			getCampaignDashboard({ data: { campaignId: params.campaignId } }),
+			getTemplates({ data: { campaignId: params.campaignId } }),
+		]);
+		return { ...dashboard, templates };
+	},
 	head: () => ({ meta: [{ title: "Settings - Rolldex" }] }),
 	component: SettingsPage,
 });
@@ -26,7 +33,7 @@ const parentRoute = getRouteApi("/_app/campaigns/$campaignId");
 
 function SettingsPage() {
 	const { campaign } = parentRoute.useLoaderData();
-	const { accessLevel, members } = Route.useLoaderData();
+	const { accessLevel, members, templates } = Route.useLoaderData();
 	const router = useRouter();
 
 	const breadcrumbs = [
@@ -60,6 +67,30 @@ function SettingsPage() {
 							initial={campaign.calendar}
 							onSaved={() => router.invalidate()}
 						/>
+					</div>
+				</section>
+
+				<Separator />
+
+				<section>
+					<div className="mb-3 flex items-center justify-between">
+						<h2 className="island-kicker">Templates</h2>
+						<Button size="sm" asChild>
+							<Link
+								to="/campaigns/$campaignId/settings/templates/new"
+								params={{ campaignId: campaign.id }}
+							>
+								+ Template
+							</Link>
+						</Button>
+					</div>
+					<p className="mb-4 text-sm text-[var(--sea-ink-soft)]">
+						Reusable markdown blocks that show up in the slash menu of any
+						entity or session note. Use them for stat blocks, quest hand-outs,
+						or anything you'd otherwise paste in by hand.
+					</p>
+					<div className="island-shell rounded-2xl p-6">
+						<TemplateList templates={templates} campaignId={campaign.id} />
 					</div>
 				</section>
 
@@ -132,6 +163,65 @@ function InviteForm({ campaignId }: InviteFormProps) {
 			</div>
 			{error && <p className="text-sm text-destructive">{error}</p>}
 		</form>
+	);
+}
+
+interface TemplateListProps {
+	campaignId: string;
+	templates: {
+		id: string;
+		name: string;
+		wrapInStatBlock: boolean;
+	}[];
+}
+
+function TemplateList({ campaignId, templates }: TemplateListProps) {
+	const router = useRouter();
+	const remove = useServerFn(deleteTemplate);
+
+	if (templates.length === 0) {
+		return (
+			<p className="text-sm text-[var(--sea-ink-soft)]">
+				No templates yet. Click + Template to create one.
+			</p>
+		);
+	}
+
+	return (
+		<ul className="space-y-2">
+			{templates.map((t) => (
+				<li
+					key={t.id}
+					className="flex items-center justify-between gap-4 rounded-xl border border-[var(--line)] px-4 py-2"
+				>
+					<div className="flex items-center gap-3">
+						<Link
+							to="/campaigns/$campaignId/settings/templates/$templateId"
+							params={{ campaignId, templateId: t.id }}
+							className="font-medium"
+						>
+							{t.name}
+						</Link>
+						{t.wrapInStatBlock && (
+							<Badge variant="secondary">Stat block</Badge>
+						)}
+					</div>
+					<button
+						type="button"
+						onClick={async () => {
+							if (!confirm(`Delete template "${t.name}"?`)) return;
+							await remove({ data: { campaignId, templateId: t.id } });
+							await router.invalidate();
+						}}
+						title="Delete template"
+						aria-label="Delete template"
+						className="rounded p-1.5 text-[var(--sea-ink-soft)] transition hover:text-destructive"
+					>
+						<Trash2 className="size-4" />
+					</button>
+				</li>
+			))}
+		</ul>
 	);
 }
 

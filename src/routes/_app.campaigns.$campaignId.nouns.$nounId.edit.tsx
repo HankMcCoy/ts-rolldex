@@ -67,7 +67,7 @@ type Values = z.infer<typeof schema>;
 
 function EditNounPage() {
 	const { noun, accessLevel } = nounRoute.useLoaderData();
-	const { campaign } = parentRoute.useLoaderData();
+	const { campaign, templates } = parentRoute.useLoaderData();
 	const navigate = useNavigate();
 	const router = useRouter();
 	const update = useServerFn(updateNoun);
@@ -297,6 +297,7 @@ function EditNounPage() {
 											minRows={5}
 											maxLength={50_000}
 											ariaLabel="Notes"
+											templates={templates}
 										/>
 									</FormControl>
 									<FormMessage />
@@ -317,6 +318,7 @@ function EditNounPage() {
 											minRows={3}
 											maxLength={50_000}
 											ariaLabel="Private notes"
+											templates={templates}
 										/>
 									</FormControl>
 									<FormMessage />

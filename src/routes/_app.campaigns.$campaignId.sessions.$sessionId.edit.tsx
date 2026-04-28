@@ -64,7 +64,7 @@ type Values = z.infer<typeof schema>;
 
 function EditSessionPage() {
 	const { session, accessLevel } = sessionRoute.useLoaderData();
-	const { campaign } = parentRoute.useLoaderData();
+	const { campaign, templates } = parentRoute.useLoaderData();
 	const navigate = useNavigate();
 	const router = useRouter();
 	const update = useServerFn(updateSession);
@@ -173,6 +173,7 @@ function EditSessionPage() {
 											minRows={5}
 											maxLength={50_000}
 											ariaLabel="Notes"
+											templates={templates}
 										/>
 									</FormControl>
 									<FormMessage />
@@ -193,6 +194,7 @@ function EditSessionPage() {
 											minRows={3}
 											maxLength={50_000}
 											ariaLabel="Private notes"
+											templates={templates}
 										/>
 									</FormControl>
 									<FormMessage />
