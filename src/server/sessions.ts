@@ -6,15 +6,18 @@ import { db } from "@/db/index";
 import { gameSessions } from "@/db/schema/index";
 import { requireCampaignAccess, requireSession } from "@/lib/access";
 import { applyDateRefinements, dateFields } from "@/lib/date-schema";
-import { isUniqueViolation } from "@/lib/db-errors";
 import { computeRelatedEntities } from "@/lib/relationships";
-import { err, ok } from "@/lib/result";
+import { err } from "@/lib/result";
 import { resolveDateColumns } from "@/server/date-resolver";
 import {
 	loadCampaignCandidates,
 	loadMapPinLocations,
 	visibilityFilter,
 } from "@/server/query-helpers";
+import { withUniqueName } from "@/server/unique-name";
+
+const SESSION_NAME_CONFLICT =
+	"A session with this name already exists in this campaign.";
 
 export const getSessions = createServerFn()
 	.inputValidator(z.object({ campaignId: z.string() }))
@@ -93,36 +96,32 @@ export const createSession = createServerFn({ method: "POST" })
 		const dateResult = await resolveDateColumns(data.campaignId, data);
 		if (!dateResult.ok) return err(dateResult.error);
 
-		const existing = await db.query.gameSessions.findFirst({
-			where: and(
-				eq(gameSessions.campaignId, data.campaignId),
-				eq(gameSessions.name, data.name),
-			),
-		});
-		if (existing) {
-			return err("A session with this name already exists in this campaign.");
-		}
-
-		try {
-			const [session] = await db
-				.insert(gameSessions)
-				.values({
-					campaignId: data.campaignId,
-					name: data.name,
-					summary: data.summary,
-					notes: data.notes,
-					privateNotes: data.privateNotes,
-					isSecret: data.isSecret,
-					...dateResult.cols,
-				})
-				.returning();
-			return ok(session);
-		} catch (e) {
-			if (isUniqueViolation(e)) {
-				return err("A session with this name already exists in this campaign.");
-			}
-			throw e;
-		}
+		return withUniqueName(
+			SESSION_NAME_CONFLICT,
+			() =>
+				db.query.gameSessions.findFirst({
+					where: and(
+						eq(gameSessions.campaignId, data.campaignId),
+						eq(gameSessions.name, data.name),
+					),
+					columns: { id: true },
+				}),
+			async () => {
+				const [session] = await db
+					.insert(gameSessions)
+					.values({
+						campaignId: data.campaignId,
+						name: data.name,
+						summary: data.summary,
+						notes: data.notes,
+						privateNotes: data.privateNotes,
+						isSecret: data.isSecret,
+						...dateResult.cols,
+					})
+					.returning();
+				return session;
+			},
+		);
 	});
 
 export const updateSession = createServerFn({ method: "POST" })
@@ -147,43 +146,39 @@ export const updateSession = createServerFn({ method: "POST" })
 		const dateResult = await resolveDateColumns(data.campaignId, data);
 		if (!dateResult.ok) return err(dateResult.error);
 
-		const existing = await db.query.gameSessions.findFirst({
-			where: and(
-				eq(gameSessions.campaignId, data.campaignId),
-				eq(gameSessions.name, data.name),
-				ne(gameSessions.id, data.sessionId),
-			),
-		});
-		if (existing) {
-			return err("A session with this name already exists in this campaign.");
-		}
-
-		try {
-			const [session] = await db
-				.update(gameSessions)
-				.set({
-					name: data.name,
-					summary: data.summary,
-					notes: data.notes,
-					privateNotes: data.privateNotes,
-					isSecret: data.isSecret,
-					...dateResult.cols,
-					updatedAt: new Date(),
-				})
-				.where(
-					and(
-						eq(gameSessions.id, data.sessionId),
+		return withUniqueName(
+			SESSION_NAME_CONFLICT,
+			() =>
+				db.query.gameSessions.findFirst({
+					where: and(
 						eq(gameSessions.campaignId, data.campaignId),
+						eq(gameSessions.name, data.name),
+						ne(gameSessions.id, data.sessionId),
 					),
-				)
-				.returning();
-			return ok(session);
-		} catch (e) {
-			if (isUniqueViolation(e)) {
-				return err("A session with this name already exists in this campaign.");
-			}
-			throw e;
-		}
+					columns: { id: true },
+				}),
+			async () => {
+				const [session] = await db
+					.update(gameSessions)
+					.set({
+						name: data.name,
+						summary: data.summary,
+						notes: data.notes,
+						privateNotes: data.privateNotes,
+						isSecret: data.isSecret,
+						...dateResult.cols,
+						updatedAt: new Date(),
+					})
+					.where(
+						and(
+							eq(gameSessions.id, data.sessionId),
+							eq(gameSessions.campaignId, data.campaignId),
+						),
+					)
+					.returning();
+				return session;
+			},
+		);
 	});
 
 export const deleteSession = createServerFn({ method: "POST" })

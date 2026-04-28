@@ -5,7 +5,6 @@ import { z } from "zod";
 import { db } from "@/db/index";
 import { gameSessions, mapPins, maps, nouns } from "@/db/schema/index";
 import { requireCampaignAccess, requireSession } from "@/lib/access";
-import { isUniqueViolation } from "@/lib/db-errors";
 import { err, ok } from "@/lib/result";
 import { deleteObject } from "@/lib/storage";
 import {
@@ -14,6 +13,9 @@ import {
 	performImageUpload,
 } from "@/server/image-uploads";
 import { visibilityFilter } from "@/server/query-helpers";
+import { withUniqueName } from "@/server/unique-name";
+
+const MAP_NAME_CONFLICT = "A map with this name already exists in this campaign.";
 
 const MAX_IMAGE_BYTES = 15 * 1024 * 1024;
 
@@ -126,32 +128,28 @@ export const createMap = createServerFn({ method: "POST" })
 		const { user } = await requireSession();
 		await requireCampaignAccess(data.campaignId, user, "ADMIN");
 
-		const existing = await db.query.maps.findFirst({
-			where: and(
-				eq(maps.campaignId, data.campaignId),
-				eq(maps.name, data.name),
-			),
-		});
-		if (existing) {
-			return err("A map with this name already exists in this campaign.");
-		}
-
-		try {
-			const [map] = await db
-				.insert(maps)
-				.values({
-					campaignId: data.campaignId,
-					name: data.name,
-					isSecret: data.isSecret,
-				})
-				.returning();
-			return ok(map);
-		} catch (e) {
-			if (isUniqueViolation(e)) {
-				return err("A map with this name already exists in this campaign.");
-			}
-			throw e;
-		}
+		return withUniqueName(
+			MAP_NAME_CONFLICT,
+			() =>
+				db.query.maps.findFirst({
+					where: and(
+						eq(maps.campaignId, data.campaignId),
+						eq(maps.name, data.name),
+					),
+					columns: { id: true },
+				}),
+			async () => {
+				const [map] = await db
+					.insert(maps)
+					.values({
+						campaignId: data.campaignId,
+						name: data.name,
+						isSecret: data.isSecret,
+					})
+					.returning();
+				return map;
+			},
+		);
 	});
 
 export const updateMap = createServerFn({ method: "POST" })
@@ -167,36 +165,32 @@ export const updateMap = createServerFn({ method: "POST" })
 		const { user } = await requireSession();
 		await requireCampaignAccess(data.campaignId, user, "ADMIN");
 
-		const existing = await db.query.maps.findFirst({
-			where: and(
-				eq(maps.campaignId, data.campaignId),
-				eq(maps.name, data.name),
-				ne(maps.id, data.mapId),
-			),
-		});
-		if (existing) {
-			return err("A map with this name already exists in this campaign.");
-		}
-
-		try {
-			const [map] = await db
-				.update(maps)
-				.set({
-					name: data.name,
-					isSecret: data.isSecret,
-					updatedAt: new Date(),
-				})
-				.where(
-					and(eq(maps.id, data.mapId), eq(maps.campaignId, data.campaignId)),
-				)
-				.returning();
-			return ok(map);
-		} catch (e) {
-			if (isUniqueViolation(e)) {
-				return err("A map with this name already exists in this campaign.");
-			}
-			throw e;
-		}
+		return withUniqueName(
+			MAP_NAME_CONFLICT,
+			() =>
+				db.query.maps.findFirst({
+					where: and(
+						eq(maps.campaignId, data.campaignId),
+						eq(maps.name, data.name),
+						ne(maps.id, data.mapId),
+					),
+					columns: { id: true },
+				}),
+			async () => {
+				const [map] = await db
+					.update(maps)
+					.set({
+						name: data.name,
+						isSecret: data.isSecret,
+						updatedAt: new Date(),
+					})
+					.where(
+						and(eq(maps.id, data.mapId), eq(maps.campaignId, data.campaignId)),
+					)
+					.returning();
+				return map;
+			},
+		);
 	});
 
 export const deleteMap = createServerFn({ method: "POST" })

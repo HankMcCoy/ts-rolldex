@@ -6,10 +6,9 @@ import { db } from "@/db/index";
 import { nouns } from "@/db/schema/index";
 import { requireCampaignAccess, requireSession } from "@/lib/access";
 import { applyDateRefinements, dateFields } from "@/lib/date-schema";
-import { isUniqueViolation } from "@/lib/db-errors";
 import { nounTypeSchema } from "@/lib/noun-types";
 import { computeRelatedEntities } from "@/lib/relationships";
-import { err, ok } from "@/lib/result";
+import { err } from "@/lib/result";
 import { deleteObject } from "@/lib/storage";
 import { resolveDateColumns } from "@/server/date-resolver";
 import {
@@ -22,6 +21,10 @@ import {
 	loadMapPinLocations,
 	visibilityFilter,
 } from "@/server/query-helpers";
+import { withUniqueName } from "@/server/unique-name";
+
+const NOUN_NAME_CONFLICT =
+	"A noun with this name already exists in this campaign.";
 
 const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
 
@@ -116,37 +119,33 @@ export const createNoun = createServerFn({ method: "POST" })
 		const dateResult = await resolveDateColumns(data.campaignId, data);
 		if (!dateResult.ok) return err(dateResult.error);
 
-		const existing = await db.query.nouns.findFirst({
-			where: and(
-				eq(nouns.campaignId, data.campaignId),
-				eq(nouns.name, data.name),
-			),
-		});
-		if (existing) {
-			return err("A noun with this name already exists in this campaign.");
-		}
-
-		try {
-			const [noun] = await db
-				.insert(nouns)
-				.values({
-					campaignId: data.campaignId,
-					name: data.name,
-					nounType: data.nounType,
-					summary: data.summary,
-					notes: data.notes,
-					privateNotes: data.privateNotes,
-					isSecret: data.isSecret,
-					...dateResult.cols,
-				})
-				.returning();
-			return ok(noun);
-		} catch (e) {
-			if (isUniqueViolation(e)) {
-				return err("A noun with this name already exists in this campaign.");
-			}
-			throw e;
-		}
+		return withUniqueName(
+			NOUN_NAME_CONFLICT,
+			() =>
+				db.query.nouns.findFirst({
+					where: and(
+						eq(nouns.campaignId, data.campaignId),
+						eq(nouns.name, data.name),
+					),
+					columns: { id: true },
+				}),
+			async () => {
+				const [noun] = await db
+					.insert(nouns)
+					.values({
+						campaignId: data.campaignId,
+						name: data.name,
+						nounType: data.nounType,
+						summary: data.summary,
+						notes: data.notes,
+						privateNotes: data.privateNotes,
+						isSecret: data.isSecret,
+						...dateResult.cols,
+					})
+					.returning();
+				return noun;
+			},
+		);
 	});
 
 export const updateNoun = createServerFn({ method: "POST" })
@@ -172,41 +171,40 @@ export const updateNoun = createServerFn({ method: "POST" })
 		const dateResult = await resolveDateColumns(data.campaignId, data);
 		if (!dateResult.ok) return err(dateResult.error);
 
-		const existing = await db.query.nouns.findFirst({
-			where: and(
-				eq(nouns.campaignId, data.campaignId),
-				eq(nouns.name, data.name),
-				ne(nouns.id, data.nounId),
-			),
-		});
-		if (existing) {
-			return err("A noun with this name already exists in this campaign.");
-		}
-
-		try {
-			const [noun] = await db
-				.update(nouns)
-				.set({
-					name: data.name,
-					nounType: data.nounType,
-					summary: data.summary,
-					notes: data.notes,
-					privateNotes: data.privateNotes,
-					isSecret: data.isSecret,
-					...dateResult.cols,
-					updatedAt: new Date(),
-				})
-				.where(
-					and(eq(nouns.id, data.nounId), eq(nouns.campaignId, data.campaignId)),
-				)
-				.returning();
-			return ok(noun);
-		} catch (e) {
-			if (isUniqueViolation(e)) {
-				return err("A noun with this name already exists in this campaign.");
-			}
-			throw e;
-		}
+		return withUniqueName(
+			NOUN_NAME_CONFLICT,
+			() =>
+				db.query.nouns.findFirst({
+					where: and(
+						eq(nouns.campaignId, data.campaignId),
+						eq(nouns.name, data.name),
+						ne(nouns.id, data.nounId),
+					),
+					columns: { id: true },
+				}),
+			async () => {
+				const [noun] = await db
+					.update(nouns)
+					.set({
+						name: data.name,
+						nounType: data.nounType,
+						summary: data.summary,
+						notes: data.notes,
+						privateNotes: data.privateNotes,
+						isSecret: data.isSecret,
+						...dateResult.cols,
+						updatedAt: new Date(),
+					})
+					.where(
+						and(
+							eq(nouns.id, data.nounId),
+							eq(nouns.campaignId, data.campaignId),
+						),
+					)
+					.returning();
+				return noun;
+			},
+		);
 	});
 
 export const deleteNoun = createServerFn({ method: "POST" })

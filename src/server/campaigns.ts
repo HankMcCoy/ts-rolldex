@@ -16,10 +16,11 @@ import {
 	requireSession,
 } from "@/lib/access";
 import { EARTH_GREGORIAN_CALENDAR } from "@/lib/calendar";
-import { isUniqueViolation } from "@/lib/db-errors";
-import { err, ok } from "@/lib/result";
 import { publicUrlFor } from "@/lib/storage";
 import { loadTimelineEntries, visibilityFilter } from "@/server/query-helpers";
+import { withUniqueName } from "@/server/unique-name";
+
+const CAMPAIGN_NAME_CONFLICT = "You already have a campaign with this name.";
 
 export const getCampaigns = createServerFn().handler(async () => {
 	const { user } = await requireSession();
@@ -174,33 +175,29 @@ export const createCampaign = createServerFn({ method: "POST" })
 	.handler(async ({ data }) => {
 		const { user } = await requireSession();
 
-		const existing = await db.query.campaigns.findFirst({
-			where: and(
-				eq(campaigns.name, data.name),
-				eq(campaigns.createdById, user.id),
-			),
-		});
-		if (existing) {
-			return err("You already have a campaign with this name.");
-		}
-
-		try {
-			const [campaign] = await db
-				.insert(campaigns)
-				.values({
-					name: data.name,
-					summary: data.summary,
-					calendar: EARTH_GREGORIAN_CALENDAR,
-					createdById: user.id,
-				})
-				.returning();
-			return ok(campaign);
-		} catch (e) {
-			if (isUniqueViolation(e)) {
-				return err("You already have a campaign with this name.");
-			}
-			throw e;
-		}
+		return withUniqueName(
+			CAMPAIGN_NAME_CONFLICT,
+			() =>
+				db.query.campaigns.findFirst({
+					where: and(
+						eq(campaigns.name, data.name),
+						eq(campaigns.createdById, user.id),
+					),
+					columns: { id: true },
+				}),
+			async () => {
+				const [campaign] = await db
+					.insert(campaigns)
+					.values({
+						name: data.name,
+						summary: data.summary,
+						calendar: EARTH_GREGORIAN_CALENDAR,
+						createdById: user.id,
+					})
+					.returning();
+				return campaign;
+			},
+		);
 	});
 
 export const updateCampaign = createServerFn({ method: "POST" })
@@ -215,34 +212,30 @@ export const updateCampaign = createServerFn({ method: "POST" })
 		const { user } = await requireSession();
 		await requireCampaignAccess(data.campaignId, user, "ADMIN");
 
-		const existing = await db.query.campaigns.findFirst({
-			where: and(
-				eq(campaigns.name, data.name),
-				eq(campaigns.createdById, user.id),
-				ne(campaigns.id, data.campaignId),
-			),
-		});
-		if (existing) {
-			return err("You already have a campaign with this name.");
-		}
-
-		try {
-			const [campaign] = await db
-				.update(campaigns)
-				.set({
-					name: data.name,
-					summary: data.summary,
-					updatedAt: new Date(),
-				})
-				.where(eq(campaigns.id, data.campaignId))
-				.returning();
-			return ok(campaign);
-		} catch (e) {
-			if (isUniqueViolation(e)) {
-				return err("You already have a campaign with this name.");
-			}
-			throw e;
-		}
+		return withUniqueName(
+			CAMPAIGN_NAME_CONFLICT,
+			() =>
+				db.query.campaigns.findFirst({
+					where: and(
+						eq(campaigns.name, data.name),
+						eq(campaigns.createdById, user.id),
+						ne(campaigns.id, data.campaignId),
+					),
+					columns: { id: true },
+				}),
+			async () => {
+				const [campaign] = await db
+					.update(campaigns)
+					.set({
+						name: data.name,
+						summary: data.summary,
+						updatedAt: new Date(),
+					})
+					.where(eq(campaigns.id, data.campaignId))
+					.returning();
+				return campaign;
+			},
+		);
 	});
 
 export const deleteCampaign = createServerFn({ method: "POST" })
