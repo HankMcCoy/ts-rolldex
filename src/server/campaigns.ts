@@ -3,6 +3,7 @@ import { and, eq, isNull, ne, or } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/db/index";
 import {
+	campaignTemplates,
 	campaigns,
 	gameSessions,
 	maps,
@@ -18,6 +19,7 @@ import {
 import { EARTH_GREGORIAN_CALENDAR } from "@/lib/calendar";
 import { publicUrlFor } from "@/lib/storage";
 import { loadTimelineEntries, visibilityFilter } from "@/server/query-helpers";
+import { STARTER_TEMPLATES } from "@/server/template-seeds";
 import { withUniqueName } from "@/server/unique-name";
 
 const CAMPAIGN_NAME_CONFLICT = "You already have a campaign with this name.";
@@ -56,7 +58,28 @@ export const getCampaign = createServerFn()
 	.inputValidator(z.object({ campaignId: z.string() }))
 	.handler(async ({ data }) => {
 		const { user } = await requireSession();
-		return requireCampaign(data.campaignId, user);
+		const { campaign, accessLevel } = await requireCampaign(
+			data.campaignId,
+			user,
+		);
+
+		// Templates only feed the slash menu in the editor, which READ_ONLY users
+		// never see — skip the query for them.
+		const templates =
+			accessLevel === "ADMIN"
+				? await db.query.campaignTemplates.findMany({
+						where: eq(campaignTemplates.campaignId, data.campaignId),
+						orderBy: (t, { asc }) => asc(t.name),
+						columns: {
+							id: true,
+							name: true,
+							body: true,
+							wrapInStatBlock: true,
+						},
+					})
+				: [];
+
+		return { campaign, accessLevel, templates };
 	});
 
 export const getCampaignDashboard = createServerFn()
@@ -195,6 +218,18 @@ export const createCampaign = createServerFn({ method: "POST" })
 						createdById: user.id,
 					})
 					.returning();
+
+				if (STARTER_TEMPLATES.length > 0) {
+					await db.insert(campaignTemplates).values(
+						STARTER_TEMPLATES.map((t) => ({
+							campaignId: campaign.id,
+							name: t.name,
+							body: t.body,
+							wrapInStatBlock: t.wrapInStatBlock,
+						})),
+					);
+				}
+
 				return campaign;
 			},
 		);

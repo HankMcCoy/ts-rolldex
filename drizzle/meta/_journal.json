@@ -57,6 +57,13 @@
       "when": 1777269648985,
       "tag": "0007_clever_jack_power",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1777348061192,
+      "tag": "0008_broken_luminals",
+      "breakpoints": true
     }
   ]
 }

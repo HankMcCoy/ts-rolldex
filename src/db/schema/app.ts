@@ -166,6 +166,29 @@ export const mapPins = pgTable(
 	],
 );
 
+export const campaignTemplates = pgTable(
+	"campaign_templates",
+	{
+		id: idColumn(),
+		campaignId: text("campaign_id")
+			.notNull()
+			.references(() => campaigns.id, { onDelete: "cascade" }),
+		name: text("name").notNull(),
+		body: text("body").notNull().default(""),
+		// When true the body is wrapped in a `:::stat-block ... :::` callout at
+		// insert time so the rendered note picks up the stat-block card styling.
+		wrapInStatBlock: boolean("wrap_in_stat_block").notNull().default(false),
+		createdAt: timestamp("created_at").notNull().defaultNow(),
+		updatedAt: timestamp("updated_at").notNull().defaultNow(),
+	},
+	(t) => [
+		uniqueIndex("campaign_templates_campaign_name_unique").on(
+			t.campaignId,
+			t.name,
+		),
+	],
+);
+
 export const members = pgTable(
 	"members",
 	{
@@ -195,7 +218,18 @@ export const campaignsRelations = relations(campaigns, ({ one, many }) => ({
 	gameSessions: many(gameSessions),
 	members: many(members),
 	maps: many(maps),
+	templates: many(campaignTemplates),
 }));
+
+export const campaignTemplatesRelations = relations(
+	campaignTemplates,
+	({ one }) => ({
+		campaign: one(campaigns, {
+			fields: [campaignTemplates.campaignId],
+			references: [campaigns.id],
+		}),
+	}),
+);
 
 export const mapsRelations = relations(maps, ({ one, many }) => ({
 	campaign: one(campaigns, {
