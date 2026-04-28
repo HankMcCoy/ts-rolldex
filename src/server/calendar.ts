@@ -13,6 +13,7 @@ interface DateConflict {
 	name: string;
 	monthIndex: number;
 	day: number;
+	field: "start" | "end";
 }
 
 export const updateCalendar = createServerFn({ method: "POST" })
@@ -32,50 +33,78 @@ export const updateCalendar = createServerFn({ method: "POST" })
 					eq(nouns.campaignId, data.campaignId),
 					isNotNull(nouns.dateYear),
 				),
-				columns: { id: true, name: true, dateMonth: true, dateDay: true },
+				columns: {
+					id: true,
+					name: true,
+					dateMonth: true,
+					dateDay: true,
+					endDateMonth: true,
+					endDateDay: true,
+				},
 			}),
 			db.query.gameSessions.findMany({
 				where: and(
 					eq(gameSessions.campaignId, data.campaignId),
 					isNotNull(gameSessions.dateYear),
 				),
-				columns: { id: true, name: true, dateMonth: true, dateDay: true },
+				columns: {
+					id: true,
+					name: true,
+					dateMonth: true,
+					dateDay: true,
+					endDateMonth: true,
+					endDateDay: true,
+				},
 			}),
 		]);
 
 		const conflicts: DateConflict[] = [];
 		const months = data.calendar.months;
-		for (const n of datedNouns) {
-			const m = n.dateMonth as number;
-			const d = n.dateDay as number;
-			if (m < 0 || m >= months.length || d > months[m].days) {
-				conflicts.push({
-					kind: "noun",
-					id: n.id,
-					name: n.name,
-					monthIndex: m,
-					day: d,
-				});
+
+		function check(
+			kind: "noun" | "session",
+			id: string,
+			name: string,
+			field: "start" | "end",
+			month: number | null,
+			day: number | null,
+		) {
+			if (month === null || day === null) return;
+			if (month < 0 || month >= months.length || day > months[month].days) {
+				conflicts.push({ kind, id, name, monthIndex: month, day, field });
 			}
 		}
+
+		for (const n of datedNouns) {
+			check(
+				"noun",
+				n.id,
+				n.name,
+				"start",
+				n.dateMonth as number,
+				n.dateDay as number,
+			);
+			check("noun", n.id, n.name, "end", n.endDateMonth, n.endDateDay);
+		}
 		for (const s of datedSessions) {
-			const m = s.dateMonth as number;
-			const d = s.dateDay as number;
-			if (m < 0 || m >= months.length || d > months[m].days) {
-				conflicts.push({
-					kind: "session",
-					id: s.id,
-					name: s.name,
-					monthIndex: m,
-					day: d,
-				});
-			}
+			check(
+				"session",
+				s.id,
+				s.name,
+				"start",
+				s.dateMonth as number,
+				s.dateDay as number,
+			);
+			check("session", s.id, s.name, "end", s.endDateMonth, s.endDateDay);
 		}
 
 		if (conflicts.length > 0) {
 			const summary = conflicts
 				.slice(0, 5)
-				.map((c) => `"${c.name}" (month ${c.monthIndex + 1}, day ${c.day})`)
+				.map(
+					(c) =>
+						`"${c.name}" (${c.field} month ${c.monthIndex + 1}, day ${c.day})`,
+				)
 				.join(", ");
 			const more =
 				conflicts.length > 5 ? ` and ${conflicts.length - 5} more` : "";
