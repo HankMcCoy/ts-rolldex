@@ -1,4 +1,5 @@
 import { lazy, Suspense } from "react";
+import type { CampaignTemplate } from "@/components/markdown/extensions/slash-command";
 
 export interface MarkdownEditorProps {
 	value: string;
@@ -9,6 +10,8 @@ export interface MarkdownEditorProps {
 	maxLength?: number;
 	ariaLabel?: string;
 	disabled?: boolean;
+	/** Per-campaign user templates surfaced in the slash menu. */
+	templates?: CampaignTemplate[];
 }
 
 const MarkdownEditorImpl = lazy(() => import("./MarkdownEditor.impl"));

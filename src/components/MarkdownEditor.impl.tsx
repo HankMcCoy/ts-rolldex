@@ -23,6 +23,7 @@ import { Markdown, type MarkdownStorage } from "tiptap-markdown";
 import { Callout } from "@/components/markdown/extensions/callout";
 import { EnforceTableHeader } from "@/components/markdown/extensions/enforce-table-header";
 import {
+	type CampaignTemplate,
 	type CommandItem,
 	SlashCommand,
 	type SlashCommandRendererHandlers,
@@ -102,6 +103,7 @@ export interface MarkdownEditorImplProps {
 	maxLength?: number;
 	ariaLabel?: string;
 	disabled?: boolean;
+	templates?: CampaignTemplate[];
 }
 
 interface SlashState {
@@ -120,7 +122,10 @@ export default function MarkdownEditorImpl({
 	maxLength,
 	ariaLabel,
 	disabled = false,
+	templates,
 }: MarkdownEditorImplProps) {
+	const templatesRef = useRef<CampaignTemplate[]>(templates ?? []);
+	templatesRef.current = templates ?? [];
 	const [slash, setSlash] = useState<SlashState | null>(null);
 	const slashRef = useRef<SlashState | null>(null);
 	slashRef.current = slash;
@@ -169,6 +174,7 @@ export default function MarkdownEditorImpl({
 				tightLists: true,
 			}),
 			SlashCommand.configure({
+				getTemplates: () => templatesRef.current,
 				createRenderer: (): SlashCommandRendererHandlers => ({
 					onStart: (props) => {
 						const rect = props.clientRect ? props.clientRect() : null;

@@ -8,6 +8,7 @@ import {
 	ArrowLeftToLine,
 	ArrowRightToLine,
 	ArrowUpToLine,
+	FileCode,
 	Heading1,
 	Heading2,
 	Heading3,
@@ -17,13 +18,18 @@ import {
 	Minus,
 	Quote,
 	Rows3,
-	Shield,
 	SquareCode,
 	Table as TableIcon,
 	Trash2,
 } from "lucide-react";
-import { ADVERSARY_TEMPLATE_NODES } from "@/components/markdown/extensions/adversary-template";
 import type { SlashMenuItem } from "@/components/markdown/SlashMenu";
+
+export interface CampaignTemplate {
+	id: string;
+	name: string;
+	body: string;
+	wrapInStatBlock: boolean;
+}
 
 interface CommandItem extends SlashMenuItem {
 	keywords: string[];
@@ -161,19 +167,6 @@ const TEXT_ITEMS: CommandItem[] = [
 				.run(),
 	},
 	{
-		id: "adversary",
-		label: "Adversary stat block",
-		icon: Shield,
-		keywords: ["adversary", "stat", "monster", "npc", "enemy", "daggerheart"],
-		command: ({ editor, range }) =>
-			editor
-				.chain()
-				.focus()
-				.deleteRange(range)
-				.insertContent(ADVERSARY_TEMPLATE_NODES)
-				.run(),
-	},
-	{
 		id: "hr",
 		label: "Divider",
 		hint: "---",
@@ -292,6 +285,26 @@ export interface SlashCommandRendererHandlers {
 
 export interface SlashCommandOptions {
 	createRenderer: () => SlashCommandRendererHandlers;
+	/**
+	 * Per-render callback so the menu always sees the latest templates without
+	 * needing to recreate the editor when the campaign's template list changes.
+	 */
+	getTemplates: () => CampaignTemplate[];
+}
+
+function templateItem(template: CampaignTemplate): CommandItem {
+	return {
+		id: `template-${template.id}`,
+		label: template.name,
+		icon: FileCode,
+		keywords: ["template"],
+		command: ({ editor, range }) => {
+			const md = template.wrapInStatBlock
+				? `:::stat-block\n${template.body}\n:::`
+				: template.body;
+			editor.chain().focus().deleteRange(range).insertContent(md).run();
+		},
+	};
 }
 
 export const SlashCommand = Extension.create<SlashCommandOptions>({
@@ -302,10 +315,12 @@ export const SlashCommand = Extension.create<SlashCommandOptions>({
 			createRenderer: () => {
 				throw new Error("SlashCommand: createRenderer must be provided");
 			},
+			getTemplates: () => [],
 		};
 	},
 
 	addProseMirrorPlugins() {
+		const getTemplates = this.options.getTemplates;
 		return [
 			Suggestion<CommandItem>({
 				editor: this.editor,
@@ -316,7 +331,8 @@ export const SlashCommand = Extension.create<SlashCommandOptions>({
 					if (editor.isActive("table")) {
 						return filter(TABLE_ITEMS, query);
 					}
-					const filtered = filter(TEXT_ITEMS, query);
+					const templates = getTemplates().map(templateItem);
+					const filtered = filter([...TEXT_ITEMS, ...templates], query);
 					const dynamic = dynamicTableItem(query);
 					if (dynamic && !filtered.some((i) => i.id === dynamic.id)) {
 						filtered.unshift(dynamic);

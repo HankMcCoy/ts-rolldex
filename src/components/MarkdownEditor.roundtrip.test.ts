@@ -10,7 +10,6 @@ import {
 import StarterKit from "@tiptap/starter-kit";
 import { Markdown, type MarkdownStorage } from "tiptap-markdown";
 import { describe, expect, it } from "vitest";
-import { ADVERSARY_TEMPLATE_NODES as ADVERSARY_TEMPLATE_NODES_TEST } from "@/components/markdown/extensions/adversary-template";
 import { Callout } from "@/components/markdown/extensions/callout";
 import { EnforceTableHeader } from "@/components/markdown/extensions/enforce-table-header";
 
@@ -150,27 +149,9 @@ describe("markdown editor round-trip", () => {
 		expectIdempotent("Before.\n\n:::note\nMid.\n:::\n\nAfter.\n");
 	});
 
-	it("adversary template serialises to a stat-block fence", () => {
-		const editor = makeEditor("");
-		editor
-			.chain()
-			.focus()
-			// biome-ignore lint/suspicious/noExplicitAny: ProseMirror JSON is loosely typed
-			.insertContent(ADVERSARY_TEMPLATE_NODES_TEST as any)
-			.run();
-		const md = editor.storage.markdown.getMarkdown();
-		expect(md.startsWith(":::stat-block\n")).toBe(true);
-		expect(md).toContain("Adversary Name");
-		expect(md.trimEnd().endsWith(":::")).toBe(true);
-		// And it should be idempotent.
-		const second = (() => {
-			const e2 = makeEditor(md);
-			const out = e2.storage.markdown.getMarkdown();
-			e2.destroy();
-			return out;
-		})();
-		expect(second).toBe(md);
-		editor.destroy();
+	it("inserting markdown into an empty editor round-trips through stat-block", () => {
+		const md = ":::stat-block\n## Adversary\n\n**Stats:** HP 7\n:::\n";
+		expectIdempotent(md);
 	});
 
 	it("re-promotes a body row to header after the original header is removed", () => {
