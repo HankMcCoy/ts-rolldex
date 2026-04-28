@@ -76,9 +76,20 @@ export function QuickFindDialog({ campaignId, accessLevel }: Props) {
 		}, 150);
 	}
 
-	function handleSelect(href: string) {
+	function handleSelectNoun(nounId: string) {
 		setOpen(false);
-		navigate({ href });
+		navigate({
+			to: "/campaigns/$campaignId/nouns/$nounId",
+			params: { campaignId, nounId },
+		});
+	}
+
+	function handleSelectSession(sessionId: string) {
+		setOpen(false);
+		navigate({
+			to: "/campaigns/$campaignId/sessions/$sessionId",
+			params: { campaignId, sessionId },
+		});
 	}
 
 	function handleCreateEntity(name: string) {
@@ -111,9 +122,7 @@ export function QuickFindDialog({ campaignId, accessLevel }: Props) {
 							{results.nouns.map((n) => (
 								<CommandItem
 									key={n.id}
-									onSelect={() =>
-										handleSelect(`/campaigns/${campaignId}/nouns/${n.id}`)
-									}
+									onSelect={() => handleSelectNoun(n.id)}
 								>
 									<EntityAvatar
 										entityType={n.nounType}
@@ -137,9 +146,7 @@ export function QuickFindDialog({ campaignId, accessLevel }: Props) {
 							{results.sessions.map((s) => (
 								<CommandItem
 									key={s.id}
-									onSelect={() =>
-										handleSelect(`/campaigns/${campaignId}/sessions/${s.id}`)
-									}
+									onSelect={() => handleSelectSession(s.id)}
 								>
 									<EntityAvatar
 										entityType="SESSION"
