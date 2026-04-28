@@ -292,6 +292,22 @@ export interface SlashCommandOptions {
 	getTemplates: () => CampaignTemplate[];
 }
 
+/**
+ * markdown-it-container only nests when the outer fence is longer than every
+ * inner fence. If the body already has `:::note ... :::` callouts (or longer),
+ * a 3-colon outer wrap would be closed by the first inner `:::`. Use a fence
+ * one colon longer than the longest existing fence in the body.
+ */
+function wrapInStatBlock(body: string): string {
+	let maxFence = 2;
+	for (const line of body.split("\n")) {
+		const m = /^(:{3,})/.exec(line);
+		if (m && m[1].length > maxFence) maxFence = m[1].length;
+	}
+	const fence = ":".repeat(maxFence + 1);
+	return `${fence}stat-block\n${body}\n${fence}`;
+}
+
 function templateItem(template: CampaignTemplate): CommandItem {
 	return {
 		id: `template-${template.id}`,
@@ -300,7 +316,7 @@ function templateItem(template: CampaignTemplate): CommandItem {
 		keywords: ["template"],
 		command: ({ editor, range }) => {
 			const md = template.wrapInStatBlock
-				? `:::stat-block\n${template.body}\n:::`
+				? wrapInStatBlock(template.body)
 				: template.body;
 			editor.chain().focus().deleteRange(range).insertContent(md).run();
 		},

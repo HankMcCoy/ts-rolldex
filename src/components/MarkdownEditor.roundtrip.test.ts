@@ -154,6 +154,20 @@ describe("markdown editor round-trip", () => {
 		expectIdempotent(md);
 	});
 
+	it("nested callout uses a longer outer fence so it round-trips", () => {
+		// Inner :::note ... ::: would close an outer ::: prematurely. The
+		// serializer must emit a fence with one more colon than the deepest
+		// nested fence — here ::::stat-block ... :::: with a 3-colon :::note
+		// inside.
+		const md = roundtrip(
+			":::stat-block\n**Outer text.**\n\n:::note\nInner stuff.\n:::\n\nMore outer text.\n:::\n",
+		);
+		expect(md).toContain("::::stat-block");
+		expect(md).toContain(":::note");
+		expect(md).not.toContain("\n:::\n:::\n"); // collapsed double-close => bad
+		expectIdempotent(md);
+	});
+
 	it("re-promotes a body row to header after the original header is removed", () => {
 		const md = roundtrip("| H1 | H2 |\n| --- | --- |\n| a | b |\n| c | d |\n");
 		const editor = makeEditor(md);

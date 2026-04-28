@@ -20,6 +20,24 @@ declare module "@tiptap/core" {
 const INPUT_RULE = /^:::([a-z][a-z0-9-]*)\s$/i;
 
 /**
+ * markdown-it-container nests containers by requiring the outer fence to use
+ * *more* colons than the inner. Returns how deep callout nesting goes inside
+ * `node` (0 = no nested callouts, 1 = one level, …) so the serializer can
+ * emit a fence one colon longer than the deepest inner fence.
+ */
+// biome-ignore lint/suspicious/noExplicitAny: ProseMirror node walking is loosely typed
+function maxCalloutDepth(node: any): number {
+	let max = 0;
+	// biome-ignore lint/suspicious/noExplicitAny: same
+	node.forEach((child: any) => {
+		const childContrib = child.type.name === "callout" ? 1 : 0;
+		const depth = maxCalloutDepth(child) + childContrib;
+		if (depth > max) max = depth;
+	});
+	return max;
+}
+
+/**
  * Container directive: `:::name ... :::` block fences. Renders as a styled
  * card in the editor and (via remark-directive) in the read view. Round-trips
  * through tiptap-markdown by registering a markdown-it-container plugin that
@@ -94,9 +112,10 @@ export const Callout = Node.create({
 			markdown: {
 				// biome-ignore lint/suspicious/noExplicitAny: tiptap-markdown serializer state has no exported types
 				serialize(state: any, node: any) {
-					state.write(`:::${node.attrs.name}\n`);
+					const fence = ":".repeat(3 + maxCalloutDepth(node));
+					state.write(`${fence}${node.attrs.name}\n`);
 					state.renderContent(node);
-					state.write(":::");
+					state.write(fence);
 					state.closeBlock(node);
 				},
 				parse: {
