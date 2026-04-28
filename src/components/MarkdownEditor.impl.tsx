@@ -150,7 +150,7 @@ export default function MarkdownEditorImpl({
 				},
 			}),
 			Placeholder.configure({ placeholder: placeholder ?? "" }),
-			CharacterCount.configure({}),
+			CharacterCount.configure(maxLength != null ? { limit: maxLength } : {}),
 			Table.configure({ resizable: true, allowTableNodeSelection: true }),
 			TableRow,
 			TableCell,
