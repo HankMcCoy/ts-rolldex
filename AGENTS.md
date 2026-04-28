@@ -49,15 +49,44 @@ The sessions table is named `game_sessions` (Drizzle variable `gameSessions`). N
 
 ```
 campaigns       — owned by a user (createdById); name unique per owner
-nouns           — belong to a campaign; type: PERSON | PLACE | THING | FACTION
+                  embeds a per-campaign `calendar` (jsonb): array of months with
+                  names + day counts. Defaults to Earth Gregorian.
+nouns           — belong to a campaign; type: PERSON | PLACE | THING | FACTION | EVENT
                   isSecret hides from READ_ONLY users; privateNotes stripped for READ_ONLY
-game_sessions   — belong to a campaign; same secret/private pattern as nouns
+                  optional imageKey (R2 storage); optional date / endDate triplet
+                  (year, monthIndex, day) for timeline placement
+game_sessions   — belong to a campaign; same secret/private pattern as nouns;
+                  same optional date / endDate triplet
 members         — join table: (campaignId, email) unique; userId nullable until linked
+maps            — belong to a campaign; optional imageKey; isSecret hides from READ_ONLY
+map_pins        — belong to a map; reference exactly one of nounId or sessionId
+                  (DB CHECK enforces XOR); x/y are 0..1 fractions of the image
 ```
+
+Date columns are all-or-none and end-requires-start (DB CHECKs in `app.ts`).
+Day-within-month is enforced in app code, not the DB — `updateCalendar`
+(`src/server/calendar.ts`) refuses to save a calendar that would orphan
+existing dated rows on either start or end.
 
 ## Relationship detection
 
 `src/lib/relationships.ts` computes related entities via bi-directional text search: an entity is "related" if its name appears in the current entity's text, OR if the current entity's name appears in the candidate's text. This runs in-memory on every entity load (fetches all campaign entities). Fine at typical campaign sizes (tens to low hundreds of entities).
+
+## Timeline & maps
+
+- `src/server/timeline.ts` + `loadTimelineEntries` in `query-helpers.ts` merge
+  dated nouns and sessions into a single list ordered by an absolute-day key
+  derived from the campaign's calendar.
+- Map pins target exactly one of a noun or a session. `createPin` validates
+  the target lives in the same campaign as the map — never trust the FK alone,
+  it only proves the row exists somewhere.
+
+## Storage
+
+Entity and map images go to Cloudflare R2 via `src/lib/storage.ts`. Bucket
+objects are world-readable: once a URL is observed, flipping `isSecret`
+later does not revoke it. R2 env vars (`R2_*`) are required at boot —
+see `src/lib/env.ts`.
 
 ## Running locally
 
