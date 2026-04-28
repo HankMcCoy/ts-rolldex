@@ -3,7 +3,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { and, eq, ne } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/db/index";
-import { mapPins, maps } from "@/db/schema/index";
+import { gameSessions, mapPins, maps, nouns } from "@/db/schema/index";
 import { requireCampaignAccess, requireSession } from "@/lib/access";
 import { isUniqueViolation } from "@/lib/db-errors";
 import { err, ok } from "@/lib/result";
@@ -345,6 +345,30 @@ export const createPin = createServerFn({ method: "POST" })
 			columns: { id: true },
 		});
 		if (!map) return err("Map not found.");
+
+		// Reject cross-campaign targets: the FK only proves the row exists somewhere,
+		// not that it lives in this campaign. Without this check an admin who knows
+		// a foreign noun/session ID could pin it and surface its name/summary/image
+		// via the get-map join.
+		if (data.nounId) {
+			const noun = await db.query.nouns.findFirst({
+				where: and(
+					eq(nouns.id, data.nounId),
+					eq(nouns.campaignId, data.campaignId),
+				),
+				columns: { id: true },
+			});
+			if (!noun) return err("Entity not found in this campaign.");
+		} else if (data.sessionId) {
+			const session = await db.query.gameSessions.findFirst({
+				where: and(
+					eq(gameSessions.id, data.sessionId),
+					eq(gameSessions.campaignId, data.campaignId),
+				),
+				columns: { id: true },
+			});
+			if (!session) return err("Session not found in this campaign.");
+		}
 
 		const [pin] = await db
 			.insert(mapPins)
