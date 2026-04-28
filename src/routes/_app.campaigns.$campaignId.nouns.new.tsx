@@ -22,6 +22,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
+import { applyDateRefinements, dateFields } from "@/lib/date-schema";
 import { zodResolver } from "@/lib/form-resolver";
 import { NOUN_TYPE_LABELS, NOUN_TYPES, nounTypeSchema } from "@/lib/noun-types";
 import { createNoun } from "@/server/nouns";
@@ -37,45 +38,17 @@ export const Route = createFileRoute("/_app/campaigns/$campaignId/nouns/new")({
 
 const parentRoute = getRouteApi("/_app/campaigns/$campaignId");
 
-const schema = z
-	.object({
+const schema = applyDateRefinements(
+	z.object({
 		name: z.string().min(1, "Name is required").max(200),
 		nounType: nounTypeSchema,
 		summary: z.string().min(1, "Summary is required").max(5_000),
 		notes: z.string(),
 		privateNotes: z.string(),
 		isSecret: z.boolean(),
-		dateYear: z.number().int().optional(),
-		dateMonth: z.number().int().optional(),
-		dateDay: z.number().int().optional(),
-		endDateYear: z.number().int().optional(),
-		endDateMonth: z.number().int().optional(),
-		endDateDay: z.number().int().optional(),
-	})
-	.refine(
-		(d) => {
-			const present = [d.dateYear, d.dateMonth, d.dateDay].filter(
-				(v) => v !== undefined,
-			).length;
-			return present === 0 || present === 3;
-		},
-		{
-			message: "Year, month, and day must be set together",
-			path: ["dateDay"],
-		},
-	)
-	.refine(
-		(d) => {
-			const present = [d.endDateYear, d.endDateMonth, d.endDateDay].filter(
-				(v) => v !== undefined,
-			).length;
-			return present === 0 || present === 3;
-		},
-		{
-			message: "End year, month, and day must be set together",
-			path: ["endDateDay"],
-		},
-	);
+		...dateFields,
+	}),
+);
 type Values = z.infer<typeof schema>;
 
 function NewNounPage() {

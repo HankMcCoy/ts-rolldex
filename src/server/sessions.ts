@@ -11,6 +11,11 @@ import {
 	toAbsoluteDay,
 	validateDateAgainstCalendar,
 } from "@/lib/calendar";
+import {
+	applyDateRefinements,
+	dateFields,
+	type DateFieldsValue,
+} from "@/lib/date-schema";
 import { isUniqueViolation } from "@/lib/db-errors";
 import { computeRelatedEntities } from "@/lib/relationships";
 import { err, ok } from "@/lib/result";
@@ -20,50 +25,7 @@ import {
 	visibilityFilter,
 } from "@/server/query-helpers";
 
-const dateInputSchema = z
-	.object({
-		dateYear: z.number().int().optional(),
-		dateMonth: z.number().int().optional(),
-		dateDay: z.number().int().optional(),
-		endDateYear: z.number().int().optional(),
-		endDateMonth: z.number().int().optional(),
-		endDateDay: z.number().int().optional(),
-	})
-	.refine(
-		(d) => {
-			const present = [d.dateYear, d.dateMonth, d.dateDay].filter(
-				(v) => v !== undefined,
-			).length;
-			return present === 0 || present === 3;
-		},
-		{ message: "Year, month, and day must be set together" },
-	)
-	.refine(
-		(d) => {
-			const present = [d.endDateYear, d.endDateMonth, d.endDateDay].filter(
-				(v) => v !== undefined,
-			).length;
-			return present === 0 || present === 3;
-		},
-		{ message: "End year, month, and day must be set together" },
-	)
-	.refine(
-		(d) => {
-			const hasEnd =
-				d.endDateYear !== undefined ||
-				d.endDateMonth !== undefined ||
-				d.endDateDay !== undefined;
-			if (!hasEnd) return true;
-			return (
-				d.dateYear !== undefined &&
-				d.dateMonth !== undefined &&
-				d.dateDay !== undefined
-			);
-		},
-		{ message: "End date requires a start date" },
-	);
-
-type DateInput = z.infer<typeof dateInputSchema>;
+type DateInput = DateFieldsValue;
 
 interface ResolvedDateColumns {
 	dateYear: number | null;
@@ -199,16 +161,17 @@ export const getSession = createServerFn()
 
 export const createSession = createServerFn({ method: "POST" })
 	.inputValidator(
-		z
-			.object({
+		applyDateRefinements(
+			z.object({
 				campaignId: z.string(),
 				name: z.string().min(1).max(200),
 				summary: z.string().min(1).max(5_000),
 				notes: z.string().max(50_000),
 				privateNotes: z.string().max(50_000),
 				isSecret: z.boolean(),
-			})
-			.and(dateInputSchema),
+				...dateFields,
+			}),
+		),
 	)
 	.handler(async ({ data }) => {
 		const { user } = await requireSession();
@@ -251,8 +214,8 @@ export const createSession = createServerFn({ method: "POST" })
 
 export const updateSession = createServerFn({ method: "POST" })
 	.inputValidator(
-		z
-			.object({
+		applyDateRefinements(
+			z.object({
 				campaignId: z.string(),
 				sessionId: z.string(),
 				name: z.string().min(1).max(200),
@@ -260,8 +223,9 @@ export const updateSession = createServerFn({ method: "POST" })
 				notes: z.string().max(50_000),
 				privateNotes: z.string().max(50_000),
 				isSecret: z.boolean(),
-			})
-			.and(dateInputSchema),
+				...dateFields,
+			}),
+		),
 	)
 	.handler(async ({ data }) => {
 		const { user } = await requireSession();
