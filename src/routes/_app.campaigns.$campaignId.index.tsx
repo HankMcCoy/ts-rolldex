@@ -4,7 +4,7 @@ import { EntityAvatar } from "@/components/EntityAvatar";
 import { Page } from "@/components/Page";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { NOUN_TYPE_LABELS, NOUN_TYPES } from "@/lib/noun-types";
+import { NOUN_TYPE_LABELS } from "@/lib/noun-types";
 import { getCampaignDashboard } from "@/server/campaigns";
 
 export const Route = createFileRoute("/_app/campaigns/$campaignId/")({
@@ -64,27 +64,25 @@ function CampaignDashboard() {
 					{/* Sessions section */}
 					<section>
 						<div className="mb-3 flex items-center justify-between">
-							<h2 className="island-kicker">Sessions</h2>
-							<div className="flex gap-2">
-								<Button variant="outline" size="sm" asChild>
+							<h2 className="island-kicker">
+								<Link
+									to="/campaigns/$campaignId/sessions"
+									params={{ campaignId: campaign.id }}
+									className="no-underline hover:text-[var(--sea-ink)]"
+								>
+									Sessions
+								</Link>
+							</h2>
+							{isAdmin && (
+								<Button size="sm" asChild>
 									<Link
-										to="/campaigns/$campaignId/sessions"
+										to="/campaigns/$campaignId/sessions/new"
 										params={{ campaignId: campaign.id }}
 									>
-										All sessions
+										+ Session
 									</Link>
 								</Button>
-								{isAdmin && (
-									<Button size="sm" asChild>
-										<Link
-											to="/campaigns/$campaignId/sessions/new"
-											params={{ campaignId: campaign.id }}
-										>
-											+ Session
-										</Link>
-									</Button>
-								)}
-							</div>
+							)}
 						</div>
 
 						{recentSessions.length === 0 ? (
@@ -123,27 +121,25 @@ function CampaignDashboard() {
 					{/* Maps section */}
 					<section>
 						<div className="mb-3 flex items-center justify-between">
-							<h2 className="island-kicker">Maps</h2>
-							<div className="flex gap-2">
-								<Button variant="outline" size="sm" asChild>
+							<h2 className="island-kicker">
+								<Link
+									to="/campaigns/$campaignId/maps"
+									params={{ campaignId: campaign.id }}
+									className="no-underline hover:text-[var(--sea-ink)]"
+								>
+									Maps
+								</Link>
+							</h2>
+							{isAdmin && (
+								<Button size="sm" asChild>
 									<Link
-										to="/campaigns/$campaignId/maps"
+										to="/campaigns/$campaignId/maps/new"
 										params={{ campaignId: campaign.id }}
 									>
-										All maps
+										+ Map
 									</Link>
 								</Button>
-								{isAdmin && (
-									<Button size="sm" asChild>
-										<Link
-											to="/campaigns/$campaignId/maps/new"
-											params={{ campaignId: campaign.id }}
-										>
-											+ Map
-										</Link>
-									</Button>
-								)}
-							</div>
+							)}
 						</div>
 
 						{maps.length === 0 ? (
@@ -183,17 +179,15 @@ function CampaignDashboard() {
 
 					{timelinePreview.length > 0 && (
 						<section>
-							<div className="mb-3 flex items-center justify-between">
-								<h2 className="island-kicker">Timeline</h2>
-								<Button variant="outline" size="sm" asChild>
-									<Link
-										to="/campaigns/$campaignId/timeline"
-										params={{ campaignId: campaign.id }}
-									>
-										View timeline
-									</Link>
-								</Button>
-							</div>
+							<h2 className="island-kicker mb-3">
+								<Link
+									to="/campaigns/$campaignId/timeline"
+									params={{ campaignId: campaign.id }}
+									className="no-underline hover:text-[var(--sea-ink)]"
+								>
+									Timeline
+								</Link>
+							</h2>
 							<ul className="space-y-2">
 								{timelinePreview.map((entry) => {
 									const dateText = entry.dateText;
@@ -298,7 +292,15 @@ function CampaignDashboard() {
 				{/* Entities section */}
 				<section>
 					<div className="mb-3 flex items-center justify-between">
-						<h2 className="island-kicker">Entities</h2>
+						<h2 className="island-kicker">
+							<Link
+								to="/campaigns/$campaignId/nouns"
+								params={{ campaignId: campaign.id }}
+								className="no-underline hover:text-[var(--sea-ink)]"
+							>
+								Entities
+							</Link>
+						</h2>
 						{isAdmin && (
 							<Button size="sm" asChild>
 								<Link
@@ -309,28 +311,6 @@ function CampaignDashboard() {
 								</Link>
 							</Button>
 						)}
-					</div>
-
-					<div className="mb-4 flex flex-wrap gap-2">
-						<Button variant="outline" size="sm" asChild>
-							<Link
-								to="/campaigns/$campaignId/nouns"
-								params={{ campaignId: campaign.id }}
-							>
-								All
-							</Link>
-						</Button>
-						{NOUN_TYPES.map((t) => (
-							<Button key={t} variant="outline" size="sm" asChild>
-								<Link
-									to="/campaigns/$campaignId/nouns"
-									params={{ campaignId: campaign.id }}
-									search={{ type: t }}
-								>
-									{NOUN_TYPE_LABELS[t]}s
-								</Link>
-							</Button>
-						))}
 					</div>
 
 					{entities.length === 0 ? (
