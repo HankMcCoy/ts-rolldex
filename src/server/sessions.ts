@@ -3,105 +3,18 @@ import { createServerFn } from "@tanstack/react-start";
 import { and, eq, ne } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/db/index";
-import { campaigns, gameSessions } from "@/db/schema/index";
+import { gameSessions } from "@/db/schema/index";
 import { requireCampaignAccess, requireSession } from "@/lib/access";
-import {
-	type Calendar,
-	EARTH_GREGORIAN_CALENDAR,
-	toAbsoluteDay,
-	validateDateAgainstCalendar,
-} from "@/lib/calendar";
-import {
-	applyDateRefinements,
-	dateFields,
-	type DateFieldsValue,
-} from "@/lib/date-schema";
+import { applyDateRefinements, dateFields } from "@/lib/date-schema";
 import { isUniqueViolation } from "@/lib/db-errors";
 import { computeRelatedEntities } from "@/lib/relationships";
 import { err, ok } from "@/lib/result";
+import { resolveDateColumns } from "@/server/date-resolver";
 import {
 	loadCampaignCandidates,
 	loadMapPinLocations,
 	visibilityFilter,
 } from "@/server/query-helpers";
-
-type DateInput = DateFieldsValue;
-
-interface ResolvedDateColumns {
-	dateYear: number | null;
-	dateMonth: number | null;
-	dateDay: number | null;
-	endDateYear: number | null;
-	endDateMonth: number | null;
-	endDateDay: number | null;
-}
-
-async function resolveDateColumns(
-	campaignId: string,
-	input: DateInput,
-): Promise<
-	{ ok: true; cols: ResolvedDateColumns } | { ok: false; error: string }
-> {
-	const empty: ResolvedDateColumns = {
-		dateYear: null,
-		dateMonth: null,
-		dateDay: null,
-		endDateYear: null,
-		endDateMonth: null,
-		endDateDay: null,
-	};
-	if (
-		input.dateYear === undefined ||
-		input.dateMonth === undefined ||
-		input.dateDay === undefined
-	) {
-		return { ok: true, cols: empty };
-	}
-	const row = await db.query.campaigns.findFirst({
-		where: eq(campaigns.id, campaignId),
-		columns: { calendar: true },
-	});
-	const calendar: Calendar = row?.calendar ?? EARTH_GREGORIAN_CALENDAR;
-	const start = {
-		year: input.dateYear,
-		monthIndex: input.dateMonth,
-		day: input.dateDay,
-	};
-	const v = validateDateAgainstCalendar(start, calendar);
-	if (!v.ok) return { ok: false, error: v.error };
-
-	const cols: ResolvedDateColumns = {
-		...empty,
-		dateYear: input.dateYear,
-		dateMonth: input.dateMonth,
-		dateDay: input.dateDay,
-	};
-
-	if (
-		input.endDateYear !== undefined &&
-		input.endDateMonth !== undefined &&
-		input.endDateDay !== undefined
-	) {
-		const end = {
-			year: input.endDateYear,
-			monthIndex: input.endDateMonth,
-			day: input.endDateDay,
-		};
-		const ev = validateDateAgainstCalendar(end, calendar);
-		if (!ev.ok) return { ok: false, error: `End date: ${ev.error}` };
-		if (toAbsoluteDay(end, calendar) < toAbsoluteDay(start, calendar)) {
-			return {
-				ok: false,
-				error: "End date must be on or after the start date",
-			};
-		}
-		cols.endDateYear = input.endDateYear;
-		cols.endDateMonth = input.endDateMonth;
-		cols.endDateDay = input.endDateDay;
-	}
-
-	return { ok: true, cols };
-}
 
 export const getSessions = createServerFn()
 	.inputValidator(z.object({ campaignId: z.string() }))
