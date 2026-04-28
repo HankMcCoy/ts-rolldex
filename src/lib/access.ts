@@ -54,6 +54,51 @@ export async function getOptionalSession(): Promise<{
 }
 
 /**
+ * The membership rule. A user is a member of a campaign if a row exists with
+ * either their userId, OR their email when the row hasn't been linked yet
+ * (invite-before-account). Never match email unconditionally — once a row is
+ * linked the userId match is authoritative.
+ */
+async function findMembership(
+	campaignId: string,
+	user: Pick<SessionUser, "id" | "email">,
+) {
+	return db.query.members.findFirst({
+		where: and(
+			eq(members.campaignId, campaignId),
+			or(
+				eq(members.userId, user.id),
+				and(
+					eq(members.email, user.email.toLowerCase()),
+					isNull(members.userId),
+				),
+			),
+		),
+		columns: { id: true },
+	});
+}
+
+async function accessFor(
+	campaign: Campaign,
+	user: Pick<SessionUser, "id" | "email">,
+): Promise<AccessLevel> {
+	if (campaign.createdById === user.id) return "ADMIN";
+	const member = await findMembership(campaign.id, user);
+	return member ? "READ_ONLY" : "NONE";
+}
+
+function enforceMinimum(
+	access: AccessLevel,
+	minimumLevel: "ADMIN" | "READ_ONLY",
+): "ADMIN" | "READ_ONLY" {
+	if (access === "NONE") throw notFound();
+	if (minimumLevel === "ADMIN" && access !== "ADMIN") {
+		throw new Response("Forbidden", { status: 403 });
+	}
+	return access;
+}
+
+/**
  * Determines a user's access level for a campaign.
  * ADMIN = campaign creator
  * READ_ONLY = invited member (matched by userId or email for invite-before-account)
@@ -66,24 +111,8 @@ export async function getCampaignAccess(
 	const campaign = await db.query.campaigns.findFirst({
 		where: eq(campaigns.id, campaignId),
 	});
-
 	if (!campaign) return "NONE";
-	if (campaign.createdById === user.id) return "ADMIN";
-
-	const member = await db.query.members.findFirst({
-		where: and(
-			eq(members.campaignId, campaignId),
-			or(
-				eq(members.userId, user.id),
-				and(
-					eq(members.email, user.email.toLowerCase()),
-					isNull(members.userId),
-				),
-			),
-		),
-	});
-
-	return member ? "READ_ONLY" : "NONE";
+	return accessFor(campaign, user);
 }
 
 /**
@@ -95,23 +124,12 @@ export async function requireCampaignAccess(
 	user: Pick<SessionUser, "id" | "email">,
 	minimumLevel: "ADMIN" | "READ_ONLY" = "READ_ONLY",
 ): Promise<"ADMIN" | "READ_ONLY"> {
-	const access = await getCampaignAccess(campaignId, user);
-
-	if (access === "NONE") {
-		throw notFound();
-	}
-
-	if (minimumLevel === "ADMIN" && access !== "ADMIN") {
-		throw new Response("Forbidden", { status: 403 });
-	}
-
-	return access as "ADMIN" | "READ_ONLY";
+	return enforceMinimum(await getCampaignAccess(campaignId, user), minimumLevel);
 }
 
 /**
- * Loads a campaign row alongside the caller's access level in a single query.
- * Use this when the caller needs the campaign body itself (avoids the second
- * findFirst that requireCampaignAccess + a follow-up query would do).
+ * Loads a campaign row alongside the caller's access level. Use this when the
+ * caller needs the campaign body itself.
  */
 export async function requireCampaign(
 	campaignId: string,
@@ -121,32 +139,10 @@ export async function requireCampaign(
 	const campaign = await db.query.campaigns.findFirst({
 		where: eq(campaigns.id, campaignId),
 	});
-
 	if (!campaign) throw notFound();
-
-	let accessLevel: AccessLevel;
-	if (campaign.createdById === user.id) {
-		accessLevel = "ADMIN";
-	} else {
-		const member = await db.query.members.findFirst({
-			where: and(
-				eq(members.campaignId, campaignId),
-				or(
-					eq(members.userId, user.id),
-					and(
-						eq(members.email, user.email.toLowerCase()),
-						isNull(members.userId),
-					),
-				),
-			),
-		});
-		accessLevel = member ? "READ_ONLY" : "NONE";
-	}
-
-	if (accessLevel === "NONE") throw notFound();
-	if (minimumLevel === "ADMIN" && accessLevel !== "ADMIN") {
-		throw new Response("Forbidden", { status: 403 });
-	}
-
+	const accessLevel = enforceMinimum(
+		await accessFor(campaign, user),
+		minimumLevel,
+	);
 	return { campaign, accessLevel };
 }
