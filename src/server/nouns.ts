@@ -10,27 +10,20 @@ import { isUniqueViolation } from "@/lib/db-errors";
 import { nounTypeSchema } from "@/lib/noun-types";
 import { computeRelatedEntities } from "@/lib/relationships";
 import { err, ok } from "@/lib/result";
-import { deleteObject, publicUrlFor, uploadObject } from "@/lib/storage";
+import { deleteObject } from "@/lib/storage";
 import { resolveDateColumns } from "@/server/date-resolver";
+import {
+	imageUrlFor,
+	performImageRemove,
+	performImageUpload,
+} from "@/server/image-uploads";
 import {
 	loadCampaignCandidates,
 	loadMapPinLocations,
 	visibilityFilter,
 } from "@/server/query-helpers";
 
-const ALLOWED_IMAGE_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
 const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
-
-function extensionFor(contentType: string): string {
-	if (contentType === "image/jpeg") return "jpg";
-	if (contentType === "image/png") return "png";
-	if (contentType === "image/webp") return "webp";
-	return "bin";
-}
-
-function imageUrlFor(imageKey: string | null): string | null {
-	return imageKey ? publicUrlFor(imageKey) : null;
-}
 
 export const getNouns = createServerFn()
 	.inputValidator(
@@ -270,44 +263,25 @@ export const uploadNounImage = createServerFn({ method: "POST" })
 		const { user } = await requireSession();
 		await requireCampaignAccess(data.campaignId, user, "ADMIN");
 
-		if (!ALLOWED_IMAGE_TYPES.has(data.file.type)) {
-			return err("Image must be a JPEG, PNG, or WebP file.");
-		}
-		if (data.file.size > MAX_IMAGE_BYTES) {
-			return err("Image must be 5 MB or smaller.");
-		}
+		const where = and(
+			eq(nouns.id, data.nounId),
+			eq(nouns.campaignId, data.campaignId),
+		);
 
-		const existing = await db.query.nouns.findFirst({
-			where: and(
-				eq(nouns.id, data.nounId),
-				eq(nouns.campaignId, data.campaignId),
-			),
-			columns: { imageKey: true },
+		return performImageUpload({
+			file: data.file,
+			maxBytes: MAX_IMAGE_BYTES,
+			keyPrefix: `nouns/${data.nounId}`,
+			notFoundMessage: "Entity not found.",
+			loadExistingKey: () =>
+				db.query.nouns.findFirst({ where, columns: { imageKey: true } }),
+			applyKey: async (key) => {
+				await db
+					.update(nouns)
+					.set({ imageKey: key, updatedAt: new Date() })
+					.where(where);
+			},
 		});
-		if (!existing) return err("Entity not found.");
-
-		const ext = extensionFor(data.file.type);
-		const key = `nouns/${data.nounId}/${crypto.randomUUID()}.${ext}`;
-		const bytes = new Uint8Array(await data.file.arrayBuffer());
-
-		await uploadObject(key, bytes, data.file.type);
-
-		await db
-			.update(nouns)
-			.set({ imageKey: key, updatedAt: new Date() })
-			.where(
-				and(eq(nouns.id, data.nounId), eq(nouns.campaignId, data.campaignId)),
-			);
-
-		if (existing.imageKey && existing.imageKey !== key) {
-			try {
-				await deleteObject(existing.imageKey);
-			} catch (e) {
-				console.error("Failed to delete prior noun image:", e);
-			}
-		}
-
-		return ok({ imageKey: key, imageUrl: publicUrlFor(key) });
 	});
 
 export const removeNounImage = createServerFn({ method: "POST" })
@@ -316,29 +290,20 @@ export const removeNounImage = createServerFn({ method: "POST" })
 		const { user } = await requireSession();
 		await requireCampaignAccess(data.campaignId, user, "ADMIN");
 
-		const existing = await db.query.nouns.findFirst({
-			where: and(
-				eq(nouns.id, data.nounId),
-				eq(nouns.campaignId, data.campaignId),
-			),
-			columns: { imageKey: true },
+		const where = and(
+			eq(nouns.id, data.nounId),
+			eq(nouns.campaignId, data.campaignId),
+		);
+
+		return performImageRemove({
+			notFoundMessage: "Entity not found.",
+			loadExistingKey: () =>
+				db.query.nouns.findFirst({ where, columns: { imageKey: true } }),
+			applyKey: async (key) => {
+				await db
+					.update(nouns)
+					.set({ imageKey: key, updatedAt: new Date() })
+					.where(where);
+			},
 		});
-		if (!existing) return err("Entity not found.");
-
-		await db
-			.update(nouns)
-			.set({ imageKey: null, updatedAt: new Date() })
-			.where(
-				and(eq(nouns.id, data.nounId), eq(nouns.campaignId, data.campaignId)),
-			);
-
-		if (existing.imageKey) {
-			try {
-				await deleteObject(existing.imageKey);
-			} catch (e) {
-				console.error("Failed to delete noun image:", e);
-			}
-		}
-
-		return ok({ success: true });
 	});
