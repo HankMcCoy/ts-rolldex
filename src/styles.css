@@ -7,7 +7,7 @@
 /* Bind Tailwind's `dark:` variant to a `.dark` parent class we never set,
    neutralizing the dark-mode utilities baked into shadcn primitives. */
 @custom-variant dark (&:is(.dark *));
-@plugin "@tailwindcss/typography";
+@plugin "../node_modules/@tailwindcss/typography";
 
 @theme inline {
   --font-display: 'Bebas Neue', Impact, sans-serif;

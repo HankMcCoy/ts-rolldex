@@ -1,8 +1,10 @@
 import { createAuthClient } from "better-auth/react";
 
-const baseURL = import.meta.env.VITE_APP_URL;
-if (!baseURL) throw new Error("VITE_APP_URL is not set");
+function getBaseURL(): string {
+	if (typeof window !== "undefined") return window.location.origin;
+	return process.env.APP_URL ?? "http://localhost:3000";
+}
 
-export const authClient = createAuthClient({ baseURL });
+export const authClient = createAuthClient({ baseURL: getBaseURL() });
 
 export const { signIn, signOut, signUp, useSession } = authClient;
