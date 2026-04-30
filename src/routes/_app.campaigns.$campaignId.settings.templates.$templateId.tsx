@@ -1,33 +1,36 @@
-import { createFileRoute, getRouteApi } from "@tanstack/react-router";
+import { createFileRoute, notFound } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { Page } from "@/components/Page";
 import {
 	TemplateForm,
 	type TemplateFormValues,
 } from "@/components/TemplateForm";
-import { getTemplate, updateTemplate } from "@/server/templates";
+import { campaignBundleQuery, useCampaign, useTemplate } from "@/lib/queries";
+import { updateTemplate } from "@/server/templates";
 
 export const Route = createFileRoute(
 	"/_app/campaigns/$campaignId/settings/templates/$templateId",
 )({
-	loader: ({ params }) =>
-		getTemplate({
-			data: {
-				campaignId: params.campaignId,
-				templateId: params.templateId,
-			},
-		}),
+	loader: async ({ context, params }) => {
+		const bundle = await context.queryClient.ensureQueryData(
+			campaignBundleQuery(params.campaignId),
+		);
+		const template = bundle.templates.find((t) => t.id === params.templateId);
+		if (!template) throw notFound();
+		return { template };
+	},
 	head: ({ loaderData }) => ({
-		meta: [{ title: `Edit ${loaderData?.name ?? "template"} - Rolldex` }],
+		meta: [
+			{ title: `Edit ${loaderData?.template.name ?? "template"} - Rolldex` },
+		],
 	}),
 	component: EditTemplatePage,
 });
 
-const parentRoute = getRouteApi("/_app/campaigns/$campaignId");
-
 function EditTemplatePage() {
-	const { campaign, accessLevel } = parentRoute.useLoaderData();
-	const template = Route.useLoaderData();
+	const { campaignId, templateId } = Route.useParams();
+	const { campaign, accessLevel } = useCampaign(campaignId);
+	const template = useTemplate(campaignId, templateId);
 	const update = useServerFn(updateTemplate);
 
 	const breadcrumbs = [

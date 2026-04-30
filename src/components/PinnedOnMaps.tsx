@@ -1,7 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { Map as MapIcon } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { MapPinLocation } from "@/server/query-helpers";
+import type { MapPinLocation } from "@/lib/queries";
 
 interface Props {
 	campaignId: string;

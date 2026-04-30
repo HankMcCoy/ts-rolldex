@@ -1,17 +1,14 @@
-import { createFileRoute, getRouteApi, Link } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { z } from "zod";
 import { EntityAvatar } from "@/components/EntityAvatar";
 import { Page } from "@/components/Page";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { NOUN_TYPE_LABELS, NOUN_TYPES, nounTypeSchema } from "@/lib/noun-types";
-import { getNouns } from "@/server/nouns";
+import { useCampaign, useNouns } from "@/lib/queries";
 
 export const Route = createFileRoute("/_app/campaigns/$campaignId/nouns/")({
 	validateSearch: z.object({ type: nounTypeSchema.optional() }),
-	loaderDeps: ({ search }) => ({ type: search.type }),
-	loader: ({ params, deps }) =>
-		getNouns({ data: { campaignId: params.campaignId, nounType: deps.type } }),
 	head: ({ match }) => {
 		const type = match.search.type;
 		const label = type ? `${NOUN_TYPE_LABELS[type]}s` : "All entities";
@@ -20,12 +17,11 @@ export const Route = createFileRoute("/_app/campaigns/$campaignId/nouns/")({
 	component: NounsPage,
 });
 
-const parentRoute = getRouteApi("/_app/campaigns/$campaignId");
-
 function NounsPage() {
-	const { campaign, accessLevel } = parentRoute.useLoaderData();
-	const nouns = Route.useLoaderData();
+	const { campaignId } = Route.useParams();
+	const { campaign, accessLevel } = useCampaign(campaignId);
 	const { type } = Route.useSearch();
+	const nouns = useNouns(campaignId, type);
 
 	const isAdmin = accessLevel === "ADMIN";
 	const label = type ? `${NOUN_TYPE_LABELS[type]}s` : "All entities";

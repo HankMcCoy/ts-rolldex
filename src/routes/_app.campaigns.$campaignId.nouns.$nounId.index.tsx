@@ -1,9 +1,5 @@
-import {
-	createFileRoute,
-	getRouteApi,
-	Link,
-	useNavigate,
-} from "@tanstack/react-router";
+import { useQueryClient } from "@tanstack/react-query";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { Trash2 } from "lucide-react";
 import { EntityImage } from "@/components/EntityImage";
@@ -13,6 +9,7 @@ import { PinnedOnMaps } from "@/components/PinnedOnMaps";
 import { RelatedEntities } from "@/components/RelatedEntities";
 import { Button } from "@/components/ui/button";
 import { NOUN_TYPE_LABELS } from "@/lib/noun-types";
+import { bundleKey, useCampaign, useNoun } from "@/lib/queries";
 import { deleteNoun } from "@/server/nouns";
 
 export const Route = createFileRoute(
@@ -21,14 +18,15 @@ export const Route = createFileRoute(
 	component: NounPage,
 });
 
-const parentRoute = getRouteApi("/_app/campaigns/$campaignId");
-const nounRoute = getRouteApi("/_app/campaigns/$campaignId/nouns/$nounId");
-
 function NounPage() {
-	const { noun, accessLevel, related, mapPinLocations } =
-		nounRoute.useLoaderData();
-	const { campaign } = parentRoute.useLoaderData();
+	const { campaignId, nounId } = Route.useParams();
+	const { campaign } = useCampaign(campaignId);
+	const { noun, accessLevel, related, mapPinLocations } = useNoun(
+		campaignId,
+		nounId,
+	);
 	const navigate = useNavigate();
+	const queryClient = useQueryClient();
 	const remove = useServerFn(deleteNoun);
 
 	const isAdmin = accessLevel === "ADMIN";
@@ -37,6 +35,7 @@ function NounPage() {
 	async function handleDelete() {
 		if (!confirm(`Delete "${noun.name}"? This cannot be undone.`)) return;
 		await remove({ data: { campaignId: campaign.id, nounId: noun.id } });
+		await queryClient.invalidateQueries({ queryKey: bundleKey(campaign.id) });
 		await navigate({
 			to: "/campaigns/$campaignId/nouns",
 			params: { campaignId: campaign.id },

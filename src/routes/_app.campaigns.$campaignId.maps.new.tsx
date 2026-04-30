@@ -1,8 +1,5 @@
-import {
-	createFileRoute,
-	getRouteApi,
-	useNavigate,
-} from "@tanstack/react-router";
+import { useQueryClient } from "@tanstack/react-query";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -20,14 +17,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { zodResolver } from "@/lib/form-resolver";
+import { bundleKey, useCampaign } from "@/lib/queries";
 import { createMap } from "@/server/maps";
 
 export const Route = createFileRoute("/_app/campaigns/$campaignId/maps/new")({
 	head: () => ({ meta: [{ title: "New map - Rolldex" }] }),
 	component: NewMapPage,
 });
-
-const parentRoute = getRouteApi("/_app/campaigns/$campaignId");
 
 const schema = z.object({
 	name: z.string().min(1, "Name is required").max(200),
@@ -36,8 +32,10 @@ const schema = z.object({
 type Values = z.infer<typeof schema>;
 
 function NewMapPage() {
-	const { campaign, accessLevel } = parentRoute.useLoaderData();
+	const { campaignId } = Route.useParams();
+	const { campaign, accessLevel } = useCampaign(campaignId);
 	const navigate = useNavigate();
+	const queryClient = useQueryClient();
 	const create = useServerFn(createMap);
 
 	const form = useForm<Values>({
@@ -53,6 +51,7 @@ function NewMapPage() {
 			form.setError("name", { message: result.error });
 			return;
 		}
+		await queryClient.invalidateQueries({ queryKey: bundleKey(campaign.id) });
 		await navigate({
 			to: "/campaigns/$campaignId/maps/$mapId",
 			params: { campaignId: campaign.id, mapId: result.value.id },

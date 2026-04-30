@@ -1,8 +1,5 @@
-import {
-	createFileRoute,
-	getRouteApi,
-	useNavigate,
-} from "@tanstack/react-router";
+import { useQueryClient } from "@tanstack/react-query";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -25,6 +22,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { applyDateRefinements, dateFields } from "@/lib/date-schema";
 import { zodResolver } from "@/lib/form-resolver";
 import { NOUN_TYPE_LABELS, NOUN_TYPES, nounTypeSchema } from "@/lib/noun-types";
+import { bundleKey, useCampaign } from "@/lib/queries";
 import { createNoun } from "@/server/nouns";
 
 export const Route = createFileRoute("/_app/campaigns/$campaignId/nouns/new")({
@@ -35,8 +33,6 @@ export const Route = createFileRoute("/_app/campaigns/$campaignId/nouns/new")({
 	head: () => ({ meta: [{ title: "New entity - Rolldex" }] }),
 	component: NewNounPage,
 });
-
-const parentRoute = getRouteApi("/_app/campaigns/$campaignId");
 
 const schema = applyDateRefinements(
 	z.object({
@@ -52,9 +48,11 @@ const schema = applyDateRefinements(
 type Values = z.infer<typeof schema>;
 
 function NewNounPage() {
-	const { campaign, accessLevel, templates } = parentRoute.useLoaderData();
+	const { campaignId } = Route.useParams();
+	const { campaign, accessLevel, templates } = useCampaign(campaignId);
 	const { type, name } = Route.useSearch();
 	const navigate = useNavigate();
+	const queryClient = useQueryClient();
 	const create = useServerFn(createNoun);
 
 	const form = useForm<Values>({
@@ -83,6 +81,7 @@ function NewNounPage() {
 			form.setError("name", { message: result.error });
 			return;
 		}
+		await queryClient.invalidateQueries({ queryKey: bundleKey(campaign.id) });
 		await navigate({
 			to: "/campaigns/$campaignId/nouns/$nounId",
 			params: { campaignId: campaign.id, nounId: result.value.id },

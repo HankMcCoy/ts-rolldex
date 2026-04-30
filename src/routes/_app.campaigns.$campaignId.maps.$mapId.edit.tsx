@@ -1,8 +1,5 @@
-import {
-	createFileRoute,
-	getRouteApi,
-	useNavigate,
-} from "@tanstack/react-router";
+import { useQueryClient } from "@tanstack/react-query";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -20,6 +17,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { zodResolver } from "@/lib/form-resolver";
+import { bundleKey, useCampaign, useMapWithPins } from "@/lib/queries";
 import { updateMap } from "@/server/maps";
 
 export const Route = createFileRoute(
@@ -37,9 +35,6 @@ export const Route = createFileRoute(
 	component: EditMapPage,
 });
 
-const parentRoute = getRouteApi("/_app/campaigns/$campaignId");
-const mapRoute = getRouteApi("/_app/campaigns/$campaignId/maps/$mapId");
-
 const schema = z.object({
 	name: z.string().min(1, "Name is required").max(200),
 	isSecret: z.boolean(),
@@ -47,9 +42,11 @@ const schema = z.object({
 type Values = z.infer<typeof schema>;
 
 function EditMapPage() {
-	const { campaign } = parentRoute.useLoaderData();
-	const { map, accessLevel } = mapRoute.useLoaderData();
+	const { campaignId, mapId } = Route.useParams();
+	const { campaign } = useCampaign(campaignId);
+	const { map, accessLevel } = useMapWithPins(campaignId, mapId);
 	const navigate = useNavigate();
+	const queryClient = useQueryClient();
 	const update = useServerFn(updateMap);
 
 	const form = useForm<Values>({
@@ -83,6 +80,7 @@ function EditMapPage() {
 			form.setError("name", { message: result.error });
 			return;
 		}
+		await queryClient.invalidateQueries({ queryKey: bundleKey(campaign.id) });
 		await navigate({
 			to: "/campaigns/$campaignId/maps/$mapId",
 			params: { campaignId: campaign.id, mapId: map.id },

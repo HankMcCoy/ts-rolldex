@@ -1,8 +1,5 @@
-import {
-	createFileRoute,
-	getRouteApi,
-	useRouter,
-} from "@tanstack/react-router";
+import { useQueryClient } from "@tanstack/react-query";
+import { createFileRoute } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { Trash2 } from "lucide-react";
 import { useState } from "react";
@@ -10,23 +7,26 @@ import { Page } from "@/components/Page";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { getCampaignDashboard } from "@/server/campaigns";
+import {
+	bundleKey,
+	useAccessLevel,
+	useCampaign,
+	useCampaignDashboard,
+} from "@/lib/queries";
 import { inviteMember, removeMember } from "@/server/members";
 
 export const Route = createFileRoute(
 	"/_app/campaigns/$campaignId/settings/members",
 )({
-	loader: ({ params }) =>
-		getCampaignDashboard({ data: { campaignId: params.campaignId } }),
 	head: () => ({ meta: [{ title: "Members - Rolldex" }] }),
 	component: MembersSettingsPage,
 });
 
-const parentRoute = getRouteApi("/_app/campaigns/$campaignId");
-
 function MembersSettingsPage() {
-	const { campaign } = parentRoute.useLoaderData();
-	const { accessLevel, members } = Route.useLoaderData();
+	const { campaignId } = Route.useParams();
+	const { campaign } = useCampaign(campaignId);
+	const accessLevel = useAccessLevel(campaignId);
+	const { members } = useCampaignDashboard(campaignId);
 
 	const breadcrumbs = [
 		{
@@ -70,7 +70,7 @@ interface InviteFormProps {
 }
 
 function InviteForm({ campaignId }: InviteFormProps) {
-	const router = useRouter();
+	const queryClient = useQueryClient();
 	const invite = useServerFn(inviteMember);
 	const [email, setEmail] = useState("");
 	const [error, setError] = useState<string | null>(null);
@@ -94,7 +94,7 @@ function InviteForm({ campaignId }: InviteFormProps) {
 				return;
 			}
 			setEmail("");
-			await router.invalidate();
+			await queryClient.invalidateQueries({ queryKey: bundleKey(campaignId) });
 		} finally {
 			setBusy(false);
 		}
@@ -130,7 +130,7 @@ interface MemberListProps {
 }
 
 function MemberList({ campaignId, members }: MemberListProps) {
-	const router = useRouter();
+	const queryClient = useQueryClient();
 	const remove = useServerFn(removeMember);
 
 	return (
@@ -159,7 +159,9 @@ function MemberList({ campaignId, members }: MemberListProps) {
 									type="button"
 									onClick={async () => {
 										await remove({ data: { campaignId, memberId: m.id } });
-										await router.invalidate();
+										await queryClient.invalidateQueries({
+											queryKey: bundleKey(campaignId),
+										});
 									}}
 									title="Remove member"
 									aria-label="Remove member"

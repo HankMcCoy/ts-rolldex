@@ -1,31 +1,25 @@
-import {
-	createFileRoute,
-	getRouteApi,
-	Link,
-	useRouter,
-} from "@tanstack/react-router";
+import { useQueryClient } from "@tanstack/react-query";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { Trash2 } from "lucide-react";
 import { Page } from "@/components/Page";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { deleteTemplate, getTemplates } from "@/server/templates";
+import { bundleKey, useCampaign, useTemplates } from "@/lib/queries";
+import { deleteTemplate } from "@/server/templates";
 
 export const Route = createFileRoute(
 	"/_app/campaigns/$campaignId/settings/templates/",
 )({
-	loader: ({ params }) =>
-		getTemplates({ data: { campaignId: params.campaignId } }),
 	head: () => ({ meta: [{ title: "Templates - Rolldex" }] }),
 	component: TemplatesSettingsPage,
 });
 
-const parentRoute = getRouteApi("/_app/campaigns/$campaignId");
-
 function TemplatesSettingsPage() {
-	const { campaign, accessLevel } = parentRoute.useLoaderData();
-	const templates = Route.useLoaderData();
-	const router = useRouter();
+	const { campaignId } = Route.useParams();
+	const { campaign, accessLevel } = useCampaign(campaignId);
+	const templates = useTemplates(campaignId);
+	const queryClient = useQueryClient();
 	const remove = useServerFn(deleteTemplate);
 
 	const breadcrumbs = [
@@ -104,7 +98,9 @@ function TemplatesSettingsPage() {
 											await remove({
 												data: { campaignId: campaign.id, templateId: t.id },
 											});
-											await router.invalidate();
+											await queryClient.invalidateQueries({
+												queryKey: bundleKey(campaign.id),
+											});
 										}}
 										title="Delete template"
 										aria-label="Delete template"

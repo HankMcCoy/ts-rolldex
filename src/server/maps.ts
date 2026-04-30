@@ -1,4 +1,3 @@
-import { notFound } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 import { and, eq, ne } from "drizzle-orm";
 import { z } from "zod";
@@ -7,115 +6,13 @@ import { gameSessions, mapPins, maps, nouns } from "@/db/schema/index";
 import { requireCampaignAccess, requireSession } from "@/lib/access";
 import { err, ok } from "@/lib/result";
 import { deleteObject } from "@/lib/storage";
-import {
-	imageUrlFor,
-	performImageRemove,
-	performImageUpload,
-} from "@/server/image-uploads";
-import { visibilityFilter } from "@/server/query-helpers";
+import { performImageRemove, performImageUpload } from "@/server/image-uploads";
 import { withUniqueName } from "@/server/unique-name";
 
 const MAP_NAME_CONFLICT =
 	"A map with this name already exists in this campaign.";
 
 const MAX_IMAGE_BYTES = 15 * 1024 * 1024;
-
-export const getMaps = createServerFn()
-	.inputValidator(z.object({ campaignId: z.string() }))
-	.handler(async ({ data }) => {
-		const { user } = await requireSession();
-		const accessLevel = await requireCampaignAccess(data.campaignId, user);
-
-		const rows = await db.query.maps.findMany({
-			where: and(
-				eq(maps.campaignId, data.campaignId),
-				visibilityFilter(maps.isSecret, accessLevel),
-			),
-			orderBy: (m, { asc }) => asc(m.name),
-		});
-
-		return rows.map((m) => ({ ...m, imageUrl: imageUrlFor(m.imageKey) }));
-	});
-
-export const getMap = createServerFn()
-	.inputValidator(z.object({ campaignId: z.string(), mapId: z.string() }))
-	.handler(async ({ data }) => {
-		const { user } = await requireSession();
-		const accessLevel = await requireCampaignAccess(data.campaignId, user);
-
-		const map = await db.query.maps.findFirst({
-			where: and(eq(maps.id, data.mapId), eq(maps.campaignId, data.campaignId)),
-			with: {
-				pins: {
-					with: {
-						noun: {
-							columns: {
-								id: true,
-								name: true,
-								nounType: true,
-								imageKey: true,
-								isSecret: true,
-								summary: true,
-							},
-						},
-						session: {
-							columns: {
-								id: true,
-								name: true,
-								isSecret: true,
-								summary: true,
-							},
-						},
-					},
-				},
-			},
-		});
-
-		if (!map) throw notFound();
-		if (accessLevel === "READ_ONLY" && map.isSecret) throw notFound();
-
-		const visiblePins = map.pins
-			.filter((p) => {
-				if (accessLevel !== "READ_ONLY") return true;
-				if (p.noun) return !p.noun.isSecret;
-				if (p.session) return !p.session.isSecret;
-				return false;
-			})
-			.map((p) => ({
-				id: p.id,
-				x: p.x,
-				y: p.y,
-				label: p.label,
-				noun: p.noun
-					? {
-							id: p.noun.id,
-							name: p.noun.name,
-							nounType: p.noun.nounType,
-							imageUrl: imageUrlFor(p.noun.imageKey),
-							summary: p.noun.summary,
-						}
-					: null,
-				session: p.session
-					? {
-							id: p.session.id,
-							name: p.session.name,
-							summary: p.session.summary,
-						}
-					: null,
-			}));
-
-		return {
-			map: {
-				id: map.id,
-				campaignId: map.campaignId,
-				name: map.name,
-				isSecret: map.isSecret,
-				imageUrl: imageUrlFor(map.imageKey),
-			},
-			pins: visiblePins,
-			accessLevel,
-		};
-	});
 
 export const createMap = createServerFn({ method: "POST" })
 	.inputValidator(

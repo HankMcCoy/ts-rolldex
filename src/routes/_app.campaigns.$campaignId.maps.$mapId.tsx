@@ -1,19 +1,15 @@
-import { createFileRoute, Outlet } from "@tanstack/react-router";
-import { getMap } from "@/server/maps";
-import { getNouns } from "@/server/nouns";
-import { getSessions } from "@/server/sessions";
+import { createFileRoute, notFound, Outlet } from "@tanstack/react-router";
+import { campaignBundleQuery } from "@/lib/queries";
 
 export const Route = createFileRoute("/_app/campaigns/$campaignId/maps/$mapId")(
 	{
-		loader: async ({ params }) => {
-			const [mapData, nouns, sessions] = await Promise.all([
-				getMap({
-					data: { campaignId: params.campaignId, mapId: params.mapId },
-				}),
-				getNouns({ data: { campaignId: params.campaignId } }),
-				getSessions({ data: { campaignId: params.campaignId } }),
-			]);
-			return { ...mapData, nouns, sessions };
+		loader: async ({ context, params }) => {
+			const bundle = await context.queryClient.ensureQueryData(
+				campaignBundleQuery(params.campaignId),
+			);
+			const map = bundle.maps.find((m) => m.id === params.mapId);
+			if (!map) throw notFound();
+			return { map };
 		},
 		head: ({ loaderData }) => ({
 			meta: [{ title: `${loaderData?.map.name ?? "Map"} - Rolldex` }],

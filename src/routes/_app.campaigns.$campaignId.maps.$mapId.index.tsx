@@ -1,16 +1,12 @@
-import {
-	createFileRoute,
-	getRouteApi,
-	Link,
-	useNavigate,
-	useRouter,
-} from "@tanstack/react-router";
+import { useQueryClient } from "@tanstack/react-query";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { Trash2 } from "lucide-react";
 import { useRef, useState } from "react";
 import { MapView } from "@/components/MapView";
 import { Page } from "@/components/Page";
 import { Button } from "@/components/ui/button";
+import { bundleKey, useCampaign, useMapWithPins } from "@/lib/queries";
 import {
 	createPin,
 	deleteMap,
@@ -26,14 +22,15 @@ export const Route = createFileRoute(
 	component: MapPage,
 });
 
-const parentRoute = getRouteApi("/_app/campaigns/$campaignId");
-const mapRoute = getRouteApi("/_app/campaigns/$campaignId/maps/$mapId");
-
 function MapPage() {
-	const { campaign } = parentRoute.useLoaderData();
-	const { map, pins, accessLevel, nouns, sessions } = mapRoute.useLoaderData();
-	const router = useRouter();
+	const { campaignId, mapId } = Route.useParams();
+	const { campaign } = useCampaign(campaignId);
+	const { map, pins, accessLevel, nouns, sessions } = useMapWithPins(
+		campaignId,
+		mapId,
+	);
 	const navigate = useNavigate();
+	const queryClient = useQueryClient();
 	const upload = useServerFn(uploadMapImage);
 	const removeImage = useServerFn(removeMapImage);
 	const remove = useServerFn(deleteMap);
@@ -66,7 +63,7 @@ function MapPage() {
 			alert(result.error);
 			return;
 		}
-		await router.invalidate();
+		await queryClient.invalidateQueries({ queryKey: bundleKey(campaign.id) });
 	}
 
 	async function handleRemoveImage() {
@@ -77,12 +74,13 @@ function MapPage() {
 			alert(result.error);
 			return;
 		}
-		await router.invalidate();
+		await queryClient.invalidateQueries({ queryKey: bundleKey(campaign.id) });
 	}
 
 	async function handleDeleteMap() {
 		if (!confirm(`Delete "${map.name}"? This cannot be undone.`)) return;
 		await remove({ data: { campaignId: campaign.id, mapId: map.id } });
+		await queryClient.invalidateQueries({ queryKey: bundleKey(campaign.id) });
 		await navigate({
 			to: "/campaigns/$campaignId/maps",
 			params: { campaignId: campaign.id },
@@ -109,7 +107,7 @@ function MapPage() {
 			alert(result.error);
 			return;
 		}
-		await router.invalidate();
+		await queryClient.invalidateQueries({ queryKey: bundleKey(campaign.id) });
 	}
 
 	async function handleDeletePin(pinId: string) {
@@ -120,7 +118,7 @@ function MapPage() {
 			alert(result.error);
 			return;
 		}
-		await router.invalidate();
+		await queryClient.invalidateQueries({ queryKey: bundleKey(campaign.id) });
 	}
 
 	async function handleUpdatePinLabel(pinId: string, label: string) {
@@ -131,7 +129,7 @@ function MapPage() {
 			alert(result.error);
 			return;
 		}
-		await router.invalidate();
+		await queryClient.invalidateQueries({ queryKey: bundleKey(campaign.id) });
 	}
 
 	const adminActions = isAdmin && (

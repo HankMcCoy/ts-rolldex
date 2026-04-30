@@ -1,22 +1,19 @@
-import { createFileRoute, getRouteApi, Link } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { EntityAvatar } from "@/components/EntityAvatar";
 import { Page } from "@/components/Page";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { getSessions } from "@/server/sessions";
+import { useCampaign, useSessions } from "@/lib/queries";
 
 export const Route = createFileRoute("/_app/campaigns/$campaignId/sessions/")({
-	loader: ({ params }) =>
-		getSessions({ data: { campaignId: params.campaignId } }),
 	head: () => ({ meta: [{ title: "Sessions - Rolldex" }] }),
 	component: SessionsPage,
 });
 
-const parentRoute = getRouteApi("/_app/campaigns/$campaignId");
-
 function SessionsPage() {
-	const { campaign, accessLevel } = parentRoute.useLoaderData();
-	const sessions = Route.useLoaderData();
+	const { campaignId } = Route.useParams();
+	const { campaign, accessLevel } = useCampaign(campaignId);
+	const sessions = useSessions(campaignId);
 
 	const isAdmin = accessLevel === "ADMIN";
 

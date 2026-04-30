@@ -1,21 +1,19 @@
-import { createFileRoute, getRouteApi, Link } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { Map as MapIcon } from "lucide-react";
 import { Page } from "@/components/Page";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { getMaps } from "@/server/maps";
+import { useCampaign, useMaps } from "@/lib/queries";
 
 export const Route = createFileRoute("/_app/campaigns/$campaignId/maps/")({
-	loader: ({ params }) => getMaps({ data: { campaignId: params.campaignId } }),
 	head: () => ({ meta: [{ title: "Maps - Rolldex" }] }),
 	component: MapsPage,
 });
 
-const parentRoute = getRouteApi("/_app/campaigns/$campaignId");
-
 function MapsPage() {
-	const { campaign, accessLevel } = parentRoute.useLoaderData();
-	const maps = Route.useLoaderData();
+	const { campaignId } = Route.useParams();
+	const { campaign, accessLevel } = useCampaign(campaignId);
+	const maps = useMaps(campaignId);
 
 	const isAdmin = accessLevel === "ADMIN";
 

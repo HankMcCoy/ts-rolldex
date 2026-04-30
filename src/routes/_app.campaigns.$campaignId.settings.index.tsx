@@ -1,30 +1,18 @@
-import { createFileRoute, getRouteApi, Link } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { ChevronRight } from "lucide-react";
 import { Page } from "@/components/Page";
-import { getCampaignDashboard } from "@/server/campaigns";
-import { getTemplates } from "@/server/templates";
+import { useCampaign, useSettingsSummary } from "@/lib/queries";
 
 export const Route = createFileRoute("/_app/campaigns/$campaignId/settings/")({
-	loader: async ({ params }) => {
-		const [dashboard, templates] = await Promise.all([
-			getCampaignDashboard({ data: { campaignId: params.campaignId } }),
-			getTemplates({ data: { campaignId: params.campaignId } }),
-		]);
-		return {
-			accessLevel: dashboard.accessLevel,
-			memberCount: dashboard.members.length,
-			templateCount: templates.length,
-		};
-	},
 	head: () => ({ meta: [{ title: "Settings - Rolldex" }] }),
 	component: SettingsPage,
 });
 
-const parentRoute = getRouteApi("/_app/campaigns/$campaignId");
-
 function SettingsPage() {
-	const { campaign } = parentRoute.useLoaderData();
-	const { accessLevel, memberCount, templateCount } = Route.useLoaderData();
+	const { campaignId } = Route.useParams();
+	const { campaign } = useCampaign(campaignId);
+	const { accessLevel, memberCount, templateCount } =
+		useSettingsSummary(campaignId);
 
 	const breadcrumbs = [
 		{

@@ -1,8 +1,5 @@
-import {
-	createFileRoute,
-	getRouteApi,
-	useNavigate,
-} from "@tanstack/react-router";
+import { useQueryClient } from "@tanstack/react-query";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -23,6 +20,7 @@ import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { applyDateRefinements, dateFields } from "@/lib/date-schema";
 import { zodResolver } from "@/lib/form-resolver";
+import { bundleKey, useCampaign } from "@/lib/queries";
 import { createSession } from "@/server/sessions";
 
 export const Route = createFileRoute(
@@ -31,8 +29,6 @@ export const Route = createFileRoute(
 	head: () => ({ meta: [{ title: "New session - Rolldex" }] }),
 	component: NewSessionPage,
 });
-
-const parentRoute = getRouteApi("/_app/campaigns/$campaignId");
 
 const schema = applyDateRefinements(
 	z.object({
@@ -47,8 +43,10 @@ const schema = applyDateRefinements(
 type Values = z.infer<typeof schema>;
 
 function NewSessionPage() {
-	const { campaign, accessLevel, templates } = parentRoute.useLoaderData();
+	const { campaignId } = Route.useParams();
+	const { campaign, accessLevel, templates } = useCampaign(campaignId);
 	const navigate = useNavigate();
+	const queryClient = useQueryClient();
 	const create = useServerFn(createSession);
 
 	const form = useForm<Values>({
@@ -76,6 +74,7 @@ function NewSessionPage() {
 			form.setError("name", { message: result.error });
 			return;
 		}
+		await queryClient.invalidateQueries({ queryKey: bundleKey(campaign.id) });
 		await navigate({
 			to: "/campaigns/$campaignId/sessions/$sessionId",
 			params: { campaignId: campaign.id, sessionId: result.value.id },

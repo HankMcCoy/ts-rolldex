@@ -1,10 +1,10 @@
 import { createFileRoute, Outlet } from "@tanstack/react-router";
 import { QuickFindDialog } from "@/components/QuickFindDialog";
-import { getCampaign } from "@/server/campaigns";
+import { campaignBundleQuery, useCampaign } from "@/lib/queries";
 
 export const Route = createFileRoute("/_app/campaigns/$campaignId")({
-	loader: ({ params }) =>
-		getCampaign({ data: { campaignId: params.campaignId } }),
+	loader: ({ context, params }) =>
+		context.queryClient.ensureQueryData(campaignBundleQuery(params.campaignId)),
 	head: ({ loaderData }) => ({
 		meta: [{ title: `${loaderData?.campaign.name ?? "Campaign"} - Rolldex` }],
 	}),
@@ -12,7 +12,8 @@ export const Route = createFileRoute("/_app/campaigns/$campaignId")({
 });
 
 function CampaignLayout() {
-	const { campaign, accessLevel } = Route.useLoaderData();
+	const { campaignId } = Route.useParams();
+	const { campaign, accessLevel } = useCampaign(campaignId);
 	return (
 		<>
 			<Outlet />

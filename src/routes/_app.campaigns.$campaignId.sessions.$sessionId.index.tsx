@@ -1,9 +1,5 @@
-import {
-	createFileRoute,
-	getRouteApi,
-	Link,
-	useNavigate,
-} from "@tanstack/react-router";
+import { useQueryClient } from "@tanstack/react-query";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { Trash2 } from "lucide-react";
 import { MarkdownRenderer } from "@/components/MarkdownRenderer";
@@ -11,6 +7,7 @@ import { Page } from "@/components/Page";
 import { PinnedOnMaps } from "@/components/PinnedOnMaps";
 import { RelatedEntities } from "@/components/RelatedEntities";
 import { Button } from "@/components/ui/button";
+import { bundleKey, useCampaign, useSession } from "@/lib/queries";
 import { deleteSession } from "@/server/sessions";
 
 export const Route = createFileRoute(
@@ -19,16 +16,15 @@ export const Route = createFileRoute(
 	component: SessionPage,
 });
 
-const parentRoute = getRouteApi("/_app/campaigns/$campaignId");
-const sessionRoute = getRouteApi(
-	"/_app/campaigns/$campaignId/sessions/$sessionId",
-);
-
 function SessionPage() {
-	const { session, accessLevel, related, mapPinLocations } =
-		sessionRoute.useLoaderData();
-	const { campaign } = parentRoute.useLoaderData();
+	const { campaignId, sessionId } = Route.useParams();
+	const { campaign } = useCampaign(campaignId);
+	const { session, accessLevel, related, mapPinLocations } = useSession(
+		campaignId,
+		sessionId,
+	);
 	const navigate = useNavigate();
+	const queryClient = useQueryClient();
 	const remove = useServerFn(deleteSession);
 
 	const isAdmin = accessLevel === "ADMIN";
@@ -38,6 +34,7 @@ function SessionPage() {
 		await remove({
 			data: { campaignId: campaign.id, sessionId: session.id },
 		});
+		await queryClient.invalidateQueries({ queryKey: bundleKey(campaign.id) });
 		await navigate({
 			to: "/campaigns/$campaignId/sessions",
 			params: { campaignId: campaign.id },

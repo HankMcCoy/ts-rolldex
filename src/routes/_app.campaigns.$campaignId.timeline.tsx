@@ -1,22 +1,19 @@
-import { createFileRoute, getRouteApi, Link } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { EntityAvatar } from "@/components/EntityAvatar";
 import { Page } from "@/components/Page";
 import { Badge } from "@/components/ui/badge";
 import { NOUN_TYPE_LABELS } from "@/lib/noun-types";
-import { getTimeline } from "@/server/timeline";
+import { useCampaign, useTimeline } from "@/lib/queries";
 
 export const Route = createFileRoute("/_app/campaigns/$campaignId/timeline")({
-	loader: ({ params }) =>
-		getTimeline({ data: { campaignId: params.campaignId } }),
 	head: () => ({ meta: [{ title: "Timeline - Rolldex" }] }),
 	component: TimelinePage,
 });
 
-const parentRoute = getRouteApi("/_app/campaigns/$campaignId");
-
 function TimelinePage() {
-	const { campaign } = parentRoute.useLoaderData();
-	const { entries } = Route.useLoaderData();
+	const { campaignId } = Route.useParams();
+	const { campaign } = useCampaign(campaignId);
+	const entries = useTimeline(campaignId);
 
 	return (
 		<Page

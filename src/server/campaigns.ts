@@ -6,6 +6,7 @@ import {
 	campaigns,
 	campaignTemplates,
 	gameSessions,
+	mapPins,
 	maps,
 	members,
 	nouns,
@@ -18,7 +19,7 @@ import {
 } from "@/lib/access";
 import { EARTH_GREGORIAN_CALENDAR } from "@/lib/calendar";
 import { publicUrlFor } from "@/lib/storage";
-import { loadTimelineEntries, visibilityFilter } from "@/server/query-helpers";
+import { visibilityFilter } from "@/server/query-helpers";
 import { STARTER_TEMPLATES } from "@/server/template-seeds";
 import { withUniqueName } from "@/server/unique-name";
 
@@ -54,35 +55,17 @@ export const getCampaigns = createServerFn().handler(async () => {
 	});
 });
 
-export const getCampaign = createServerFn()
-	.inputValidator(z.object({ campaignId: z.string() }))
-	.handler(async ({ data }) => {
-		const { user } = await requireSession();
-		const { campaign, accessLevel } = await requireCampaign(
-			data.campaignId,
-			user,
-		);
-
-		// Templates only feed the slash menu in the editor, which READ_ONLY users
-		// never see — skip the query for them.
-		const templates =
-			accessLevel === "ADMIN"
-				? await db.query.campaignTemplates.findMany({
-						where: eq(campaignTemplates.campaignId, data.campaignId),
-						orderBy: (t, { asc }) => asc(t.name),
-						columns: {
-							id: true,
-							name: true,
-							body: true,
-							wrapInStatBlock: true,
-						},
-					})
-				: [];
-
-		return { campaign, accessLevel, templates };
-	});
-
-export const getCampaignDashboard = createServerFn()
+/**
+ * Single source of truth for the campaign route tree. Returns everything a
+ * client needs to render any view inside `/campaigns/$campaignId/*` from one
+ * round-trip: the campaign row, all visible entities, sessions, maps, pins,
+ * members, and (for ADMINs) templates. Visibility filtering — `isSecret`
+ * hiding, `privateNotes` stripping, member-email redaction, template hiding —
+ * happens server-side, so the client never sees data it shouldn't.
+ *
+ * Children consume slices via the selector hooks in `src/lib/queries.ts`.
+ */
+export const getCampaignBundle = createServerFn()
 	.inputValidator(z.object({ campaignId: z.string() }))
 	.handler(async ({ data }) => {
 		const { user } = await requireSession();
@@ -93,11 +76,12 @@ export const getCampaignDashboard = createServerFn()
 
 		const [
 			allNouns,
-			recentSessions,
-			allMembers,
-			creator,
+			allSessions,
 			allMaps,
-			timelinePreview,
+			allPins,
+			allMembers,
+			allTemplates,
+			creator,
 		] = await Promise.all([
 			db.query.nouns.findMany({
 				where: and(
@@ -105,14 +89,6 @@ export const getCampaignDashboard = createServerFn()
 					visibilityFilter(nouns.isSecret, accessLevel),
 				),
 				orderBy: (n, { asc }) => asc(n.name),
-				columns: {
-					id: true,
-					name: true,
-					nounType: true,
-					summary: true,
-					isSecret: true,
-					imageKey: true,
-				},
 			}),
 			db.query.gameSessions.findMany({
 				where: and(
@@ -120,16 +96,6 @@ export const getCampaignDashboard = createServerFn()
 					visibilityFilter(gameSessions.isSecret, accessLevel),
 				),
 				orderBy: (s, { desc }) => desc(s.createdAt),
-				limit: 5,
-				columns: { id: true, name: true, summary: true, createdAt: true },
-			}),
-			db.query.members.findMany({
-				where: eq(members.campaignId, data.campaignId),
-				with: { user: { columns: { id: true, name: true, email: true } } },
-			}),
-			db.query.users.findFirst({
-				where: eq(users.id, campaign.createdById),
-				columns: { id: true, name: true, email: true },
 			}),
 			db.query.maps.findMany({
 				where: and(
@@ -137,54 +103,102 @@ export const getCampaignDashboard = createServerFn()
 					visibilityFilter(maps.isSecret, accessLevel),
 				),
 				orderBy: (m, { asc }) => asc(m.name),
-				columns: { id: true, name: true, isSecret: true, imageKey: true },
 			}),
-			loadTimelineEntries(data.campaignId, accessLevel, 5),
+			db
+				.select({
+					id: mapPins.id,
+					mapId: mapPins.mapId,
+					nounId: mapPins.nounId,
+					sessionId: mapPins.sessionId,
+					x: mapPins.x,
+					y: mapPins.y,
+					label: mapPins.label,
+				})
+				.from(mapPins)
+				.innerJoin(maps, eq(mapPins.mapId, maps.id))
+				.where(eq(maps.campaignId, data.campaignId)),
+			db.query.members.findMany({
+				where: eq(members.campaignId, data.campaignId),
+				with: { user: { columns: { id: true, name: true, email: true } } },
+			}),
+			accessLevel === "ADMIN"
+				? db.query.campaignTemplates.findMany({
+						where: eq(campaignTemplates.campaignId, data.campaignId),
+						orderBy: (t, { asc }) => asc(t.name),
+					})
+				: Promise.resolve([] as (typeof campaignTemplates.$inferSelect)[]),
+			db.query.users.findFirst({
+				where: eq(users.id, campaign.createdById),
+				columns: { id: true, name: true, email: true },
+			}),
 		]);
 
-		const entities = allNouns.map(({ imageKey, ...rest }) => ({
-			...rest,
-			imageUrl: imageKey ? publicUrlFor(imageKey) : null,
-		}));
+		// Drop pins on hidden maps and pins targeting hidden entities.
+		const visibleMapIds = new Set(allMaps.map((m) => m.id));
+		const visibleNounIds = new Set(allNouns.map((n) => n.id));
+		const visibleSessionIds = new Set(allSessions.map((s) => s.id));
+		const visiblePins = allPins.filter((p) => {
+			if (!visibleMapIds.has(p.mapId)) return false;
+			if (p.nounId) return visibleNounIds.has(p.nounId);
+			if (p.sessionId) return visibleSessionIds.has(p.sessionId);
+			return false;
+		});
+
+		const isReadOnly = accessLevel === "READ_ONLY";
 
 		const dmEntry = {
 			id: `dm-${campaign.createdById}`,
 			role: "DM" as const,
-			email: accessLevel === "ADMIN" ? (creator?.email ?? null) : null,
+			email: !isReadOnly ? (creator?.email ?? null) : null,
 			user: creator ? { name: creator.name } : null,
 		};
 
-		// Hide pending invites and member emails from non-admin viewers.
-		const memberEntries =
-			accessLevel === "ADMIN"
-				? allMembers.map((m) => ({
+		// READ_ONLY hides pending invites (no linked user) and member emails.
+		const memberEntries = isReadOnly
+			? allMembers
+					.filter((m) => m.user)
+					.map((m) => ({
 						id: m.id,
 						role: "READ_ONLY" as const,
-						email: m.email,
-						user: m.user ? { name: m.user.name } : null,
+						email: null,
+						user: { name: m.user?.name ?? "" },
 					}))
-				: allMembers
-						.filter((m) => m.user)
-						.map((m) => ({
-							id: m.id,
-							role: "READ_ONLY" as const,
-							email: null,
-							user: { name: m.user?.name ?? "" },
-						}));
-
-		const mapsList = allMaps.map(({ imageKey, ...rest }) => ({
-			...rest,
-			imageUrl: imageKey ? publicUrlFor(imageKey) : null,
-		}));
+			: allMembers.map((m) => ({
+					id: m.id,
+					role: "READ_ONLY" as const,
+					email: m.email,
+					user: m.user ? { name: m.user.name } : null,
+				}));
 
 		return {
 			campaign,
 			accessLevel,
-			entities,
-			recentSessions,
+			nouns: allNouns.map((n) => ({
+				...n,
+				imageUrl: n.imageKey ? publicUrlFor(n.imageKey) : null,
+				privateNotes: isReadOnly ? "" : n.privateNotes,
+			})),
+			sessions: allSessions.map((s) => ({
+				...s,
+				privateNotes: isReadOnly ? "" : s.privateNotes,
+			})),
+			maps: allMaps.map((m) => ({
+				id: m.id,
+				campaignId: m.campaignId,
+				name: m.name,
+				isSecret: m.isSecret,
+				imageUrl: m.imageKey ? publicUrlFor(m.imageKey) : null,
+			})),
+			mapPins: visiblePins,
 			members: [dmEntry, ...memberEntries],
-			maps: mapsList,
-			timelinePreview,
+			templates: allTemplates,
+			creator: creator
+				? {
+						id: creator.id,
+						name: creator.name,
+						email: !isReadOnly ? creator.email : null,
+					}
+				: null,
 		};
 	});
 

@@ -1,4 +1,3 @@
-import { notFound } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 import { and, eq, ne } from "drizzle-orm";
 import { z } from "zod";
@@ -6,74 +5,12 @@ import { db } from "@/db/index";
 import { gameSessions } from "@/db/schema/index";
 import { requireCampaignAccess, requireSession } from "@/lib/access";
 import { applyDateRefinements, dateFields } from "@/lib/date-schema";
-import { computeRelatedEntities } from "@/lib/relationships";
 import { err } from "@/lib/result";
 import { resolveDateColumns } from "@/server/date-resolver";
-import {
-	loadCampaignCandidates,
-	loadMapPinLocations,
-	visibilityFilter,
-} from "@/server/query-helpers";
 import { withUniqueName } from "@/server/unique-name";
 
 const SESSION_NAME_CONFLICT =
 	"A session with this name already exists in this campaign.";
-
-export const getSessions = createServerFn()
-	.inputValidator(z.object({ campaignId: z.string() }))
-	.handler(async ({ data }) => {
-		const { user } = await requireSession();
-		const accessLevel = await requireCampaignAccess(data.campaignId, user);
-
-		return db.query.gameSessions.findMany({
-			where: and(
-				eq(gameSessions.campaignId, data.campaignId),
-				visibilityFilter(gameSessions.isSecret, accessLevel),
-			),
-			orderBy: (s, { desc }) => desc(s.createdAt),
-		});
-	});
-
-export const getSession = createServerFn()
-	.inputValidator(z.object({ campaignId: z.string(), sessionId: z.string() }))
-	.handler(async ({ data }) => {
-		const { user } = await requireSession();
-		const accessLevel = await requireCampaignAccess(data.campaignId, user);
-
-		const session = await db.query.gameSessions.findFirst({
-			where: and(
-				eq(gameSessions.id, data.sessionId),
-				eq(gameSessions.campaignId, data.campaignId),
-			),
-		});
-
-		if (!session) throw notFound();
-		if (accessLevel === "READ_ONLY" && session.isSecret) throw notFound();
-
-		const result = { ...session };
-		if (accessLevel === "READ_ONLY") {
-			result.privateNotes = "";
-		}
-
-		const candidates = await loadCampaignCandidates(
-			data.campaignId,
-			accessLevel,
-		);
-		const related = computeRelatedEntities(
-			session.id,
-			session.name,
-			result,
-			candidates,
-		);
-
-		const mapPinLocations = await loadMapPinLocations(
-			data.campaignId,
-			accessLevel,
-			{ sessionId: session.id },
-		);
-
-		return { session: result, accessLevel, related, mapPinLocations };
-	});
 
 export const createSession = createServerFn({ method: "POST" })
 	.inputValidator(

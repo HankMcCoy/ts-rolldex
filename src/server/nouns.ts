@@ -1,4 +1,3 @@
-import { notFound } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 import { and, eq, ne } from "drizzle-orm";
 import { z } from "zod";
@@ -7,95 +6,16 @@ import { nouns } from "@/db/schema/index";
 import { requireCampaignAccess, requireSession } from "@/lib/access";
 import { applyDateRefinements, dateFields } from "@/lib/date-schema";
 import { nounTypeSchema } from "@/lib/noun-types";
-import { computeRelatedEntities } from "@/lib/relationships";
 import { err } from "@/lib/result";
 import { deleteObject } from "@/lib/storage";
 import { resolveDateColumns } from "@/server/date-resolver";
-import {
-	imageUrlFor,
-	performImageRemove,
-	performImageUpload,
-} from "@/server/image-uploads";
-import {
-	loadCampaignCandidates,
-	loadMapPinLocations,
-	visibilityFilter,
-} from "@/server/query-helpers";
+import { performImageRemove, performImageUpload } from "@/server/image-uploads";
 import { withUniqueName } from "@/server/unique-name";
 
 const NOUN_NAME_CONFLICT =
 	"A noun with this name already exists in this campaign.";
 
 const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
-
-export const getNouns = createServerFn()
-	.inputValidator(
-		z.object({
-			campaignId: z.string(),
-			nounType: nounTypeSchema.optional(),
-		}),
-	)
-	.handler(async ({ data }) => {
-		const { user } = await requireSession();
-		const accessLevel = await requireCampaignAccess(data.campaignId, user);
-
-		const rows = await db.query.nouns.findMany({
-			where: and(
-				eq(nouns.campaignId, data.campaignId),
-				data.nounType ? eq(nouns.nounType, data.nounType) : undefined,
-				visibilityFilter(nouns.isSecret, accessLevel),
-			),
-			orderBy: (n, { asc }) => asc(n.name),
-		});
-
-		return rows.map((n) => ({ ...n, imageUrl: imageUrlFor(n.imageKey) }));
-	});
-
-export const getNoun = createServerFn()
-	.inputValidator(z.object({ campaignId: z.string(), nounId: z.string() }))
-	.handler(async ({ data }) => {
-		const { user } = await requireSession();
-		const accessLevel = await requireCampaignAccess(data.campaignId, user);
-
-		const noun = await db.query.nouns.findFirst({
-			where: and(
-				eq(nouns.id, data.nounId),
-				eq(nouns.campaignId, data.campaignId),
-			),
-		});
-
-		if (!noun) throw notFound();
-		if (accessLevel === "READ_ONLY" && noun.isSecret) throw notFound();
-
-		const result = { ...noun };
-		if (accessLevel === "READ_ONLY") result.privateNotes = "";
-
-		const candidates = await loadCampaignCandidates(
-			data.campaignId,
-			accessLevel,
-		);
-		const related = computeRelatedEntities(
-			noun.id,
-			noun.name,
-			result,
-			candidates,
-		);
-
-		const imageUrl = imageUrlFor(noun.imageKey);
-
-		const mapPinLocations = await loadMapPinLocations(
-			data.campaignId,
-			accessLevel,
-			{ nounId: noun.id },
-		);
-
-		return {
-			noun: { ...result, imageUrl },
-			accessLevel,
-			related,
-			mapPinLocations,
-		};
-	});
 
 export const createNoun = createServerFn({ method: "POST" })
 	.inputValidator(

@@ -1,8 +1,5 @@
-import {
-	createFileRoute,
-	getRouteApi,
-	useNavigate,
-} from "@tanstack/react-router";
+import { useQueryClient } from "@tanstack/react-query";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -19,14 +16,13 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { zodResolver } from "@/lib/form-resolver";
+import { bundleKey, useCampaign } from "@/lib/queries";
 import { updateCampaign } from "@/server/campaigns";
 
 export const Route = createFileRoute("/_app/campaigns/$campaignId/edit")({
 	head: () => ({ meta: [{ title: "Edit campaign - Rolldex" }] }),
 	component: EditCampaignPage,
 });
-
-const parentRoute = getRouteApi("/_app/campaigns/$campaignId");
 
 const schema = z.object({
 	name: z.string().min(1, "Name is required").max(100),
@@ -35,8 +31,10 @@ const schema = z.object({
 type Values = z.infer<typeof schema>;
 
 function EditCampaignPage() {
-	const { campaign, accessLevel } = parentRoute.useLoaderData();
+	const { campaignId } = Route.useParams();
+	const { campaign, accessLevel } = useCampaign(campaignId);
 	const navigate = useNavigate();
+	const queryClient = useQueryClient();
 	const update = useServerFn(updateCampaign);
 
 	const form = useForm<Values>({
@@ -52,6 +50,7 @@ function EditCampaignPage() {
 			form.setError("name", { message: result.error });
 			return;
 		}
+		await queryClient.invalidateQueries({ queryKey: bundleKey(campaign.id) });
 		await navigate({
 			to: "/campaigns/$campaignId",
 			params: { campaignId: campaign.id },

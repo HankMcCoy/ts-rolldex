@@ -1,9 +1,5 @@
-import {
-	createFileRoute,
-	getRouteApi,
-	useNavigate,
-	useRouter,
-} from "@tanstack/react-router";
+import { useQueryClient } from "@tanstack/react-query";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { Trash2 } from "lucide-react";
 import { useRef, useState } from "react";
@@ -29,6 +25,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { applyDateRefinements, dateFields } from "@/lib/date-schema";
 import { zodResolver } from "@/lib/form-resolver";
 import { NOUN_TYPE_LABELS, NOUN_TYPES, nounTypeSchema } from "@/lib/noun-types";
+import { bundleKey, useCampaign, useNoun } from "@/lib/queries";
 import { removeNounImage, updateNoun, uploadNounImage } from "@/server/nouns";
 
 export const Route = createFileRoute(
@@ -49,9 +46,6 @@ export const Route = createFileRoute(
 	component: EditNounPage,
 });
 
-const parentRoute = getRouteApi("/_app/campaigns/$campaignId");
-const nounRoute = getRouteApi("/_app/campaigns/$campaignId/nouns/$nounId");
-
 const schema = applyDateRefinements(
 	z.object({
 		name: z.string().min(1, "Name is required").max(200),
@@ -66,10 +60,11 @@ const schema = applyDateRefinements(
 type Values = z.infer<typeof schema>;
 
 function EditNounPage() {
-	const { noun, accessLevel } = nounRoute.useLoaderData();
-	const { campaign, templates } = parentRoute.useLoaderData();
+	const { campaignId, nounId } = Route.useParams();
+	const { campaign, templates } = useCampaign(campaignId);
+	const { noun, accessLevel } = useNoun(campaignId, nounId);
 	const navigate = useNavigate();
-	const router = useRouter();
+	const queryClient = useQueryClient();
 	const update = useServerFn(updateNoun);
 	const uploadImage = useServerFn(uploadNounImage);
 	const removeImage = useServerFn(removeNounImage);
@@ -133,7 +128,7 @@ function EditNounPage() {
 				return;
 			}
 			setImageUrl(result.value.imageUrl);
-			await router.invalidate();
+			await queryClient.invalidateQueries({ queryKey: bundleKey(campaign.id) });
 		} finally {
 			setImageBusy(false);
 			if (fileInputRef.current) fileInputRef.current.value = "";
@@ -152,7 +147,7 @@ function EditNounPage() {
 				return;
 			}
 			setImageUrl(null);
-			await router.invalidate();
+			await queryClient.invalidateQueries({ queryKey: bundleKey(campaign.id) });
 		} finally {
 			setImageBusy(false);
 		}
@@ -166,6 +161,7 @@ function EditNounPage() {
 			form.setError("name", { message: result.error });
 			return;
 		}
+		await queryClient.invalidateQueries({ queryKey: bundleKey(campaign.id) });
 		await navigate({
 			to: "/campaigns/$campaignId/nouns/$nounId",
 			params: { campaignId: campaign.id, nounId: noun.id },

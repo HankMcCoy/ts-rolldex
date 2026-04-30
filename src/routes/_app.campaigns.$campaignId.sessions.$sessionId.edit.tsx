@@ -1,8 +1,5 @@
-import {
-	createFileRoute,
-	getRouteApi,
-	useNavigate,
-} from "@tanstack/react-router";
+import { useQueryClient } from "@tanstack/react-query";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -23,6 +20,7 @@ import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { applyDateRefinements, dateFields } from "@/lib/date-schema";
 import { zodResolver } from "@/lib/form-resolver";
+import { bundleKey, useCampaign, useSession } from "@/lib/queries";
 import { updateSession } from "@/server/sessions";
 
 export const Route = createFileRoute(
@@ -44,11 +42,6 @@ export const Route = createFileRoute(
 	component: EditSessionPage,
 });
 
-const parentRoute = getRouteApi("/_app/campaigns/$campaignId");
-const sessionRoute = getRouteApi(
-	"/_app/campaigns/$campaignId/sessions/$sessionId",
-);
-
 const schema = applyDateRefinements(
 	z.object({
 		name: z.string().min(1, "Name is required").max(200),
@@ -62,9 +55,11 @@ const schema = applyDateRefinements(
 type Values = z.infer<typeof schema>;
 
 function EditSessionPage() {
-	const { session, accessLevel } = sessionRoute.useLoaderData();
-	const { campaign, templates } = parentRoute.useLoaderData();
+	const { campaignId, sessionId } = Route.useParams();
+	const { campaign, templates } = useCampaign(campaignId);
+	const { session, accessLevel } = useSession(campaignId, sessionId);
 	const navigate = useNavigate();
+	const queryClient = useQueryClient();
 	const update = useServerFn(updateSession);
 
 	const form = useForm<Values>({
@@ -92,6 +87,7 @@ function EditSessionPage() {
 			form.setError("name", { message: result.error });
 			return;
 		}
+		await queryClient.invalidateQueries({ queryKey: bundleKey(campaign.id) });
 		await navigate({
 			to: "/campaigns/$campaignId/sessions/$sessionId",
 			params: { campaignId: campaign.id, sessionId: session.id },

@@ -1,10 +1,11 @@
-import { createFileRoute, getRouteApi } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { Page } from "@/components/Page";
 import {
 	TemplateForm,
 	type TemplateFormValues,
 } from "@/components/TemplateForm";
+import { useCampaign } from "@/lib/queries";
 import { createTemplate } from "@/server/templates";
 
 export const Route = createFileRoute(
@@ -14,10 +15,9 @@ export const Route = createFileRoute(
 	component: NewTemplatePage,
 });
 
-const parentRoute = getRouteApi("/_app/campaigns/$campaignId");
-
 function NewTemplatePage() {
-	const { campaign, accessLevel } = parentRoute.useLoaderData();
+	const { campaignId } = Route.useParams();
+	const { campaign, accessLevel } = useCampaign(campaignId);
 	const create = useServerFn(createTemplate);
 
 	const breadcrumbs = [

@@ -1,4 +1,3 @@
-import { notFound } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 import { and, eq, ne } from "drizzle-orm";
 import { z } from "zod";
@@ -15,34 +14,6 @@ const templateBodySchema = z.object({
 	body: z.string().max(50_000),
 	wrapInStatBlock: z.boolean(),
 });
-
-export const getTemplates = createServerFn()
-	.inputValidator(z.object({ campaignId: z.string() }))
-	.handler(async ({ data }) => {
-		const { user } = await requireSession();
-		await requireCampaignAccess(data.campaignId, user);
-
-		return db.query.campaignTemplates.findMany({
-			where: eq(campaignTemplates.campaignId, data.campaignId),
-			orderBy: (t, { asc }) => asc(t.name),
-		});
-	});
-
-export const getTemplate = createServerFn()
-	.inputValidator(z.object({ campaignId: z.string(), templateId: z.string() }))
-	.handler(async ({ data }) => {
-		const { user } = await requireSession();
-		await requireCampaignAccess(data.campaignId, user, "ADMIN");
-
-		const template = await db.query.campaignTemplates.findFirst({
-			where: and(
-				eq(campaignTemplates.id, data.templateId),
-				eq(campaignTemplates.campaignId, data.campaignId),
-			),
-		});
-		if (!template) throw notFound();
-		return template;
-	});
 
 export const createTemplate = createServerFn({ method: "POST" })
 	.inputValidator(z.object({ campaignId: z.string() }).and(templateBodySchema))

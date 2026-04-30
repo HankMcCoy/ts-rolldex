@@ -1,10 +1,8 @@
-import {
-	createFileRoute,
-	getRouteApi,
-	useRouter,
-} from "@tanstack/react-router";
+import { useQueryClient } from "@tanstack/react-query";
+import { createFileRoute } from "@tanstack/react-router";
 import { CalendarEditor } from "@/components/CalendarEditor";
 import { Page } from "@/components/Page";
+import { bundleKey, useCampaign } from "@/lib/queries";
 
 export const Route = createFileRoute(
 	"/_app/campaigns/$campaignId/settings/calendar",
@@ -13,11 +11,10 @@ export const Route = createFileRoute(
 	component: CalendarSettingsPage,
 });
 
-const parentRoute = getRouteApi("/_app/campaigns/$campaignId");
-
 function CalendarSettingsPage() {
-	const { campaign, accessLevel } = parentRoute.useLoaderData();
-	const router = useRouter();
+	const { campaignId } = Route.useParams();
+	const { campaign, accessLevel } = useCampaign(campaignId);
+	const queryClient = useQueryClient();
 
 	const breadcrumbs = [
 		{
@@ -51,7 +48,11 @@ function CalendarSettingsPage() {
 					<CalendarEditor
 						campaignId={campaign.id}
 						initial={campaign.calendar}
-						onSaved={() => router.invalidate()}
+						onSaved={() =>
+							queryClient.invalidateQueries({
+								queryKey: bundleKey(campaign.id),
+							})
+						}
 					/>
 				</div>
 			</div>

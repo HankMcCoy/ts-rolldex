@@ -1,7 +1,6 @@
 import { useNavigate } from "@tanstack/react-router";
-import { useServerFn } from "@tanstack/react-start";
 import { PlusIcon } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { EntityAvatar } from "@/components/EntityAvatar";
 import {
 	Command,
@@ -14,7 +13,7 @@ import {
 	CommandSeparator,
 } from "@/components/ui/command";
 import { NOUN_TYPE_LABELS, type NounType } from "@/lib/noun-types";
-import { quickFind } from "@/server/search";
+import { useNouns, useSessions } from "@/lib/queries";
 
 interface Props {
 	campaignId: string;
@@ -33,17 +32,15 @@ interface SessionResult {
 	name: string;
 }
 
+const RESULT_LIMIT = 5;
+
 export function QuickFindDialog({ campaignId, accessLevel }: Props) {
 	const [open, setOpen] = useState(false);
 	const [query, setQuery] = useState("");
-	const [results, setResults] = useState<{
-		nouns: NounResult[];
-		sessions: SessionResult[];
-	}>({ nouns: [], sessions: [] });
 
 	const navigate = useNavigate();
-	const find = useServerFn(quickFind);
-	const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+	const allNouns = useNouns(campaignId);
+	const allSessions = useSessions(campaignId);
 
 	useEffect(() => {
 		function onKey(e: KeyboardEvent) {
@@ -57,24 +54,36 @@ export function QuickFindDialog({ campaignId, accessLevel }: Props) {
 	}, []);
 
 	useEffect(() => {
-		if (!open) {
-			setQuery("");
-			setResults({ nouns: [], sessions: [] });
-		}
+		if (!open) setQuery("");
 	}, [open]);
 
-	function handleQueryChange(value: string) {
-		setQuery(value);
-		if (debounceRef.current) clearTimeout(debounceRef.current);
-		if (!value.trim()) {
-			setResults({ nouns: [], sessions: [] });
-			return;
+	const results = useMemo<{
+		nouns: NounResult[];
+		sessions: SessionResult[];
+	}>(() => {
+		const q = query.trim().toLowerCase();
+		if (!q) return { nouns: [], sessions: [] };
+		const matchedNouns: NounResult[] = [];
+		for (const n of allNouns) {
+			if (n.name.toLowerCase().includes(q)) {
+				matchedNouns.push({
+					id: n.id,
+					name: n.name,
+					nounType: n.nounType,
+					imageUrl: n.imageUrl,
+				});
+				if (matchedNouns.length >= RESULT_LIMIT) break;
+			}
 		}
-		debounceRef.current = setTimeout(async () => {
-			const data = await find({ data: { campaignId, query: value } });
-			setResults(data);
-		}, 150);
-	}
+		const matchedSessions: SessionResult[] = [];
+		for (const s of allSessions) {
+			if (s.name.toLowerCase().includes(q)) {
+				matchedSessions.push({ id: s.id, name: s.name });
+				if (matchedSessions.length >= RESULT_LIMIT) break;
+			}
+		}
+		return { nouns: matchedNouns, sessions: matchedSessions };
+	}, [query, allNouns, allSessions]);
 
 	function handleSelectNoun(nounId: string) {
 		setOpen(false);
@@ -111,7 +120,7 @@ export function QuickFindDialog({ campaignId, accessLevel }: Props) {
 				<CommandInput
 					placeholder="Search entities and sessions…"
 					value={query}
-					onValueChange={handleQueryChange}
+					onValueChange={setQuery}
 				/>
 				<CommandList>
 					{query && !hasResults && !showCreate && (

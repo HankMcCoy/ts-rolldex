@@ -5,15 +5,14 @@ import { Page } from "@/components/Page";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { NOUN_TYPE_LABELS } from "@/lib/noun-types";
-import { getCampaignDashboard } from "@/server/campaigns";
+import { useCampaignDashboard } from "@/lib/queries";
 
 export const Route = createFileRoute("/_app/campaigns/$campaignId/")({
-	loader: ({ params }) =>
-		getCampaignDashboard({ data: { campaignId: params.campaignId } }),
 	component: CampaignDashboard,
 });
 
 function CampaignDashboard() {
+	const { campaignId } = Route.useParams();
 	const {
 		campaign,
 		accessLevel,
@@ -22,7 +21,7 @@ function CampaignDashboard() {
 		members,
 		maps,
 		timelinePreview,
-	} = Route.useLoaderData();
+	} = useCampaignDashboard(campaignId);
 
 	const isAdmin = accessLevel === "ADMIN";
 
