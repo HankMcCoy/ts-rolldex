@@ -1,4 +1,5 @@
 import {
+	type QueryClient,
 	queryOptions,
 	useMutation,
 	useQuery,
@@ -33,6 +34,28 @@ export const campaignBundleQuery = (campaignId: string) =>
 		queryKey: bundleKey(campaignId),
 		queryFn: () => getCampaignBundle({ data: { campaignId } }),
 	});
+
+/**
+ * Loader helper used by the four `$entityId.tsx` parent routes: ensures the
+ * campaign bundle is in cache, then returns the row matching `id`. Throws
+ * `notFound()` if the row is missing or filtered out by access level. Each
+ * route still owns its own `head`, `component`, and `loaderData` shape.
+ */
+export async function ensureBundleRow<
+	K extends "nouns" | "sessions" | "maps" | "templates",
+>(
+	queryClient: QueryClient,
+	campaignId: string,
+	collection: K,
+	id: string,
+): Promise<CampaignBundle[K][number]> {
+	const bundle = await queryClient.ensureQueryData(
+		campaignBundleQuery(campaignId),
+	);
+	const row = bundle[collection].find((r) => r.id === id);
+	if (!row) throw notFound();
+	return row;
+}
 
 /**
  * Most selectors below assume the loader has run and the bundle is in cache.

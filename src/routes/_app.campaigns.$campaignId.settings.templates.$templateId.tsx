@@ -1,4 +1,4 @@
-import { createFileRoute, notFound } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { Page } from "@/components/Page";
 import {
 	TemplateForm,
@@ -6,7 +6,7 @@ import {
 } from "@/components/TemplateForm";
 import {
 	BundleMutationError,
-	campaignBundleQuery,
+	ensureBundleRow,
 	patchUpdateTemplate,
 	useBundleMutation,
 	useCampaign,
@@ -18,14 +18,14 @@ import { updateTemplate } from "@/server/templates";
 export const Route = createFileRoute(
 	"/_app/campaigns/$campaignId/settings/templates/$templateId",
 )({
-	loader: async ({ context, params }) => {
-		const bundle = await context.queryClient.ensureQueryData(
-			campaignBundleQuery(params.campaignId),
-		);
-		const template = bundle.templates.find((t) => t.id === params.templateId);
-		if (!template) throw notFound();
-		return { template };
-	},
+	loader: async ({ context, params }) => ({
+		template: await ensureBundleRow(
+			context.queryClient,
+			params.campaignId,
+			"templates",
+			params.templateId,
+		),
+	}),
 	head: ({ loaderData }) => ({
 		meta: [
 			{ title: `Edit ${loaderData?.template.name ?? "template"} - Rolldex` },

@@ -1,17 +1,17 @@
-import { createFileRoute, notFound, Outlet } from "@tanstack/react-router";
-import { campaignBundleQuery } from "@/lib/queries";
+import { createFileRoute, Outlet } from "@tanstack/react-router";
+import { ensureBundleRow } from "@/lib/queries";
 
 export const Route = createFileRoute(
 	"/_app/campaigns/$campaignId/nouns/$nounId",
 )({
-	loader: async ({ context, params }) => {
-		const bundle = await context.queryClient.ensureQueryData(
-			campaignBundleQuery(params.campaignId),
-		);
-		const noun = bundle.nouns.find((n) => n.id === params.nounId);
-		if (!noun) throw notFound();
-		return { noun };
-	},
+	loader: async ({ context, params }) => ({
+		noun: await ensureBundleRow(
+			context.queryClient,
+			params.campaignId,
+			"nouns",
+			params.nounId,
+		),
+	}),
 	head: ({ loaderData }) => ({
 		meta: [{ title: `${loaderData?.noun.name ?? "Entity"} - Rolldex` }],
 	}),

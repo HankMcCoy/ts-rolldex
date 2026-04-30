@@ -1,17 +1,17 @@
-import { createFileRoute, notFound, Outlet } from "@tanstack/react-router";
-import { campaignBundleQuery } from "@/lib/queries";
+import { createFileRoute, Outlet } from "@tanstack/react-router";
+import { ensureBundleRow } from "@/lib/queries";
 
 export const Route = createFileRoute(
 	"/_app/campaigns/$campaignId/sessions/$sessionId",
 )({
-	loader: async ({ context, params }) => {
-		const bundle = await context.queryClient.ensureQueryData(
-			campaignBundleQuery(params.campaignId),
-		);
-		const session = bundle.sessions.find((s) => s.id === params.sessionId);
-		if (!session) throw notFound();
-		return { session };
-	},
+	loader: async ({ context, params }) => ({
+		session: await ensureBundleRow(
+			context.queryClient,
+			params.campaignId,
+			"sessions",
+			params.sessionId,
+		),
+	}),
 	head: ({ loaderData }) => ({
 		meta: [{ title: `${loaderData?.session.name ?? "Session"} - Rolldex` }],
 	}),
