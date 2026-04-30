@@ -146,29 +146,40 @@ export const getCampaignBundle = createServerFn()
 
 		const isReadOnly = accessLevel === "READ_ONLY";
 
-		const dmEntry = {
+		// Single normalized shape so the client doesn't have to branch on access
+		// level when rendering members. READ_ONLY just gets email=null and pending
+		// invites filtered out below.
+		type BundleMemberEntry = {
+			id: string;
+			role: "DM" | "READ_ONLY";
+			email: string | null;
+			user: { name: string } | null;
+		};
+
+		const dmEntry: BundleMemberEntry = {
 			id: `dm-${campaign.createdById}`,
-			role: "DM" as const,
+			role: "DM",
 			email: !isReadOnly ? (creator?.email ?? null) : null,
 			user: creator ? { name: creator.name } : null,
 		};
 
-		// READ_ONLY hides pending invites (no linked user) and member emails.
-		const memberEntries = isReadOnly
+		const memberEntries: BundleMemberEntry[] = isReadOnly
 			? allMembers
 					.filter((m) => m.user)
 					.map((m) => ({
 						id: m.id,
-						role: "READ_ONLY" as const,
+						role: "READ_ONLY",
 						email: null,
 						user: { name: m.user?.name ?? "" },
 					}))
 			: allMembers.map((m) => ({
 					id: m.id,
-					role: "READ_ONLY" as const,
+					role: "READ_ONLY",
 					email: m.email,
 					user: m.user ? { name: m.user.name } : null,
 				}));
+
+		const memberList: BundleMemberEntry[] = [dmEntry, ...memberEntries];
 
 		return {
 			campaign,
@@ -190,7 +201,7 @@ export const getCampaignBundle = createServerFn()
 				imageUrl: m.imageKey ? publicUrlFor(m.imageKey) : null,
 			})),
 			mapPins: visiblePins,
-			members: [dmEntry, ...memberEntries],
+			members: memberList,
 			templates: allTemplates,
 			creator: creator
 				? {

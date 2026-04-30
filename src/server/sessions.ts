@@ -17,6 +17,7 @@ export const createSession = createServerFn({ method: "POST" })
 		applyDateRefinements(
 			z.object({
 				campaignId: z.string(),
+				id: z.string().uuid().optional(),
 				name: z.string().min(1).max(200),
 				summary: z.string().min(1).max(5_000),
 				notes: z.string().max(50_000),
@@ -47,6 +48,7 @@ export const createSession = createServerFn({ method: "POST" })
 				const [session] = await db
 					.insert(gameSessions)
 					.values({
+						...(data.id ? { id: data.id } : {}),
 						campaignId: data.campaignId,
 						name: data.name,
 						summary: data.summary,

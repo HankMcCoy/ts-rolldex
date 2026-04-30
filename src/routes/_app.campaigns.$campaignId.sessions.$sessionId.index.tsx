@@ -1,13 +1,11 @@
-import { useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useServerFn } from "@tanstack/react-start";
 import { Trash2 } from "lucide-react";
 import { MarkdownRenderer } from "@/components/MarkdownRenderer";
 import { Page } from "@/components/Page";
 import { PinnedOnMaps } from "@/components/PinnedOnMaps";
 import { RelatedEntities } from "@/components/RelatedEntities";
 import { Button } from "@/components/ui/button";
-import { bundleKey, useCampaign, useSession } from "@/lib/queries";
+import { useBundleMutation, useCampaign, useSession } from "@/lib/queries";
 import { deleteSession } from "@/server/sessions";
 
 export const Route = createFileRoute(
@@ -24,17 +22,20 @@ function SessionPage() {
 		sessionId,
 	);
 	const navigate = useNavigate();
-	const queryClient = useQueryClient();
-	const remove = useServerFn(deleteSession);
+
+	const deleteMutation = useBundleMutation({
+		campaignId: campaign.id,
+		mutationFn: () =>
+			deleteSession({
+				data: { campaignId: campaign.id, sessionId: session.id },
+			}),
+	});
 
 	const isAdmin = accessLevel === "ADMIN";
 
 	async function handleDelete() {
 		if (!confirm(`Delete "${session.name}"? This cannot be undone.`)) return;
-		await remove({
-			data: { campaignId: campaign.id, sessionId: session.id },
-		});
-		await queryClient.invalidateQueries({ queryKey: bundleKey(campaign.id) });
+		await deleteMutation.mutateAsync(undefined);
 		await navigate({
 			to: "/campaigns/$campaignId/sessions",
 			params: { campaignId: campaign.id },

@@ -6,7 +6,17 @@ import { useRef, useState } from "react";
 import { MapView } from "@/components/MapView";
 import { Page } from "@/components/Page";
 import { Button } from "@/components/ui/button";
-import { bundleKey, useCampaign, useMapWithPins } from "@/lib/queries";
+import {
+	BundleMutationError,
+	bundleKey,
+	patchAddPin,
+	patchRemoveMap,
+	patchRemovePin,
+	patchUpdatePin,
+	useBundleMutation,
+	useCampaign,
+	useMapWithPins,
+} from "@/lib/queries";
 import {
 	createPin,
 	deleteMap,
@@ -33,10 +43,60 @@ function MapPage() {
 	const queryClient = useQueryClient();
 	const upload = useServerFn(uploadMapImage);
 	const removeImage = useServerFn(removeMapImage);
-	const remove = useServerFn(deleteMap);
-	const create = useServerFn(createPin);
-	const removePin = useServerFn(deletePin);
-	const updateLabel = useServerFn(updatePinLabel);
+
+	const deleteMapMutation = useBundleMutation({
+		campaignId: campaign.id,
+		mutationFn: (vars: { mapId: string }) =>
+			deleteMap({ data: { campaignId: campaign.id, mapId: vars.mapId } }),
+		patch: (bundle, vars) => patchRemoveMap(bundle, vars.mapId),
+	});
+
+	const createPinMutation = useBundleMutation({
+		campaignId: campaign.id,
+		mutationFn: (vars: {
+			id: string;
+			mapId: string;
+			x: number;
+			y: number;
+			nounId?: string;
+			sessionId?: string;
+			label?: string;
+		}) => createPin({ data: { campaignId: campaign.id, ...vars } }),
+		patch: (bundle, vars) =>
+			patchAddPin(bundle, {
+				id: vars.id,
+				mapId: vars.mapId,
+				nounId: vars.nounId ?? null,
+				sessionId: vars.sessionId ?? null,
+				x: vars.x,
+				y: vars.y,
+				label: vars.label ?? null,
+			}),
+	});
+
+	const deletePinMutation = useBundleMutation({
+		campaignId: campaign.id,
+		mutationFn: (vars: { pinId: string }) =>
+			deletePin({ data: { campaignId: campaign.id, pinId: vars.pinId } }),
+		patch: (bundle, vars) => patchRemovePin(bundle, vars.pinId),
+	});
+
+	const updatePinLabelMutation = useBundleMutation({
+		campaignId: campaign.id,
+		mutationFn: (vars: { pinId: string; label: string }) =>
+			updatePinLabel({
+				data: {
+					campaignId: campaign.id,
+					pinId: vars.pinId,
+					label: vars.label,
+				},
+			}),
+		patch: (bundle, vars) =>
+			patchUpdatePin(bundle, vars.pinId, (p) => ({
+				...p,
+				label: vars.label.trim().length > 0 ? vars.label.trim() : null,
+			})),
+	});
 
 	const isAdmin = accessLevel === "ADMIN";
 
@@ -79,8 +139,7 @@ function MapPage() {
 
 	async function handleDeleteMap() {
 		if (!confirm(`Delete "${map.name}"? This cannot be undone.`)) return;
-		await remove({ data: { campaignId: campaign.id, mapId: map.id } });
-		await queryClient.invalidateQueries({ queryKey: bundleKey(campaign.id) });
+		await deleteMapMutation.mutateAsync({ mapId: map.id });
 		await navigate({
 			to: "/campaigns/$campaignId/maps",
 			params: { campaignId: campaign.id },
@@ -93,43 +152,37 @@ function MapPage() {
 		nounId?: string;
 		sessionId?: string;
 	}) {
-		const result = await create({
-			data: {
-				campaignId: campaign.id,
+		try {
+			await createPinMutation.mutateAsync({
+				id: crypto.randomUUID(),
 				mapId: map.id,
 				x: input.x,
 				y: input.y,
 				nounId: input.nounId,
 				sessionId: input.sessionId,
-			},
-		});
-		if (!result.ok) {
-			alert(result.error);
-			return;
+			});
+		} catch (e) {
+			if (e instanceof BundleMutationError) alert(e.message);
+			else throw e;
 		}
-		await queryClient.invalidateQueries({ queryKey: bundleKey(campaign.id) });
 	}
 
 	async function handleDeletePin(pinId: string) {
-		const result = await removePin({
-			data: { campaignId: campaign.id, pinId },
-		});
-		if (!result.ok) {
-			alert(result.error);
-			return;
+		try {
+			await deletePinMutation.mutateAsync({ pinId });
+		} catch (e) {
+			if (e instanceof BundleMutationError) alert(e.message);
+			else throw e;
 		}
-		await queryClient.invalidateQueries({ queryKey: bundleKey(campaign.id) });
 	}
 
 	async function handleUpdatePinLabel(pinId: string, label: string) {
-		const result = await updateLabel({
-			data: { campaignId: campaign.id, pinId, label },
-		});
-		if (!result.ok) {
-			alert(result.error);
-			return;
+		try {
+			await updatePinLabelMutation.mutateAsync({ pinId, label });
+		} catch (e) {
+			if (e instanceof BundleMutationError) alert(e.message);
+			else throw e;
 		}
-		await queryClient.invalidateQueries({ queryKey: bundleKey(campaign.id) });
 	}
 
 	const adminActions = isAdmin && (

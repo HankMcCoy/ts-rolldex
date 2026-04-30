@@ -16,7 +16,14 @@ const templateBodySchema = z.object({
 });
 
 export const createTemplate = createServerFn({ method: "POST" })
-	.inputValidator(z.object({ campaignId: z.string() }).and(templateBodySchema))
+	.inputValidator(
+		z
+			.object({
+				campaignId: z.string(),
+				id: z.string().uuid().optional(),
+			})
+			.and(templateBodySchema),
+	)
 	.handler(async ({ data }) => {
 		const { user } = await requireSession();
 		await requireCampaignAccess(data.campaignId, user, "ADMIN");
@@ -35,6 +42,7 @@ export const createTemplate = createServerFn({ method: "POST" })
 				const [template] = await db
 					.insert(campaignTemplates)
 					.values({
+						...(data.id ? { id: data.id } : {}),
 						campaignId: data.campaignId,
 						name: data.name,
 						body: data.body,

@@ -1,6 +1,4 @@
-import { useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useServerFn } from "@tanstack/react-start";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { EventDateFields } from "@/components/EventDateFields";
@@ -22,7 +20,12 @@ import { Textarea } from "@/components/ui/textarea";
 import { applyDateRefinements, dateFields } from "@/lib/date-schema";
 import { zodResolver } from "@/lib/form-resolver";
 import { NOUN_TYPE_LABELS, NOUN_TYPES, nounTypeSchema } from "@/lib/noun-types";
-import { bundleKey, useCampaign } from "@/lib/queries";
+import {
+	BundleMutationError,
+	patchAddNoun,
+	useBundleMutation,
+	useCampaign,
+} from "@/lib/queries";
 import { createNoun } from "@/server/nouns";
 
 export const Route = createFileRoute("/_app/campaigns/$campaignId/nouns/new")({
@@ -52,8 +55,35 @@ function NewNounPage() {
 	const { campaign, accessLevel, templates } = useCampaign(campaignId);
 	const { type, name } = Route.useSearch();
 	const navigate = useNavigate();
-	const queryClient = useQueryClient();
-	const create = useServerFn(createNoun);
+
+	const createMutation = useBundleMutation({
+		campaignId: campaign.id,
+		mutationFn: (vars: Values & { id: string }) =>
+			createNoun({ data: { campaignId: campaign.id, ...vars } }),
+		patch: (bundle, vars) => {
+			const now = new Date();
+			return patchAddNoun(bundle, {
+				id: vars.id,
+				campaignId: campaign.id,
+				name: vars.name,
+				nounType: vars.nounType,
+				summary: vars.summary,
+				notes: vars.notes,
+				privateNotes: vars.privateNotes,
+				isSecret: vars.isSecret,
+				imageKey: null,
+				imageUrl: null,
+				dateYear: vars.dateYear ?? null,
+				dateMonth: vars.dateMonth ?? null,
+				dateDay: vars.dateDay ?? null,
+				endDateYear: vars.endDateYear ?? null,
+				endDateMonth: vars.endDateMonth ?? null,
+				endDateDay: vars.endDateDay ?? null,
+				createdAt: now,
+				updatedAt: now,
+			});
+		},
+	});
 
 	const form = useForm<Values>({
 		resolver: zodResolver(schema),
@@ -74,17 +104,19 @@ function NewNounPage() {
 	});
 
 	async function onSubmit(values: Values) {
-		const result = await create({
-			data: { campaignId: campaign.id, ...values },
-		});
-		if (!result.ok) {
-			form.setError("name", { message: result.error });
-			return;
+		const id = crypto.randomUUID();
+		try {
+			await createMutation.mutateAsync({ id, ...values });
+		} catch (e) {
+			if (e instanceof BundleMutationError) {
+				form.setError("name", { message: e.message });
+				return;
+			}
+			throw e;
 		}
-		await queryClient.invalidateQueries({ queryKey: bundleKey(campaign.id) });
 		await navigate({
 			to: "/campaigns/$campaignId/nouns/$nounId",
-			params: { campaignId: campaign.id, nounId: result.value.id },
+			params: { campaignId: campaign.id, nounId: id },
 		});
 	}
 

@@ -25,7 +25,14 @@ import { Textarea } from "@/components/ui/textarea";
 import { applyDateRefinements, dateFields } from "@/lib/date-schema";
 import { zodResolver } from "@/lib/form-resolver";
 import { NOUN_TYPE_LABELS, NOUN_TYPES, nounTypeSchema } from "@/lib/noun-types";
-import { bundleKey, useCampaign, useNoun } from "@/lib/queries";
+import {
+	BundleMutationError,
+	bundleKey,
+	patchUpdateNoun,
+	useBundleMutation,
+	useCampaign,
+	useNoun,
+} from "@/lib/queries";
 import { removeNounImage, updateNoun, uploadNounImage } from "@/server/nouns";
 
 export const Route = createFileRoute(
@@ -65,9 +72,33 @@ function EditNounPage() {
 	const { noun, accessLevel } = useNoun(campaignId, nounId);
 	const navigate = useNavigate();
 	const queryClient = useQueryClient();
-	const update = useServerFn(updateNoun);
 	const uploadImage = useServerFn(uploadNounImage);
 	const removeImage = useServerFn(removeNounImage);
+
+	const updateMutation = useBundleMutation({
+		campaignId: campaign.id,
+		mutationFn: (vars: Values) =>
+			updateNoun({
+				data: { campaignId: campaign.id, nounId: noun.id, ...vars },
+			}),
+		patch: (bundle, vars) =>
+			patchUpdateNoun(bundle, noun.id, (n) => ({
+				...n,
+				name: vars.name,
+				nounType: vars.nounType,
+				summary: vars.summary,
+				notes: vars.notes,
+				privateNotes: vars.privateNotes,
+				isSecret: vars.isSecret,
+				dateYear: vars.dateYear ?? null,
+				dateMonth: vars.dateMonth ?? null,
+				dateDay: vars.dateDay ?? null,
+				endDateYear: vars.endDateYear ?? null,
+				endDateMonth: vars.endDateMonth ?? null,
+				endDateDay: vars.endDateDay ?? null,
+				updatedAt: new Date(),
+			})),
+	});
 
 	const [imageUrl, setImageUrl] = useState<string | null>(noun.imageUrl);
 	const [imageError, setImageError] = useState<string | null>(null);
@@ -154,14 +185,15 @@ function EditNounPage() {
 	}
 
 	async function onSubmit(values: Values) {
-		const result = await update({
-			data: { campaignId: campaign.id, nounId: noun.id, ...values },
-		});
-		if (!result.ok) {
-			form.setError("name", { message: result.error });
-			return;
+		try {
+			await updateMutation.mutateAsync(values);
+		} catch (e) {
+			if (e instanceof BundleMutationError) {
+				form.setError("name", { message: e.message });
+				return;
+			}
+			throw e;
 		}
-		await queryClient.invalidateQueries({ queryKey: bundleKey(campaign.id) });
 		await navigate({
 			to: "/campaigns/$campaignId/nouns/$nounId",
 			params: { campaignId: campaign.id, nounId: noun.id },

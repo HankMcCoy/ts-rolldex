@@ -1,6 +1,4 @@
-import { useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useServerFn } from "@tanstack/react-start";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { EventDateFields } from "@/components/EventDateFields";
@@ -20,7 +18,13 @@ import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { applyDateRefinements, dateFields } from "@/lib/date-schema";
 import { zodResolver } from "@/lib/form-resolver";
-import { bundleKey, useCampaign, useSession } from "@/lib/queries";
+import {
+	BundleMutationError,
+	patchUpdateSession,
+	useBundleMutation,
+	useCampaign,
+	useSession,
+} from "@/lib/queries";
 import { updateSession } from "@/server/sessions";
 
 export const Route = createFileRoute(
@@ -59,8 +63,30 @@ function EditSessionPage() {
 	const { campaign, templates } = useCampaign(campaignId);
 	const { session, accessLevel } = useSession(campaignId, sessionId);
 	const navigate = useNavigate();
-	const queryClient = useQueryClient();
-	const update = useServerFn(updateSession);
+
+	const updateMutation = useBundleMutation({
+		campaignId: campaign.id,
+		mutationFn: (vars: Values) =>
+			updateSession({
+				data: { campaignId: campaign.id, sessionId: session.id, ...vars },
+			}),
+		patch: (bundle, vars) =>
+			patchUpdateSession(bundle, session.id, (s) => ({
+				...s,
+				name: vars.name,
+				summary: vars.summary,
+				notes: vars.notes,
+				privateNotes: vars.privateNotes,
+				isSecret: vars.isSecret,
+				dateYear: vars.dateYear ?? null,
+				dateMonth: vars.dateMonth ?? null,
+				dateDay: vars.dateDay ?? null,
+				endDateYear: vars.endDateYear ?? null,
+				endDateMonth: vars.endDateMonth ?? null,
+				endDateDay: vars.endDateDay ?? null,
+				updatedAt: new Date(),
+			})),
+	});
 
 	const form = useForm<Values>({
 		resolver: zodResolver(schema),
@@ -80,14 +106,15 @@ function EditSessionPage() {
 	});
 
 	async function onSubmit(values: Values) {
-		const result = await update({
-			data: { campaignId: campaign.id, sessionId: session.id, ...values },
-		});
-		if (!result.ok) {
-			form.setError("name", { message: result.error });
-			return;
+		try {
+			await updateMutation.mutateAsync(values);
+		} catch (e) {
+			if (e instanceof BundleMutationError) {
+				form.setError("name", { message: e.message });
+				return;
+			}
+			throw e;
 		}
-		await queryClient.invalidateQueries({ queryKey: bundleKey(campaign.id) });
 		await navigate({
 			to: "/campaigns/$campaignId/sessions/$sessionId",
 			params: { campaignId: campaign.id, sessionId: session.id },

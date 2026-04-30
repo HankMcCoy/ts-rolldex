@@ -1,6 +1,4 @@
-import { useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useServerFn } from "@tanstack/react-start";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { Page } from "@/components/Page";
@@ -17,7 +15,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { zodResolver } from "@/lib/form-resolver";
-import { bundleKey, useCampaign } from "@/lib/queries";
+import {
+	BundleMutationError,
+	patchAddMap,
+	useBundleMutation,
+	useCampaign,
+} from "@/lib/queries";
 import { createMap } from "@/server/maps";
 
 export const Route = createFileRoute("/_app/campaigns/$campaignId/maps/new")({
@@ -35,8 +38,20 @@ function NewMapPage() {
 	const { campaignId } = Route.useParams();
 	const { campaign, accessLevel } = useCampaign(campaignId);
 	const navigate = useNavigate();
-	const queryClient = useQueryClient();
-	const create = useServerFn(createMap);
+
+	const createMutation = useBundleMutation({
+		campaignId: campaign.id,
+		mutationFn: (vars: Values & { id: string }) =>
+			createMap({ data: { campaignId: campaign.id, ...vars } }),
+		patch: (bundle, vars) =>
+			patchAddMap(bundle, {
+				id: vars.id,
+				campaignId: campaign.id,
+				name: vars.name,
+				isSecret: vars.isSecret,
+				imageUrl: null,
+			}),
+	});
 
 	const form = useForm<Values>({
 		resolver: zodResolver(schema),
@@ -44,17 +59,19 @@ function NewMapPage() {
 	});
 
 	async function onSubmit(values: Values) {
-		const result = await create({
-			data: { campaignId: campaign.id, ...values },
-		});
-		if (!result.ok) {
-			form.setError("name", { message: result.error });
-			return;
+		const id = crypto.randomUUID();
+		try {
+			await createMutation.mutateAsync({ id, ...values });
+		} catch (e) {
+			if (e instanceof BundleMutationError) {
+				form.setError("name", { message: e.message });
+				return;
+			}
+			throw e;
 		}
-		await queryClient.invalidateQueries({ queryKey: bundleKey(campaign.id) });
 		await navigate({
 			to: "/campaigns/$campaignId/maps/$mapId",
-			params: { campaignId: campaign.id, mapId: result.value.id },
+			params: { campaignId: campaign.id, mapId: id },
 		});
 	}
 

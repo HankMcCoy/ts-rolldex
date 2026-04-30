@@ -1,11 +1,16 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useServerFn } from "@tanstack/react-start";
 import { Page } from "@/components/Page";
 import {
 	TemplateForm,
 	type TemplateFormValues,
 } from "@/components/TemplateForm";
-import { useCampaign } from "@/lib/queries";
+import {
+	BundleMutationError,
+	patchAddTemplate,
+	useBundleMutation,
+	useCampaign,
+} from "@/lib/queries";
+import { err, ok, type Result } from "@/lib/result";
 import { createTemplate } from "@/server/templates";
 
 export const Route = createFileRoute(
@@ -18,7 +23,36 @@ export const Route = createFileRoute(
 function NewTemplatePage() {
 	const { campaignId } = Route.useParams();
 	const { campaign, accessLevel } = useCampaign(campaignId);
-	const create = useServerFn(createTemplate);
+
+	const createMutation = useBundleMutation({
+		campaignId,
+		mutationFn: (vars: TemplateFormValues & { id: string }) =>
+			createTemplate({ data: { campaignId, ...vars } }),
+		patch: (bundle, vars) => {
+			const now = new Date();
+			return patchAddTemplate(bundle, {
+				id: vars.id,
+				campaignId,
+				name: vars.name,
+				body: vars.body,
+				wrapInStatBlock: vars.wrapInStatBlock,
+				createdAt: now,
+				updatedAt: now,
+			});
+		},
+	});
+
+	async function onSubmit(
+		values: TemplateFormValues,
+	): Promise<Result<unknown>> {
+		try {
+			await createMutation.mutateAsync({ id: crypto.randomUUID(), ...values });
+			return ok(undefined);
+		} catch (e) {
+			if (e instanceof BundleMutationError) return err(e.message);
+			throw e;
+		}
+	}
 
 	const breadcrumbs = [
 		{
@@ -54,9 +88,7 @@ function NewTemplatePage() {
 					defaults={{ name: "", body: "", wrapInStatBlock: false }}
 					submitLabel="Create template"
 					pendingLabel="Creating…"
-					onSubmit={(values: TemplateFormValues) =>
-						create({ data: { campaignId: campaign.id, ...values } })
-					}
+					onSubmit={onSubmit}
 				/>
 			</div>
 		</Page>

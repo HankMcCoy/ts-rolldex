@@ -1,6 +1,4 @@
-import { useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
-import { useServerFn } from "@tanstack/react-start";
 import { Trash2 } from "lucide-react";
 import { useState } from "react";
 import { Page } from "@/components/Page";
@@ -8,8 +6,11 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
-	bundleKey,
+	BundleMutationError,
+	patchAddMember,
+	patchRemoveMember,
 	useAccessLevel,
+	useBundleMutation,
 	useCampaign,
 	useCampaignDashboard,
 } from "@/lib/queries";
@@ -70,11 +71,23 @@ interface InviteFormProps {
 }
 
 function InviteForm({ campaignId }: InviteFormProps) {
-	const queryClient = useQueryClient();
-	const invite = useServerFn(inviteMember);
+	const inviteMutation = useBundleMutation({
+		campaignId,
+		mutationFn: (vars: { email: string }) =>
+			inviteMember({ data: { campaignId, email: vars.email } }),
+		// The invited member appears in the list immediately. We use a temp id
+		// prefixed with "pending-invite:" so the row is identifiable for rollback;
+		// the backstop refetch in `onSettled` swaps it for the canonical row.
+		patch: (bundle, vars) =>
+			patchAddMember(bundle, {
+				id: `pending-invite:${vars.email}`,
+				role: "READ_ONLY",
+				email: vars.email,
+				user: null,
+			}),
+	});
 	const [email, setEmail] = useState("");
 	const [error, setError] = useState<string | null>(null);
-	const [busy, setBusy] = useState(false);
 
 	async function onSubmit(e: React.FormEvent) {
 		e.preventDefault();
@@ -84,21 +97,16 @@ function InviteForm({ campaignId }: InviteFormProps) {
 			return;
 		}
 		setError(null);
-		setBusy(true);
 		try {
-			const result = await invite({
-				data: { campaignId, email: trimmed },
-			});
-			if (!result.ok) {
-				setError(result.error);
-				return;
-			}
+			await inviteMutation.mutateAsync({ email: trimmed });
 			setEmail("");
-			await queryClient.invalidateQueries({ queryKey: bundleKey(campaignId) });
-		} finally {
-			setBusy(false);
+		} catch (err) {
+			if (err instanceof BundleMutationError) setError(err.message);
+			else throw err;
 		}
 	}
+
+	const busy = inviteMutation.isPending;
 
 	return (
 		<form onSubmit={onSubmit} className="space-y-2">
@@ -130,8 +138,12 @@ interface MemberListProps {
 }
 
 function MemberList({ campaignId, members }: MemberListProps) {
-	const queryClient = useQueryClient();
-	const remove = useServerFn(removeMember);
+	const removeMutation = useBundleMutation({
+		campaignId,
+		mutationFn: (vars: { memberId: string }) =>
+			removeMember({ data: { campaignId, memberId: vars.memberId } }),
+		patch: (bundle, vars) => patchRemoveMember(bundle, vars.memberId),
+	});
 
 	return (
 		<ul className="space-y-2">
@@ -157,11 +169,8 @@ function MemberList({ campaignId, members }: MemberListProps) {
 							{!isDM && (
 								<button
 									type="button"
-									onClick={async () => {
-										await remove({ data: { campaignId, memberId: m.id } });
-										await queryClient.invalidateQueries({
-											queryKey: bundleKey(campaignId),
-										});
+									onClick={() => {
+										removeMutation.mutate({ memberId: m.id });
 									}}
 									title="Remove member"
 									aria-label="Remove member"

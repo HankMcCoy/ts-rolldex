@@ -1,11 +1,14 @@
-import { useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useServerFn } from "@tanstack/react-start";
 import { Trash2 } from "lucide-react";
 import { Page } from "@/components/Page";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { bundleKey, useCampaign, useTemplates } from "@/lib/queries";
+import {
+	patchRemoveTemplate,
+	useBundleMutation,
+	useCampaign,
+	useTemplates,
+} from "@/lib/queries";
 import { deleteTemplate } from "@/server/templates";
 
 export const Route = createFileRoute(
@@ -19,8 +22,15 @@ function TemplatesSettingsPage() {
 	const { campaignId } = Route.useParams();
 	const { campaign, accessLevel } = useCampaign(campaignId);
 	const templates = useTemplates(campaignId);
-	const queryClient = useQueryClient();
-	const remove = useServerFn(deleteTemplate);
+
+	const removeMutation = useBundleMutation({
+		campaignId,
+		mutationFn: (vars: { templateId: string }) =>
+			deleteTemplate({
+				data: { campaignId, templateId: vars.templateId },
+			}),
+		patch: (bundle, vars) => patchRemoveTemplate(bundle, vars.templateId),
+	});
 
 	const breadcrumbs = [
 		{
@@ -93,14 +103,9 @@ function TemplatesSettingsPage() {
 									</div>
 									<button
 										type="button"
-										onClick={async () => {
+										onClick={() => {
 											if (!confirm(`Delete template "${t.name}"?`)) return;
-											await remove({
-												data: { campaignId: campaign.id, templateId: t.id },
-											});
-											await queryClient.invalidateQueries({
-												queryKey: bundleKey(campaign.id),
-											});
+											removeMutation.mutate({ templateId: t.id });
 										}}
 										title="Delete template"
 										aria-label="Delete template"

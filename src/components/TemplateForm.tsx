@@ -1,4 +1,3 @@
-import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -16,7 +15,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { zodResolver } from "@/lib/form-resolver";
-import { bundleKey } from "@/lib/queries";
 import type { Result } from "@/lib/result";
 
 const schema = z.object({
@@ -43,7 +41,6 @@ export function TemplateForm({
 	onSubmit,
 }: Props) {
 	const navigate = useNavigate();
-	const queryClient = useQueryClient();
 
 	const form = useForm<TemplateFormValues>({
 		resolver: zodResolver(schema),
@@ -56,7 +53,6 @@ export function TemplateForm({
 			form.setError("name", { message: result.error });
 			return;
 		}
-		await queryClient.invalidateQueries({ queryKey: bundleKey(campaignId) });
 		await navigate({
 			to: "/campaigns/$campaignId/settings",
 			params: { campaignId },

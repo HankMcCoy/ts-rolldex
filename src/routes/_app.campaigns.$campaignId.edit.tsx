@@ -1,6 +1,4 @@
-import { useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useServerFn } from "@tanstack/react-start";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { Page } from "@/components/Page";
@@ -16,7 +14,12 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { zodResolver } from "@/lib/form-resolver";
-import { bundleKey, useCampaign } from "@/lib/queries";
+import {
+	BundleMutationError,
+	patchUpdateCampaign,
+	useBundleMutation,
+	useCampaign,
+} from "@/lib/queries";
 import { updateCampaign } from "@/server/campaigns";
 
 export const Route = createFileRoute("/_app/campaigns/$campaignId/edit")({
@@ -34,8 +37,19 @@ function EditCampaignPage() {
 	const { campaignId } = Route.useParams();
 	const { campaign, accessLevel } = useCampaign(campaignId);
 	const navigate = useNavigate();
-	const queryClient = useQueryClient();
-	const update = useServerFn(updateCampaign);
+
+	const updateMutation = useBundleMutation({
+		campaignId: campaign.id,
+		mutationFn: (vars: Values) =>
+			updateCampaign({ data: { campaignId: campaign.id, ...vars } }),
+		patch: (bundle, vars) =>
+			patchUpdateCampaign(bundle, (c) => ({
+				...c,
+				name: vars.name,
+				summary: vars.summary,
+				updatedAt: new Date(),
+			})),
+	});
 
 	const form = useForm<Values>({
 		resolver: zodResolver(schema),
@@ -43,14 +57,15 @@ function EditCampaignPage() {
 	});
 
 	async function onSubmit(values: Values) {
-		const result = await update({
-			data: { campaignId: campaign.id, ...values },
-		});
-		if (!result.ok) {
-			form.setError("name", { message: result.error });
-			return;
+		try {
+			await updateMutation.mutateAsync(values);
+		} catch (e) {
+			if (e instanceof BundleMutationError) {
+				form.setError("name", { message: e.message });
+				return;
+			}
+			throw e;
 		}
-		await queryClient.invalidateQueries({ queryKey: bundleKey(campaign.id) });
 		await navigate({
 			to: "/campaigns/$campaignId",
 			params: { campaignId: campaign.id },

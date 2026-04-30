@@ -1,10 +1,14 @@
-import { useServerFn } from "@tanstack/react-start";
 import { Plus, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { type Calendar, calendarSchema, daysPerYear } from "@/lib/calendar";
+import {
+	BundleMutationError,
+	patchUpdateCampaign,
+	useBundleMutation,
+} from "@/lib/queries";
 import { updateCalendar } from "@/server/calendar";
 
 interface Props {
@@ -23,8 +27,14 @@ export function CalendarEditor({ campaignId, initial, onSaved }: Props) {
 		initial.months.map((m) => ({ name: m.name, days: String(m.days) })),
 	);
 	const [error, setError] = useState<string | null>(null);
-	const [busy, setBusy] = useState(false);
-	const save = useServerFn(updateCalendar);
+
+	const saveMutation = useBundleMutation({
+		campaignId,
+		mutationFn: (vars: { calendar: Calendar }) =>
+			updateCalendar({ data: { campaignId, calendar: vars.calendar } }),
+		patch: (bundle, vars) =>
+			patchUpdateCampaign(bundle, (c) => ({ ...c, calendar: vars.calendar })),
+	});
 
 	function update(i: number, patch: Partial<RowState>) {
 		setRows((r) =>
@@ -52,20 +62,16 @@ export function CalendarEditor({ campaignId, initial, onSaved }: Props) {
 			setError(first?.message ?? "Calendar is invalid");
 			return;
 		}
-		setBusy(true);
 		try {
-			const result = await save({
-				data: { campaignId, calendar: parsed.data },
-			});
-			if (!result.ok) {
-				setError(result.error);
-				return;
-			}
+			await saveMutation.mutateAsync({ calendar: parsed.data });
 			onSaved?.();
-		} finally {
-			setBusy(false);
+		} catch (e) {
+			if (e instanceof BundleMutationError) setError(e.message);
+			else throw e;
 		}
 	}
+
+	const busy = saveMutation.isPending;
 
 	const totalDays = rows.reduce((s, r) => {
 		const n = Number(r.days);

@@ -22,6 +22,9 @@ export const createNoun = createServerFn({ method: "POST" })
 		applyDateRefinements(
 			z.object({
 				campaignId: z.string(),
+				// Optional client-supplied id lets the optimistic UI render the new
+				// row immediately and keeps the post-create navigate target stable.
+				id: z.string().uuid().optional(),
 				name: z.string().min(1).max(200),
 				nounType: nounTypeSchema,
 				summary: z.string().min(1).max(5_000),
@@ -53,6 +56,7 @@ export const createNoun = createServerFn({ method: "POST" })
 				const [noun] = await db
 					.insert(nouns)
 					.values({
+						...(data.id ? { id: data.id } : {}),
 						campaignId: data.campaignId,
 						name: data.name,
 						nounType: data.nounType,

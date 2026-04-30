@@ -1,6 +1,4 @@
-import { useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useServerFn } from "@tanstack/react-start";
 import { Trash2 } from "lucide-react";
 import { EntityImage } from "@/components/EntityImage";
 import { MarkdownRenderer } from "@/components/MarkdownRenderer";
@@ -9,7 +7,7 @@ import { PinnedOnMaps } from "@/components/PinnedOnMaps";
 import { RelatedEntities } from "@/components/RelatedEntities";
 import { Button } from "@/components/ui/button";
 import { NOUN_TYPE_LABELS } from "@/lib/noun-types";
-import { bundleKey, useCampaign, useNoun } from "@/lib/queries";
+import { useBundleMutation, useCampaign, useNoun } from "@/lib/queries";
 import { deleteNoun } from "@/server/nouns";
 
 export const Route = createFileRoute(
@@ -26,16 +24,23 @@ function NounPage() {
 		nounId,
 	);
 	const navigate = useNavigate();
-	const queryClient = useQueryClient();
-	const remove = useServerFn(deleteNoun);
+
+	// Delete-and-navigate flows skip optimism: removing the noun from the bundle
+	// while still mounted on its detail page would briefly trip the notFound()
+	// in useNoun before navigation completes. The post-mutation invalidate +
+	// onSettled refetch is fast enough for this case.
+	const deleteMutation = useBundleMutation({
+		campaignId: campaign.id,
+		mutationFn: () =>
+			deleteNoun({ data: { campaignId: campaign.id, nounId: noun.id } }),
+	});
 
 	const isAdmin = accessLevel === "ADMIN";
 	const typeLabel = NOUN_TYPE_LABELS[noun.nounType];
 
 	async function handleDelete() {
 		if (!confirm(`Delete "${noun.name}"? This cannot be undone.`)) return;
-		await remove({ data: { campaignId: campaign.id, nounId: noun.id } });
-		await queryClient.invalidateQueries({ queryKey: bundleKey(campaign.id) });
+		await deleteMutation.mutateAsync(undefined);
 		await navigate({
 			to: "/campaigns/$campaignId/nouns",
 			params: { campaignId: campaign.id },

@@ -1,4 +1,9 @@
-import { queryOptions, useQuery } from "@tanstack/react-query";
+import {
+	queryOptions,
+	useMutation,
+	useQuery,
+	useQueryClient,
+} from "@tanstack/react-query";
 import { notFound } from "@tanstack/react-router";
 import type { NounType } from "@/lib/noun-types";
 import {
@@ -282,3 +287,297 @@ export function useSettingsSummary(campaignId: string) {
 
 // Re-export TimelineEntry for downstream consumers (timeline route, dashboard).
 export type { TimelineEntry };
+
+// ---------------------------------------------------------------------------
+// Mutations
+// ---------------------------------------------------------------------------
+
+/**
+ * Some server fns return `{ ok: false, error }` for expected business errors
+ * (unique-name collisions, invalid pin targets) instead of throwing. Detect
+ * those so `useBundleMutation` can route them through the same rollback path
+ * as a thrown error.
+ */
+function isFailedResult(r: unknown): r is { ok: false; error: string } {
+	return (
+		typeof r === "object" &&
+		r !== null &&
+		"ok" in r &&
+		(r as { ok: unknown }).ok === false
+	);
+}
+
+/**
+ * Thrown by `useBundleMutation` when a server fn returns `{ ok: false }`. The
+ * caller should `try { await mut.mutateAsync(...) } catch (e) { ... }` and
+ * read `e.message` (or check `e instanceof BundleMutationError`) to surface
+ * the message in the UI. The optimistic patch has already been rolled back
+ * by the time this is thrown.
+ */
+export class BundleMutationError extends Error {
+	constructor(message: string) {
+		super(message);
+		this.name = "BundleMutationError";
+	}
+}
+
+type BundlePatcher<TVars> = (
+	bundle: CampaignBundle,
+	vars: TVars,
+) => CampaignBundle;
+
+type BundleReconciler<TVars, TResult> = (
+	bundle: CampaignBundle,
+	result: TResult,
+	vars: TVars,
+) => CampaignBundle;
+
+/**
+ * Wraps a server-fn mutation with the bundle's optimistic-update lifecycle:
+ *
+ *   1. `onMutate` snapshots the current bundle and applies `patch` so the UI
+ *      reflects the change before the request goes out.
+ *   2. If the server fn rejects (network error or thrown), `onError` restores
+ *      the snapshot.
+ *   3. If the server fn returns `{ ok: false }`, the mutationFn wrapper throws
+ *      a `BundleMutationError` so the same rollback path runs and the caller's
+ *      try/catch can surface the message.
+ *   4. `onSuccess` runs `reconcile` if provided so the canonical row from the
+ *      server replaces the optimistic placeholder (mainly to fix `updatedAt`
+ *      timestamps and any server-defaulted columns).
+ *   5. `onSettled` invalidates the bundle as a backstop: even with `reconcile`,
+ *      a background refetch guarantees the cache eventually matches reality.
+ *
+ * `patch` is optional — omit it to get a non-optimistic mutation that still
+ * benefits from automatic invalidation.
+ */
+export function useBundleMutation<TVars, TResult>(opts: {
+	campaignId: string;
+	mutationFn: (vars: TVars) => Promise<TResult>;
+	patch?: BundlePatcher<TVars>;
+	reconcile?: BundleReconciler<TVars, TResult>;
+}) {
+	const qc = useQueryClient();
+	type Ctx = { previous: CampaignBundle | undefined };
+	return useMutation<TResult, Error, TVars, Ctx>({
+		mutationFn: async (vars) => {
+			const result = await opts.mutationFn(vars);
+			if (isFailedResult(result)) {
+				throw new BundleMutationError(result.error);
+			}
+			return result;
+		},
+		onMutate: async (vars) => {
+			if (!opts.patch) return { previous: undefined };
+			const key = bundleKey(opts.campaignId);
+			await qc.cancelQueries({ queryKey: key });
+			const previous = qc.getQueryData<CampaignBundle>(key);
+			if (previous) qc.setQueryData(key, opts.patch(previous, vars));
+			return { previous };
+		},
+		onError: (_err, _vars, ctx) => {
+			if (ctx?.previous) {
+				qc.setQueryData(bundleKey(opts.campaignId), ctx.previous);
+			}
+		},
+		onSuccess: (result, vars) => {
+			const reconcile = opts.reconcile;
+			if (!reconcile) return;
+			qc.setQueryData<CampaignBundle>(bundleKey(opts.campaignId), (b) =>
+				b ? reconcile(b, result, vars) : b,
+			);
+		},
+		onSettled: () => {
+			void qc.invalidateQueries({ queryKey: bundleKey(opts.campaignId) });
+		},
+	});
+}
+
+// ---------------------------------------------------------------------------
+// Patcher helpers — the small set of bundle transforms we need across routes.
+// Kept here (rather than inlined per call site) so mutation hooks read cleanly.
+// ---------------------------------------------------------------------------
+
+export function patchAddNoun(
+	bundle: CampaignBundle,
+	noun: BundleNoun,
+): CampaignBundle {
+	return {
+		...bundle,
+		nouns: [...bundle.nouns, noun].sort((a, b) => a.name.localeCompare(b.name)),
+	};
+}
+
+export function patchUpdateNoun(
+	bundle: CampaignBundle,
+	nounId: string,
+	updater: (n: BundleNoun) => BundleNoun,
+): CampaignBundle {
+	return {
+		...bundle,
+		nouns: bundle.nouns
+			.map((n) => (n.id === nounId ? updater(n) : n))
+			.sort((a, b) => a.name.localeCompare(b.name)),
+	};
+}
+
+export function patchRemoveNoun(
+	bundle: CampaignBundle,
+	nounId: string,
+): CampaignBundle {
+	return {
+		...bundle,
+		nouns: bundle.nouns.filter((n) => n.id !== nounId),
+		// Pins targeting the deleted noun are cascaded by the DB on delete; mirror
+		// that on the client so the optimistic state matches what we'll refetch.
+		mapPins: bundle.mapPins.filter((p) => p.nounId !== nounId),
+	};
+}
+
+export function patchAddSession(
+	bundle: CampaignBundle,
+	session: BundleSession,
+): CampaignBundle {
+	// Sessions are ordered by createdAt desc — newest first.
+	return { ...bundle, sessions: [session, ...bundle.sessions] };
+}
+
+export function patchUpdateSession(
+	bundle: CampaignBundle,
+	sessionId: string,
+	updater: (s: BundleSession) => BundleSession,
+): CampaignBundle {
+	return {
+		...bundle,
+		sessions: bundle.sessions.map((s) => (s.id === sessionId ? updater(s) : s)),
+	};
+}
+
+export function patchRemoveSession(
+	bundle: CampaignBundle,
+	sessionId: string,
+): CampaignBundle {
+	return {
+		...bundle,
+		sessions: bundle.sessions.filter((s) => s.id !== sessionId),
+		mapPins: bundle.mapPins.filter((p) => p.sessionId !== sessionId),
+	};
+}
+
+export function patchAddMap(
+	bundle: CampaignBundle,
+	map: BundleMap,
+): CampaignBundle {
+	return {
+		...bundle,
+		maps: [...bundle.maps, map].sort((a, b) => a.name.localeCompare(b.name)),
+	};
+}
+
+export function patchUpdateMap(
+	bundle: CampaignBundle,
+	mapId: string,
+	updater: (m: BundleMap) => BundleMap,
+): CampaignBundle {
+	return {
+		...bundle,
+		maps: bundle.maps
+			.map((m) => (m.id === mapId ? updater(m) : m))
+			.sort((a, b) => a.name.localeCompare(b.name)),
+	};
+}
+
+export function patchRemoveMap(
+	bundle: CampaignBundle,
+	mapId: string,
+): CampaignBundle {
+	return {
+		...bundle,
+		maps: bundle.maps.filter((m) => m.id !== mapId),
+		mapPins: bundle.mapPins.filter((p) => p.mapId !== mapId),
+	};
+}
+
+export function patchAddPin(
+	bundle: CampaignBundle,
+	pin: BundleMapPin,
+): CampaignBundle {
+	return { ...bundle, mapPins: [...bundle.mapPins, pin] };
+}
+
+export function patchUpdatePin(
+	bundle: CampaignBundle,
+	pinId: string,
+	updater: (p: BundleMapPin) => BundleMapPin,
+): CampaignBundle {
+	return {
+		...bundle,
+		mapPins: bundle.mapPins.map((p) => (p.id === pinId ? updater(p) : p)),
+	};
+}
+
+export function patchRemovePin(
+	bundle: CampaignBundle,
+	pinId: string,
+): CampaignBundle {
+	return { ...bundle, mapPins: bundle.mapPins.filter((p) => p.id !== pinId) };
+}
+
+export function patchAddTemplate(
+	bundle: CampaignBundle,
+	template: BundleTemplate,
+): CampaignBundle {
+	return {
+		...bundle,
+		templates: [...bundle.templates, template].sort((a, b) =>
+			a.name.localeCompare(b.name),
+		),
+	};
+}
+
+export function patchUpdateTemplate(
+	bundle: CampaignBundle,
+	templateId: string,
+	updater: (t: BundleTemplate) => BundleTemplate,
+): CampaignBundle {
+	return {
+		...bundle,
+		templates: bundle.templates
+			.map((t) => (t.id === templateId ? updater(t) : t))
+			.sort((a, b) => a.name.localeCompare(b.name)),
+	};
+}
+
+export function patchRemoveTemplate(
+	bundle: CampaignBundle,
+	templateId: string,
+): CampaignBundle {
+	return {
+		...bundle,
+		templates: bundle.templates.filter((t) => t.id !== templateId),
+	};
+}
+
+export function patchAddMember(
+	bundle: CampaignBundle,
+	member: BundleMember,
+): CampaignBundle {
+	return { ...bundle, members: [...bundle.members, member] };
+}
+
+export function patchRemoveMember(
+	bundle: CampaignBundle,
+	memberId: string,
+): CampaignBundle {
+	return {
+		...bundle,
+		members: bundle.members.filter((m) => m.id !== memberId),
+	};
+}
+
+export function patchUpdateCampaign(
+	bundle: CampaignBundle,
+	updater: (c: CampaignBundle["campaign"]) => CampaignBundle["campaign"],
+): CampaignBundle {
+	return { ...bundle, campaign: updater(bundle.campaign) };
+}

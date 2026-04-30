@@ -18,6 +18,7 @@ export const createMap = createServerFn({ method: "POST" })
 	.inputValidator(
 		z.object({
 			campaignId: z.string(),
+			id: z.string().uuid().optional(),
 			name: z.string().min(1).max(200),
 			isSecret: z.boolean(),
 		}),
@@ -40,6 +41,7 @@ export const createMap = createServerFn({ method: "POST" })
 				const [map] = await db
 					.insert(maps)
 					.values({
+						...(data.id ? { id: data.id } : {}),
 						campaignId: data.campaignId,
 						name: data.name,
 						isSecret: data.isSecret,
@@ -188,6 +190,7 @@ export const createPin = createServerFn({ method: "POST" })
 		z
 			.object({
 				campaignId: z.string(),
+				id: z.string().uuid().optional(),
 				mapId: z.string(),
 				nounId: z.string().optional(),
 				sessionId: z.string().optional(),
@@ -236,6 +239,7 @@ export const createPin = createServerFn({ method: "POST" })
 		const [pin] = await db
 			.insert(mapPins)
 			.values({
+				...(data.id ? { id: data.id } : {}),
 				mapId: data.mapId,
 				nounId: data.nounId ?? null,
 				sessionId: data.sessionId ?? null,
