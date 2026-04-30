@@ -11,9 +11,9 @@ const BASE = [
 ];
 
 const STAT_BLOCK = [
-	"border-2 border-[var(--sea-ink)] bg-white",
+	"overflow-hidden border-2 border-[var(--sea-ink)] bg-white",
 	"[&>h2:first-child]:-mx-4 [&>h2:first-child]:-mt-3",
-	"[&>h2:first-child]:mb-3 [&>h2:first-child]:rounded-t-md",
+	"[&>h2:first-child]:mb-3",
 	"[&>h2:first-child]:bg-[var(--sea-ink)] [&>h2:first-child]:px-4 [&>h2:first-child]:py-2",
 	"[&>h2:first-child]:text-white",
 ];
