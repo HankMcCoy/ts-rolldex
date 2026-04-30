@@ -252,10 +252,10 @@ function CampaignDashboard() {
 							{isAdmin && (
 								<Button variant="outline" size="sm" asChild>
 									<Link
-										to="/campaigns/$campaignId/settings"
+										to="/campaigns/$campaignId/settings/members"
 										params={{ campaignId: campaign.id }}
 									>
-										Manage in Settings
+										Manage members
 									</Link>
 								</Button>
 							)}

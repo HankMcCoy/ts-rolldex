@@ -18,9 +18,7 @@ export const Route = createFileRoute(
 			},
 		}),
 	head: ({ loaderData }) => ({
-		meta: [
-			{ title: `Edit ${loaderData?.name ?? "template"} - Rolldex` },
-		],
+		meta: [{ title: `Edit ${loaderData?.name ?? "template"} - Rolldex` }],
 	}),
 	component: EditTemplatePage,
 });
@@ -41,6 +39,11 @@ function EditTemplatePage() {
 		{
 			label: "Settings",
 			to: "/campaigns/$campaignId/settings" as const,
+			params: { campaignId: campaign.id },
+		},
+		{
+			label: "Templates",
+			to: "/campaigns/$campaignId/settings/templates" as const,
 			params: { campaignId: campaign.id },
 		},
 	];

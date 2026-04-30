@@ -31,6 +31,11 @@ function NewTemplatePage() {
 			to: "/campaigns/$campaignId/settings" as const,
 			params: { campaignId: campaign.id },
 		},
+		{
+			label: "Templates",
+			to: "/campaigns/$campaignId/settings/templates" as const,
+			params: { campaignId: campaign.id },
+		},
 	];
 
 	if (accessLevel !== "ADMIN") {

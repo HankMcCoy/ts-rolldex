@@ -14,8 +14,8 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import type { Result } from "@/lib/result";
 import { zodResolver } from "@/lib/form-resolver";
+import type { Result } from "@/lib/result";
 
 const schema = z.object({
 	name: z.string().min(1, "Name is required").max(80),
@@ -127,7 +127,7 @@ export function TemplateForm({
 						variant="outline"
 						onClick={() =>
 							navigate({
-								to: "/campaigns/$campaignId/settings",
+								to: "/campaigns/$campaignId/settings/templates",
 								params: { campaignId },
 							})
 						}
