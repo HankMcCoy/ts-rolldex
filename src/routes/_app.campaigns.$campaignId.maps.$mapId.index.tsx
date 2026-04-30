@@ -83,7 +83,6 @@ function MapPage() {
 	async function handleDeleteMap() {
 		if (!confirm(`Delete "${map.name}"? This cannot be undone.`)) return;
 		await remove({ data: { campaignId: campaign.id, mapId: map.id } });
-		await router.invalidate();
 		await navigate({
 			to: "/campaigns/$campaignId/maps",
 			params: { campaignId: campaign.id },

@@ -3,7 +3,6 @@ import {
 	getRouteApi,
 	Link,
 	useNavigate,
-	useRouter,
 } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { Trash2 } from "lucide-react";
@@ -30,7 +29,6 @@ function SessionPage() {
 		sessionRoute.useLoaderData();
 	const { campaign } = parentRoute.useLoaderData();
 	const navigate = useNavigate();
-	const router = useRouter();
 	const remove = useServerFn(deleteSession);
 
 	const isAdmin = accessLevel === "ADMIN";
@@ -40,7 +38,6 @@ function SessionPage() {
 		await remove({
 			data: { campaignId: campaign.id, sessionId: session.id },
 		});
-		await router.invalidate();
 		await navigate({
 			to: "/campaigns/$campaignId/sessions",
 			params: { campaignId: campaign.id },

@@ -166,7 +166,6 @@ function EditNounPage() {
 			form.setError("name", { message: result.error });
 			return;
 		}
-		await router.invalidate();
 		await navigate({
 			to: "/campaigns/$campaignId/nouns/$nounId",
 			params: { campaignId: campaign.id, nounId: noun.id },

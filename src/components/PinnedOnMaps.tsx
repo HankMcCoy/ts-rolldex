@@ -115,6 +115,8 @@ function MapThumbnail({
 				ref={imgRef}
 				src={imageUrl}
 				alt=""
+				loading="lazy"
+				decoding="async"
 				onLoad={measure}
 				className="h-full w-full object-contain"
 			/>

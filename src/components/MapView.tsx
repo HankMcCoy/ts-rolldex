@@ -191,6 +191,7 @@ export function MapView({
 								ref={imageRef}
 								src={imageUrl}
 								alt=""
+								decoding="async"
 								className={`block max-h-none w-auto select-none ${adding ? "cursor-crosshair" : "cursor-grab"}`}
 								draggable={false}
 							/>

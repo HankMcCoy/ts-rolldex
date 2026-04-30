@@ -1,4 +1,4 @@
-import { useNavigate, useRouter } from "@tanstack/react-router";
+import { useNavigate } from "@tanstack/react-router";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { MarkdownEditor } from "@/components/MarkdownEditor";
@@ -41,7 +41,6 @@ export function TemplateForm({
 	onSubmit,
 }: Props) {
 	const navigate = useNavigate();
-	const router = useRouter();
 
 	const form = useForm<TemplateFormValues>({
 		resolver: zodResolver(schema),
@@ -54,7 +53,6 @@ export function TemplateForm({
 			form.setError("name", { message: result.error });
 			return;
 		}
-		await router.invalidate();
 		await navigate({
 			to: "/campaigns/$campaignId/settings",
 			params: { campaignId },

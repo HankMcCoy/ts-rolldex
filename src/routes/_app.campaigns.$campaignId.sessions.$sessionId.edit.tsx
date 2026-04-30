@@ -2,7 +2,6 @@ import {
 	createFileRoute,
 	getRouteApi,
 	useNavigate,
-	useRouter,
 } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useForm } from "react-hook-form";
@@ -66,7 +65,6 @@ function EditSessionPage() {
 	const { session, accessLevel } = sessionRoute.useLoaderData();
 	const { campaign, templates } = parentRoute.useLoaderData();
 	const navigate = useNavigate();
-	const router = useRouter();
 	const update = useServerFn(updateSession);
 
 	const form = useForm<Values>({
@@ -94,7 +92,6 @@ function EditSessionPage() {
 			form.setError("name", { message: result.error });
 			return;
 		}
-		await router.invalidate();
 		await navigate({
 			to: "/campaigns/$campaignId/sessions/$sessionId",
 			params: { campaignId: campaign.id, sessionId: session.id },

@@ -2,7 +2,6 @@ import {
 	createFileRoute,
 	getRouteApi,
 	useNavigate,
-	useRouter,
 } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useForm } from "react-hook-form";
@@ -51,7 +50,6 @@ function EditMapPage() {
 	const { campaign } = parentRoute.useLoaderData();
 	const { map, accessLevel } = mapRoute.useLoaderData();
 	const navigate = useNavigate();
-	const router = useRouter();
 	const update = useServerFn(updateMap);
 
 	const form = useForm<Values>({
@@ -85,7 +83,6 @@ function EditMapPage() {
 			form.setError("name", { message: result.error });
 			return;
 		}
-		await router.invalidate();
 		await navigate({
 			to: "/campaigns/$campaignId/maps/$mapId",
 			params: { campaignId: campaign.id, mapId: map.id },

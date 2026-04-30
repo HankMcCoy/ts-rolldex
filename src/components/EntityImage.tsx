@@ -28,7 +28,13 @@ export function EntityImage({ nounType, imageUrl, name, className }: Props) {
 			)}
 		>
 			{imageUrl ? (
-				<img src={imageUrl} alt={name} className="h-full w-full object-cover" />
+				<img
+					src={imageUrl}
+					alt={name}
+					loading="lazy"
+					decoding="async"
+					className="h-full w-full object-cover"
+				/>
 			) : (
 				<div className="flex h-full w-full items-center justify-center text-[var(--sea-ink-soft)]">
 					<Icon className="h-1/2 w-1/2" />
