@@ -15,7 +15,8 @@ import {
 import { visibilityFilter } from "@/server/query-helpers";
 import { withUniqueName } from "@/server/unique-name";
 
-const MAP_NAME_CONFLICT = "A map with this name already exists in this campaign.";
+const MAP_NAME_CONFLICT =
+	"A map with this name already exists in this campaign.";
 
 const MAX_IMAGE_BYTES = 15 * 1024 * 1024;
 

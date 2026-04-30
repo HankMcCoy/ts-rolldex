@@ -1,5 +1,5 @@
 import { isUniqueViolation } from "@/lib/db-errors";
-import { type Result, err, ok } from "@/lib/result";
+import { err, ok, type Result } from "@/lib/result";
 
 /**
  * Wraps an insert-or-update around a unique-name conflict check. We both

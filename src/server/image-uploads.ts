@@ -30,7 +30,9 @@ interface UploadOptions {
 	keyPrefix: string;
 	notFoundMessage: string;
 	/** Returns the row's current imageKey, or null if the row doesn't exist. */
-	loadExistingKey: () => Promise<{ imageKey: string | null } | null | undefined>;
+	loadExistingKey: () => Promise<
+		{ imageKey: string | null } | null | undefined
+	>;
 	/** Persists the new key on the row. */
 	applyKey: (key: string) => Promise<void>;
 }
@@ -74,7 +76,9 @@ export async function performImageUpload(
 
 interface RemoveOptions {
 	notFoundMessage: string;
-	loadExistingKey: () => Promise<{ imageKey: string | null } | null | undefined>;
+	loadExistingKey: () => Promise<
+		{ imageKey: string | null } | null | undefined
+	>;
 	applyKey: (key: string | null) => Promise<void>;
 }
 

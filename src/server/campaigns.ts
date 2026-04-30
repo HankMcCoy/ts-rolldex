@@ -3,8 +3,8 @@ import { and, eq, isNull, ne, or } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/db/index";
 import {
-	campaignTemplates,
 	campaigns,
+	campaignTemplates,
 	gameSessions,
 	maps,
 	members,

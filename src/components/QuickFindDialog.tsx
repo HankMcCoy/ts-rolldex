@@ -120,10 +120,7 @@ export function QuickFindDialog({ campaignId, accessLevel }: Props) {
 					{results.nouns.length > 0 && (
 						<CommandGroup heading="Entities">
 							{results.nouns.map((n) => (
-								<CommandItem
-									key={n.id}
-									onSelect={() => handleSelectNoun(n.id)}
-								>
+								<CommandItem key={n.id} onSelect={() => handleSelectNoun(n.id)}>
 									<EntityAvatar
 										entityType={n.nounType}
 										imageUrl={n.imageUrl}

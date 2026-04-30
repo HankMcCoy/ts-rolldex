@@ -29,9 +29,7 @@ export const getTemplates = createServerFn()
 	});
 
 export const getTemplate = createServerFn()
-	.inputValidator(
-		z.object({ campaignId: z.string(), templateId: z.string() }),
-	)
+	.inputValidator(z.object({ campaignId: z.string(), templateId: z.string() }))
 	.handler(async ({ data }) => {
 		const { user } = await requireSession();
 		await requireCampaignAccess(data.campaignId, user, "ADMIN");
@@ -47,9 +45,7 @@ export const getTemplate = createServerFn()
 	});
 
 export const createTemplate = createServerFn({ method: "POST" })
-	.inputValidator(
-		z.object({ campaignId: z.string() }).and(templateBodySchema),
-	)
+	.inputValidator(z.object({ campaignId: z.string() }).and(templateBodySchema))
 	.handler(async ({ data }) => {
 		const { user } = await requireSession();
 		await requireCampaignAccess(data.campaignId, user, "ADMIN");
@@ -122,9 +118,7 @@ export const updateTemplate = createServerFn({ method: "POST" })
 	});
 
 export const deleteTemplate = createServerFn({ method: "POST" })
-	.inputValidator(
-		z.object({ campaignId: z.string(), templateId: z.string() }),
-	)
+	.inputValidator(z.object({ campaignId: z.string(), templateId: z.string() }))
 	.handler(async ({ data }) => {
 		const { user } = await requireSession();
 		await requireCampaignAccess(data.campaignId, user, "ADMIN");

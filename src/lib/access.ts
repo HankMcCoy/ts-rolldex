@@ -124,7 +124,10 @@ export async function requireCampaignAccess(
 	user: Pick<SessionUser, "id" | "email">,
 	minimumLevel: "ADMIN" | "READ_ONLY" = "READ_ONLY",
 ): Promise<"ADMIN" | "READ_ONLY"> {
-	return enforceMinimum(await getCampaignAccess(campaignId, user), minimumLevel);
+	return enforceMinimum(
+		await getCampaignAccess(campaignId, user),
+		minimumLevel,
+	);
 }
 
 /**
