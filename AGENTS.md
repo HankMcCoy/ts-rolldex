@@ -43,7 +43,7 @@ A campaign and everything in it (nouns, sessions, maps, pins, members, templates
 
 ## Mutations
 
-`useBundleMutation` (`src/lib/queries.ts`) wraps server-fn calls with the optimistic-update lifecycle: snapshot in `onMutate` → apply patcher → request → reconcile (optional) → invalidate as backstop in `onSettled`. Use it for every mutation.
+`useBundleMutation` (`src/lib/queries.ts`) wraps server-fn calls with the optimistic-update lifecycle: snapshot in `onMutate` → apply patcher → request → invalidate as backstop in `onSettled` (a background refetch picks up server-canonical fields like `updatedAt`). Use it for every mutation.
 
 Pattern:
 

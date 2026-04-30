@@ -326,12 +326,6 @@ type BundlePatcher<TVars> = (
 	vars: TVars,
 ) => CampaignBundle;
 
-type BundleReconciler<TVars, TResult> = (
-	bundle: CampaignBundle,
-	result: TResult,
-	vars: TVars,
-) => CampaignBundle;
-
 /**
  * Wraps a server-fn mutation with the bundle's optimistic-update lifecycle:
  *
@@ -342,11 +336,9 @@ type BundleReconciler<TVars, TResult> = (
  *   3. If the server fn returns `{ ok: false }`, the mutationFn wrapper throws
  *      a `BundleMutationError` so the same rollback path runs and the caller's
  *      try/catch can surface the message.
- *   4. `onSuccess` runs `reconcile` if provided so the canonical row from the
- *      server replaces the optimistic placeholder (mainly to fix `updatedAt`
- *      timestamps and any server-defaulted columns).
- *   5. `onSettled` invalidates the bundle as a backstop: even with `reconcile`,
- *      a background refetch guarantees the cache eventually matches reality.
+ *   4. `onSettled` invalidates the bundle so a background refetch reconciles
+ *      the optimistic patch with the server's canonical row (server-generated
+ *      `updatedAt`, etc.).
  *
  * `patch` is optional — omit it to get a non-optimistic mutation that still
  * benefits from automatic invalidation.
@@ -355,7 +347,6 @@ export function useBundleMutation<TVars, TResult>(opts: {
 	campaignId: string;
 	mutationFn: (vars: TVars) => Promise<TResult>;
 	patch?: BundlePatcher<TVars>;
-	reconcile?: BundleReconciler<TVars, TResult>;
 }) {
 	const qc = useQueryClient();
 	type Ctx = { previous: CampaignBundle | undefined };
@@ -379,13 +370,6 @@ export function useBundleMutation<TVars, TResult>(opts: {
 			if (ctx?.previous) {
 				qc.setQueryData(bundleKey(opts.campaignId), ctx.previous);
 			}
-		},
-		onSuccess: (result, vars) => {
-			const reconcile = opts.reconcile;
-			if (!reconcile) return;
-			qc.setQueryData<CampaignBundle>(bundleKey(opts.campaignId), (b) =>
-				b ? reconcile(b, result, vars) : b,
-			);
 		},
 		onSettled: () => {
 			void qc.invalidateQueries({ queryKey: bundleKey(opts.campaignId) });
