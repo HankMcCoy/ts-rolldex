@@ -74,64 +74,61 @@ export const getCampaignBundle = createServerFn()
 			user,
 		);
 
-		const [
-			allNouns,
-			allSessions,
-			allMaps,
-			allPins,
-			allMembers,
-			allTemplates,
-			creator,
-		] = await Promise.all([
-			db.query.nouns.findMany({
-				where: and(
-					eq(nouns.campaignId, data.campaignId),
-					visibilityFilter(nouns.isSecret, accessLevel),
-				),
-				orderBy: (n, { asc }) => asc(n.name),
-			}),
-			db.query.gameSessions.findMany({
-				where: and(
-					eq(gameSessions.campaignId, data.campaignId),
-					visibilityFilter(gameSessions.isSecret, accessLevel),
-				),
-				orderBy: (s, { desc }) => desc(s.createdAt),
-			}),
-			db.query.maps.findMany({
-				where: and(
-					eq(maps.campaignId, data.campaignId),
-					visibilityFilter(maps.isSecret, accessLevel),
-				),
-				orderBy: (m, { asc }) => asc(m.name),
-			}),
-			db
-				.select({
-					id: mapPins.id,
-					mapId: mapPins.mapId,
-					nounId: mapPins.nounId,
-					sessionId: mapPins.sessionId,
-					x: mapPins.x,
-					y: mapPins.y,
-					label: mapPins.label,
-				})
-				.from(mapPins)
-				.innerJoin(maps, eq(mapPins.mapId, maps.id))
-				.where(eq(maps.campaignId, data.campaignId)),
-			db.query.members.findMany({
-				where: eq(members.campaignId, data.campaignId),
-				with: { user: { columns: { id: true, name: true, email: true } } },
-			}),
-			accessLevel === "ADMIN"
-				? db.query.campaignTemplates.findMany({
-						where: eq(campaignTemplates.campaignId, data.campaignId),
-						orderBy: (t, { asc }) => asc(t.name),
+		// Creator lookup is its own await rather than a slot in Promise.all — its
+		// only consumer is the synthetic DM entry in members[], so it doesn't
+		// belong with the bundle's user-facing collection queries.
+		const creator = await db.query.users.findFirst({
+			where: eq(users.id, campaign.createdById),
+			columns: { id: true, name: true, email: true },
+		});
+
+		const [allNouns, allSessions, allMaps, allPins, allMembers, allTemplates] =
+			await Promise.all([
+				db.query.nouns.findMany({
+					where: and(
+						eq(nouns.campaignId, data.campaignId),
+						visibilityFilter(nouns.isSecret, accessLevel),
+					),
+					orderBy: (n, { asc }) => asc(n.name),
+				}),
+				db.query.gameSessions.findMany({
+					where: and(
+						eq(gameSessions.campaignId, data.campaignId),
+						visibilityFilter(gameSessions.isSecret, accessLevel),
+					),
+					orderBy: (s, { desc }) => desc(s.createdAt),
+				}),
+				db.query.maps.findMany({
+					where: and(
+						eq(maps.campaignId, data.campaignId),
+						visibilityFilter(maps.isSecret, accessLevel),
+					),
+					orderBy: (m, { asc }) => asc(m.name),
+				}),
+				db
+					.select({
+						id: mapPins.id,
+						mapId: mapPins.mapId,
+						nounId: mapPins.nounId,
+						sessionId: mapPins.sessionId,
+						x: mapPins.x,
+						y: mapPins.y,
+						label: mapPins.label,
 					})
-				: Promise.resolve([] as (typeof campaignTemplates.$inferSelect)[]),
-			db.query.users.findFirst({
-				where: eq(users.id, campaign.createdById),
-				columns: { id: true, name: true, email: true },
-			}),
-		]);
+					.from(mapPins)
+					.innerJoin(maps, eq(mapPins.mapId, maps.id))
+					.where(eq(maps.campaignId, data.campaignId)),
+				db.query.members.findMany({
+					where: eq(members.campaignId, data.campaignId),
+					with: { user: { columns: { id: true, name: true, email: true } } },
+				}),
+				accessLevel === "ADMIN"
+					? db.query.campaignTemplates.findMany({
+							where: eq(campaignTemplates.campaignId, data.campaignId),
+							orderBy: (t, { asc }) => asc(t.name),
+						})
+					: Promise.resolve([] as (typeof campaignTemplates.$inferSelect)[]),
+			]);
 
 		// Drop pins on hidden maps and pins targeting hidden entities.
 		const visibleMapIds = new Set(allMaps.map((m) => m.id));
@@ -203,13 +200,6 @@ export const getCampaignBundle = createServerFn()
 			mapPins: visiblePins,
 			members: memberList,
 			templates: allTemplates,
-			creator: creator
-				? {
-						id: creator.id,
-						name: creator.name,
-						email: !isReadOnly ? creator.email : null,
-					}
-				: null,
 		};
 	});
 
