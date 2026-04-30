@@ -1,193 +1,99 @@
-Welcome to your new TanStack Start app! 
+# Rolldex
 
-# Getting Started
+A campaign manager for tabletop RPGs. Dungeon Masters create campaigns and populate them with **nouns** (people, places, things, factions, events) and **session notes**, then invite players for read-only access. Notes are markdown with cross-entity linking; events sit on a per-campaign calendar; maps support pinned entities.
 
-To run this application:
+## Running locally
 
 ```bash
 pnpm install
-pnpm dev
+cp .env.example .env       # then fill in DATABASE_URL, BETTER_AUTH_SECRET, R2_* credentials
+pnpm db:migrate            # apply schema migrations to the configured Postgres
+pnpm dev                   # http://localhost:3000
 ```
 
-# Building For Production
+You'll need a Postgres instance (local or hosted) and a Cloudflare R2 bucket for image uploads. R2 vars are validated at boot — see `src/lib/env.ts`. R2 is the only required external service besides Postgres; auth is handled in-process by Better Auth.
 
-To build this application for production:
+Useful scripts:
+
+| Command | What it does |
+|---|---|
+| `pnpm dev` | Vite dev server with HMR. |
+| `pnpm build` | Production build into `.output/`. |
+| `pnpm start` | Serve the built app (`node .output/server/index.mjs`). |
+| `pnpm test` | Vitest suite (relationships, calendar math, access control, markdown round-trip). |
+| `pnpm exec tsc --noEmit` | Type check. |
+| `pnpm check` | Biome lint + format check. |
+| `pnpm format` | Biome auto-format. |
+| `pnpm db:generate` | Generate a new Drizzle migration after editing `src/db/schema/*`. |
+| `pnpm db:migrate` | Apply pending migrations. |
+| `pnpm db:studio` | Drizzle Studio (web UI for the database). |
+
+## Deployment
+
+Deploys to Fly.io using the bundled `Dockerfile` and `fly.toml`. From a logged-in `flyctl`:
 
 ```bash
-pnpm build
+fly deploy
 ```
 
-## Testing
+The `[deploy]` block in `fly.toml` runs `node scripts/migrate.mjs` as a release command, so each deploy applies pending Drizzle migrations against `DATABASE_URL` before the new VM starts taking traffic. Secrets (`DATABASE_URL`, `BETTER_AUTH_SECRET`, `R2_*`) live in `fly secrets`. The app currently runs in `sjc` with at least one VM always warm to avoid cold starts.
 
-This project uses [Vitest](https://vitest.dev/) for testing. You can run the tests with:
+## Architecture
 
-```bash
-pnpm test
+| Layer | Tech |
+|---|---|
+| Framework | TanStack Start (SSR React with file-based routing) |
+| Router | TanStack Router |
+| Data layer | TanStack Query, integrated via `@tanstack/react-router-ssr-query` |
+| Database | PostgreSQL via Drizzle ORM |
+| Auth | Better Auth |
+| UI | ShadCN (Radix primitives) on Tailwind CSS v4 |
+| Validation | Zod |
+| Storage | Cloudflare R2 (entity + map images) |
+
+### Local-first campaign bundle
+
+Campaigns are small enough to fit comfortably in memory (~150 KB gzipped pessimistically), and the single-DM concurrency model means there's no consistency war to fight. The data layer is built around that:
+
+- **One server fn (`getCampaignBundle`)** returns everything visible to the caller for a campaign — nouns, sessions, maps, pins, members, templates, the campaign row — with all access-control filtering applied server-side. Children of `/_app/campaigns/$campaignId/*` don't have their own loaders; they read slices via selector hooks (`useNoun`, `useNouns`, `useMapWithPins`, `useTimeline`, …) defined in `src/lib/queries.ts`.
+- **Cross-route navigation costs zero network requests** after the initial bundle fetch. Quick Find (Cmd-K) is a synchronous in-memory filter; relationship/timeline/pin-location derivations are pure functions of the bundle.
+- **Mutations are optimistic by default.** `useBundleMutation` snapshots the bundle, applies a patcher in `onMutate`, rolls back on either thrown errors or `Result<{ok:false}>` returns, and invalidates as a backstop in `onSettled`. Pin drags, member invites, calendar saves, and entity edits all draw immediately. Image uploads stay non-optimistic since the URL is server-generated.
+- **Client-supplied IDs.** Create server fns accept an optional `id`; the client generates a UUID, the optimistic patch uses it, and the server persists the same id. The post-create navigate target is stable from the moment the form is submitted.
+
+### Layout
+
+```
+src/
+  routes/                 file-based routes (TanStack Router)
+    _app.*                authed routes (loaders fetch the campaign bundle)
+    _auth.*               unauthenticated (login, register)
+    api/auth/$.tsx        Better Auth handler
+  server/                 createServerFn() handlers (writes + the bundle read)
+  lib/
+    queries.ts            bundle key, selector hooks, useBundleMutation, patchers
+    relationships.ts      pure related-entity computation
+    timeline.ts           pure timeline ordering
+    calendar.ts           per-campaign calendar math
+    access.ts             ADMIN/READ_ONLY/NONE access checks
+    storage.ts            R2 client
+  db/schema/              Drizzle schemas (app + Better Auth tables)
+  components/             UI (ShadCN-shaped) + MarkdownEditor (Tiptap, lazy-loaded)
+drizzle/                  generated migrations
 ```
 
-## Styling
+### Access control
 
-This project uses [Tailwind CSS](https://tailwindcss.com/) for styling.
+Three levels, enforced in `src/lib/access.ts`:
 
-### Removing Tailwind CSS
+- **ADMIN** — campaign creator. Sees everything; can edit/delete.
+- **READ_ONLY** — invited member. `privateNotes` stripped; `isSecret` entities hidden; member emails redacted.
+- **NONE** — `throw notFound()`.
 
-If you prefer not to use Tailwind CSS:
+Filtering happens once when `getCampaignBundle` builds its response, so the client never receives data it shouldn't see.
 
-1. Remove the demo pages in `src/routes/demo/`
-2. Replace the Tailwind import in `src/styles.css` with your own styles
-3. Remove `tailwindcss()` from the plugins array in `vite.config.ts`
-4. Uninstall the packages: `pnpm add @tailwindcss/vite tailwindcss --dev`
+### Conventions
 
-
-
-## Routing
-
-This project uses [TanStack Router](https://tanstack.com/router) with file-based routing. Routes are managed as files in `src/routes`.
-
-### Adding A Route
-
-To add a new route to your application just add a new file in the `./src/routes` directory.
-
-TanStack will automatically generate the content of the route file for you.
-
-Now that you have two routes you can use a `Link` component to navigate between them.
-
-### Adding Links
-
-To use SPA (Single Page Application) navigation you will need to import the `Link` component from `@tanstack/react-router`.
-
-```tsx
-import { Link } from "@tanstack/react-router";
-```
-
-Then anywhere in your JSX you can use it like so:
-
-```tsx
-<Link to="/about">About</Link>
-```
-
-This will create a link that will navigate to the `/about` route.
-
-More information on the `Link` component can be found in the [Link documentation](https://tanstack.com/router/v1/docs/framework/react/api/router/linkComponent).
-
-### Using A Layout
-
-In the File Based Routing setup the layout is located in `src/routes/__root.tsx`. Anything you add to the root route will appear in all the routes. The route content will appear in the JSX where you render `{children}` in the `shellComponent`.
-
-Here is an example layout that includes a header:
-
-```tsx
-import { HeadContent, Scripts, createRootRoute } from '@tanstack/react-router'
-
-export const Route = createRootRoute({
-  head: () => ({
-    meta: [
-      { charSet: 'utf-8' },
-      { name: 'viewport', content: 'width=device-width, initial-scale=1' },
-      { title: 'My App' },
-    ],
-  }),
-  shellComponent: ({ children }) => (
-    <html lang="en">
-      <head>
-        <HeadContent />
-      </head>
-      <body>
-        <header>
-          <nav>
-            <Link to="/">Home</Link>
-            <Link to="/about">About</Link>
-          </nav>
-        </header>
-        {children}
-        <Scripts />
-      </body>
-    </html>
-  ),
-})
-```
-
-More information on layouts can be found in the [Layouts documentation](https://tanstack.com/router/latest/docs/framework/react/guide/routing-concepts#layouts).
-
-## Server Functions
-
-TanStack Start provides server functions that allow you to write server-side code that seamlessly integrates with your client components.
-
-```tsx
-import { createServerFn } from '@tanstack/react-start'
-
-const getServerTime = createServerFn({
-  method: 'GET',
-}).handler(async () => {
-  return new Date().toISOString()
-})
-
-// Use in a component
-function MyComponent() {
-  const [time, setTime] = useState('')
-  
-  useEffect(() => {
-    getServerTime().then(setTime)
-  }, [])
-  
-  return <div>Server time: {time}</div>
-}
-```
-
-## API Routes
-
-You can create API routes by using the `server` property in your route definitions:
-
-```tsx
-import { createFileRoute } from '@tanstack/react-router'
-import { json } from '@tanstack/react-start'
-
-export const Route = createFileRoute('/api/hello')({
-  server: {
-    handlers: {
-      GET: () => json({ message: 'Hello, World!' }),
-    },
-  },
-})
-```
-
-## Data Fetching
-
-There are multiple ways to fetch data in your application. You can use TanStack Query to fetch data from a server. But you can also use the `loader` functionality built into TanStack Router to load the data for a route before it's rendered.
-
-For example:
-
-```tsx
-import { createFileRoute } from '@tanstack/react-router'
-
-export const Route = createFileRoute('/people')({
-  loader: async () => {
-    const response = await fetch('https://swapi.dev/api/people')
-    return response.json()
-  },
-  component: PeopleComponent,
-})
-
-function PeopleComponent() {
-  const data = Route.useLoaderData()
-  return (
-    <ul>
-      {data.results.map((person) => (
-        <li key={person.name}>{person.name}</li>
-      ))}
-    </ul>
-  )
-}
-```
-
-Loaders simplify your data fetching logic dramatically. Check out more information in the [Loader documentation](https://tanstack.com/router/latest/docs/framework/react/guide/data-loading#loader-parameters).
-
-# Demo files
-
-Files prefixed with `demo` can be safely deleted. They are there to provide a starting point for you to play around with the features you've installed.
-
-# Learn More
-
-You can learn more about all of the offerings from TanStack in the [TanStack documentation](https://tanstack.com).
-
-For TanStack Start specific documentation, visit [TanStack Start](https://tanstack.com/start).
+- Path alias `@/*` → `src/*`. Imports use `@/`.
+- Drizzle's sessions table is named `game_sessions` to avoid colliding with Better Auth's own `sessions` table.
+- Date columns are all-or-none and end-requires-start; checks live in `app.ts`. Day-within-month is enforced in app code (`src/server/calendar.ts`) so a calendar change can't orphan dated rows.
+- Result-style returns (`{ok, value | error}`) for expected business errors (unique-name conflicts, invalid pin targets); throws for unexpected. `useBundleMutation` routes both through the same rollback path.
