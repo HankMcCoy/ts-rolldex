@@ -31,6 +31,7 @@ import { Route as AppCampaignsCampaignIdSessionsIndexRouteImport } from './route
 import { Route as AppCampaignsCampaignIdNounsIndexRouteImport } from './routes/_app.campaigns.$campaignId.nouns.index'
 import { Route as AppCampaignsCampaignIdMapsIndexRouteImport } from './routes/_app.campaigns.$campaignId.maps.index'
 import { Route as AppCampaignsCampaignIdSettingsMembersRouteImport } from './routes/_app.campaigns.$campaignId.settings.members'
+import { Route as AppCampaignsCampaignIdSettingsImportRouteImport } from './routes/_app.campaigns.$campaignId.settings.import'
 import { Route as AppCampaignsCampaignIdSettingsCalendarRouteImport } from './routes/_app.campaigns.$campaignId.settings.calendar'
 import { Route as AppCampaignsCampaignIdSessionsNewRouteImport } from './routes/_app.campaigns.$campaignId.sessions.new'
 import { Route as AppCampaignsCampaignIdSessionsSessionIdRouteImport } from './routes/_app.campaigns.$campaignId.sessions.$sessionId'
@@ -167,6 +168,12 @@ const AppCampaignsCampaignIdSettingsMembersRoute =
     path: '/members',
     getParentRoute: () => AppCampaignsCampaignIdSettingsRoute,
   } as any)
+const AppCampaignsCampaignIdSettingsImportRoute =
+  AppCampaignsCampaignIdSettingsImportRouteImport.update({
+    id: '/import',
+    path: '/import',
+    getParentRoute: () => AppCampaignsCampaignIdSettingsRoute,
+  } as any)
 const AppCampaignsCampaignIdSettingsCalendarRoute =
   AppCampaignsCampaignIdSettingsCalendarRouteImport.update({
     id: '/calendar',
@@ -287,6 +294,7 @@ export interface FileRoutesByFullPath {
   '/campaigns/$campaignId/sessions/$sessionId': typeof AppCampaignsCampaignIdSessionsSessionIdRouteWithChildren
   '/campaigns/$campaignId/sessions/new': typeof AppCampaignsCampaignIdSessionsNewRoute
   '/campaigns/$campaignId/settings/calendar': typeof AppCampaignsCampaignIdSettingsCalendarRoute
+  '/campaigns/$campaignId/settings/import': typeof AppCampaignsCampaignIdSettingsImportRoute
   '/campaigns/$campaignId/settings/members': typeof AppCampaignsCampaignIdSettingsMembersRoute
   '/campaigns/$campaignId/maps/': typeof AppCampaignsCampaignIdMapsIndexRoute
   '/campaigns/$campaignId/nouns/': typeof AppCampaignsCampaignIdNounsIndexRoute
@@ -317,6 +325,7 @@ export interface FileRoutesByTo {
   '/campaigns/$campaignId/nouns/new': typeof AppCampaignsCampaignIdNounsNewRoute
   '/campaigns/$campaignId/sessions/new': typeof AppCampaignsCampaignIdSessionsNewRoute
   '/campaigns/$campaignId/settings/calendar': typeof AppCampaignsCampaignIdSettingsCalendarRoute
+  '/campaigns/$campaignId/settings/import': typeof AppCampaignsCampaignIdSettingsImportRoute
   '/campaigns/$campaignId/settings/members': typeof AppCampaignsCampaignIdSettingsMembersRoute
   '/campaigns/$campaignId/maps': typeof AppCampaignsCampaignIdMapsIndexRoute
   '/campaigns/$campaignId/nouns': typeof AppCampaignsCampaignIdNounsIndexRoute
@@ -358,6 +367,7 @@ export interface FileRoutesById {
   '/_app/campaigns/$campaignId/sessions/$sessionId': typeof AppCampaignsCampaignIdSessionsSessionIdRouteWithChildren
   '/_app/campaigns/$campaignId/sessions/new': typeof AppCampaignsCampaignIdSessionsNewRoute
   '/_app/campaigns/$campaignId/settings/calendar': typeof AppCampaignsCampaignIdSettingsCalendarRoute
+  '/_app/campaigns/$campaignId/settings/import': typeof AppCampaignsCampaignIdSettingsImportRoute
   '/_app/campaigns/$campaignId/settings/members': typeof AppCampaignsCampaignIdSettingsMembersRoute
   '/_app/campaigns/$campaignId/maps/': typeof AppCampaignsCampaignIdMapsIndexRoute
   '/_app/campaigns/$campaignId/nouns/': typeof AppCampaignsCampaignIdNounsIndexRoute
@@ -398,6 +408,7 @@ export interface FileRouteTypes {
     | '/campaigns/$campaignId/sessions/$sessionId'
     | '/campaigns/$campaignId/sessions/new'
     | '/campaigns/$campaignId/settings/calendar'
+    | '/campaigns/$campaignId/settings/import'
     | '/campaigns/$campaignId/settings/members'
     | '/campaigns/$campaignId/maps/'
     | '/campaigns/$campaignId/nouns/'
@@ -428,6 +439,7 @@ export interface FileRouteTypes {
     | '/campaigns/$campaignId/nouns/new'
     | '/campaigns/$campaignId/sessions/new'
     | '/campaigns/$campaignId/settings/calendar'
+    | '/campaigns/$campaignId/settings/import'
     | '/campaigns/$campaignId/settings/members'
     | '/campaigns/$campaignId/maps'
     | '/campaigns/$campaignId/nouns'
@@ -468,6 +480,7 @@ export interface FileRouteTypes {
     | '/_app/campaigns/$campaignId/sessions/$sessionId'
     | '/_app/campaigns/$campaignId/sessions/new'
     | '/_app/campaigns/$campaignId/settings/calendar'
+    | '/_app/campaigns/$campaignId/settings/import'
     | '/_app/campaigns/$campaignId/settings/members'
     | '/_app/campaigns/$campaignId/maps/'
     | '/_app/campaigns/$campaignId/nouns/'
@@ -646,6 +659,13 @@ declare module '@tanstack/react-router' {
       path: '/members'
       fullPath: '/campaigns/$campaignId/settings/members'
       preLoaderRoute: typeof AppCampaignsCampaignIdSettingsMembersRouteImport
+      parentRoute: typeof AppCampaignsCampaignIdSettingsRoute
+    }
+    '/_app/campaigns/$campaignId/settings/import': {
+      id: '/_app/campaigns/$campaignId/settings/import'
+      path: '/import'
+      fullPath: '/campaigns/$campaignId/settings/import'
+      preLoaderRoute: typeof AppCampaignsCampaignIdSettingsImportRouteImport
       parentRoute: typeof AppCampaignsCampaignIdSettingsRoute
     }
     '/_app/campaigns/$campaignId/settings/calendar': {
@@ -842,6 +862,7 @@ const AppCampaignsCampaignIdSessionsRouteWithChildren =
 
 interface AppCampaignsCampaignIdSettingsRouteChildren {
   AppCampaignsCampaignIdSettingsCalendarRoute: typeof AppCampaignsCampaignIdSettingsCalendarRoute
+  AppCampaignsCampaignIdSettingsImportRoute: typeof AppCampaignsCampaignIdSettingsImportRoute
   AppCampaignsCampaignIdSettingsMembersRoute: typeof AppCampaignsCampaignIdSettingsMembersRoute
   AppCampaignsCampaignIdSettingsIndexRoute: typeof AppCampaignsCampaignIdSettingsIndexRoute
   AppCampaignsCampaignIdSettingsTemplatesTemplateIdRoute: typeof AppCampaignsCampaignIdSettingsTemplatesTemplateIdRoute
@@ -853,6 +874,8 @@ const AppCampaignsCampaignIdSettingsRouteChildren: AppCampaignsCampaignIdSetting
   {
     AppCampaignsCampaignIdSettingsCalendarRoute:
       AppCampaignsCampaignIdSettingsCalendarRoute,
+    AppCampaignsCampaignIdSettingsImportRoute:
+      AppCampaignsCampaignIdSettingsImportRoute,
     AppCampaignsCampaignIdSettingsMembersRoute:
       AppCampaignsCampaignIdSettingsMembersRoute,
     AppCampaignsCampaignIdSettingsIndexRoute:

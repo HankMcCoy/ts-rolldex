@@ -51,6 +51,13 @@ function SettingsPage() {
 			to: "/campaigns/$campaignId/settings/members" as const,
 			hint: `${memberCount} member${memberCount === 1 ? "" : "s"}`,
 		},
+		{
+			title: "Import",
+			description:
+				"Bulk-create entities or sessions from a CSV. Duplicates by name are skipped.",
+			to: "/campaigns/$campaignId/settings/import" as const,
+			hint: "CSV upload",
+		},
 	];
 
 	return (
