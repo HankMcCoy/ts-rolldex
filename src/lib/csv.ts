@@ -250,3 +250,137 @@ export function partitionPreview<K extends ImportKind>(
 	}
 	return { ok, duplicates, errors };
 }
+
+// ---------------------------------------------------------------------------
+// Export
+// ---------------------------------------------------------------------------
+
+interface DatedRow {
+	dateYear: number | null;
+	dateMonth: number | null;
+	dateDay: number | null;
+	endDateYear: number | null;
+	endDateMonth: number | null;
+	endDateDay: number | null;
+}
+
+interface ExportableNoun extends DatedRow {
+	name: string;
+	nounType: NounType;
+	summary: string;
+	notes: string;
+	privateNotes: string;
+	isSecret: boolean;
+}
+
+interface ExportableSession extends DatedRow {
+	name: string;
+	summary: string;
+	notes: string;
+	privateNotes: string;
+	isSecret: boolean;
+}
+
+const NOUN_EXPORT_HEADERS = [
+	"name",
+	"type",
+	"summary",
+	"notes",
+	"privateNotes",
+	"isSecret",
+	"dateYear",
+	"dateMonth",
+	"dateDay",
+	"endDateYear",
+	"endDateMonth",
+	"endDateDay",
+] as const;
+
+const SESSION_EXPORT_HEADERS = [
+	"name",
+	"summary",
+	"notes",
+	"privateNotes",
+	"isSecret",
+	"dateYear",
+	"dateMonth",
+	"dateDay",
+	"endDateYear",
+	"endDateMonth",
+	"endDateDay",
+] as const;
+
+function emptyIfNull(v: number | null): string {
+	return v === null ? "" : String(v);
+}
+
+/**
+ * CSV export covering the same columns as import, plus the date triplets.
+ * The unknown date columns are tolerated by `buildImportPreview` (it warns
+ * and drops them), so a round-trip preserves everything import currently
+ * understands and is forward-compatible if import gains date support later.
+ *
+ * `monthIndex` stays 0-based to match the schema and the date pickers in the
+ * UI. Spreadsheet-editing users will need to know that, hence the column
+ * name `dateMonth` rather than something more user-friendly.
+ */
+export function serializeNounsToCsv(nouns: ExportableNoun[]): string {
+	const rows = nouns.map((n) => ({
+		name: n.name,
+		type: n.nounType,
+		summary: n.summary,
+		notes: n.notes,
+		privateNotes: n.privateNotes,
+		isSecret: n.isSecret ? "true" : "false",
+		dateYear: emptyIfNull(n.dateYear),
+		dateMonth: emptyIfNull(n.dateMonth),
+		dateDay: emptyIfNull(n.dateDay),
+		endDateYear: emptyIfNull(n.endDateYear),
+		endDateMonth: emptyIfNull(n.endDateMonth),
+		endDateDay: emptyIfNull(n.endDateDay),
+	}));
+	return Papa.unparse(rows, { columns: [...NOUN_EXPORT_HEADERS] });
+}
+
+export function serializeSessionsToCsv(sessions: ExportableSession[]): string {
+	const rows = sessions.map((s) => ({
+		name: s.name,
+		summary: s.summary,
+		notes: s.notes,
+		privateNotes: s.privateNotes,
+		isSecret: s.isSecret ? "true" : "false",
+		dateYear: emptyIfNull(s.dateYear),
+		dateMonth: emptyIfNull(s.dateMonth),
+		dateDay: emptyIfNull(s.dateDay),
+		endDateYear: emptyIfNull(s.endDateYear),
+		endDateMonth: emptyIfNull(s.endDateMonth),
+		endDateDay: emptyIfNull(s.endDateDay),
+	}));
+	return Papa.unparse(rows, { columns: [...SESSION_EXPORT_HEADERS] });
+}
+
+/** Sanitizes a campaign name into a download-safe filename stem. */
+export function csvFilename(campaignName: string, kind: ImportKind): string {
+	const slug =
+		campaignName
+			.toLowerCase()
+			.replace(/[^a-z0-9]+/g, "-")
+			.replace(/^-+|-+$/g, "") || "campaign";
+	return `${slug}-${kind}.csv`;
+}
+
+/** Triggers a browser download of `csv` as `filename`. */
+export function downloadCsv(filename: string, csv: string): void {
+	// Prepended BOM helps Excel auto-detect UTF-8 without mojibake. Tradeoff:
+	// strict CSV parsers may surface the BOM as part of the first header cell;
+	// papaparse handles it transparently, so re-importing into Rolldex is fine.
+	const blob = new Blob([`﻿${csv}`], { type: "text/csv;charset=utf-8" });
+	const url = URL.createObjectURL(blob);
+	const a = document.createElement("a");
+	a.href = url;
+	a.download = filename;
+	document.body.appendChild(a);
+	a.click();
+	a.remove();
+	URL.revokeObjectURL(url);
+}

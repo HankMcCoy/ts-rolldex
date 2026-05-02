@@ -52,11 +52,11 @@ function SettingsPage() {
 			hint: `${memberCount} member${memberCount === 1 ? "" : "s"}`,
 		},
 		{
-			title: "Import",
+			title: "Import / Export",
 			description:
-				"Bulk-create entities or sessions from a CSV. Duplicates by name are skipped.",
+				"Bulk-create entities or sessions from a CSV, or download the campaign as a CSV backup.",
 			to: "/campaigns/$campaignId/settings/import" as const,
-			hint: "CSV upload",
+			hint: "CSV",
 		},
 	];
 

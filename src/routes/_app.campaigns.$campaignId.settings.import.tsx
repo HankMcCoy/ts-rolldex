@@ -8,10 +8,14 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import {
 	buildImportPreview,
+	csvFilename,
+	downloadCsv,
 	expectedColumns,
 	type ImportKind,
 	type ImportPreview,
 	partitionPreview,
+	serializeNounsToCsv,
+	serializeSessionsToCsv,
 } from "@/lib/csv";
 import { bundleKey, useCampaign, useNouns, useSessions } from "@/lib/queries";
 import { importNouns, importSessions } from "@/server/import-csv";
@@ -19,11 +23,11 @@ import { importNouns, importSessions } from "@/server/import-csv";
 export const Route = createFileRoute(
 	"/_app/campaigns/$campaignId/settings/import",
 )({
-	head: () => ({ meta: [{ title: "Import CSV - Rolldex" }] }),
-	component: ImportPage,
+	head: () => ({ meta: [{ title: "Import / Export - Rolldex" }] }),
+	component: ImportExportPage,
 });
 
-function ImportPage() {
+function ImportExportPage() {
 	const { campaignId } = Route.useParams();
 	const { campaign, accessLevel } = useCampaign(campaignId);
 	const allNouns = useNouns(campaignId);
@@ -67,10 +71,20 @@ function ImportPage() {
 
 	if (accessLevel !== "ADMIN") {
 		return (
-			<Page breadcrumbs={breadcrumbs} title="Import CSV">
-				<p>You don't have permission to import data into this campaign.</p>
+			<Page breadcrumbs={breadcrumbs} title="Import / Export">
+				<p>You don't have permission to import or export this campaign.</p>
 			</Page>
 		);
+	}
+
+	const exportCount = kind === "nouns" ? allNouns.length : allSessions.length;
+
+	function handleExport() {
+		const csv =
+			kind === "nouns"
+				? serializeNounsToCsv(allNouns)
+				: serializeSessionsToCsv(allSessions);
+		downloadCsv(csvFilename(campaign.name, kind), csv);
 	}
 
 	const partition = preview ? partitionPreview(preview) : null;
@@ -132,19 +146,11 @@ function ImportPage() {
 	const cols = expectedColumns(kind);
 
 	return (
-		<Page breadcrumbs={breadcrumbs} title="Import CSV">
+		<Page breadcrumbs={breadcrumbs} title="Import / Export">
 			<div className="max-w-2xl space-y-4">
-				<p className="text-sm text-[var(--sea-ink-soft)]">
-					Bulk-create entities or sessions from a CSV. Rows whose name already
-					exists in this campaign are skipped. EVENT dates aren't supported yet
-					— add them by editing the entity after import.
-				</p>
-
 				<div className="island-shell space-y-6 rounded-2xl p-6">
 					<div className="space-y-2">
-						<Label className="text-sm font-medium">
-							What are you importing?
-						</Label>
+						<Label className="text-sm font-medium">Working with</Label>
 						<div className="flex gap-2">
 							<Button
 								type="button"
@@ -173,72 +179,119 @@ function ImportPage() {
 						</div>
 					</div>
 
-					<div className="space-y-2 text-sm text-[var(--sea-ink-soft)]">
-						<p>
-							<span className="font-medium text-[var(--sea-ink)]">
-								Required columns:
-							</span>{" "}
-							{cols.required.join(", ")}
-						</p>
-						<p>
-							<span className="font-medium text-[var(--sea-ink)]">
-								Optional columns:
-							</span>{" "}
-							{cols.optional.join(", ")}
-						</p>
-						{kind === "nouns" && (
-							<p>
-								<span className="font-medium text-[var(--sea-ink)]">type</span>{" "}
-								must be one of: PERSON, PLACE, THING, FACTION, EVENT
-								(case-insensitive).
+					<section className="space-y-3 border-t border-[var(--line)] pt-6">
+						<div>
+							<h3 className="island-kicker">Export</h3>
+							<p className="mt-1 text-sm text-[var(--sea-ink-soft)]">
+								Download every {kind === "nouns" ? "entity" : "session"} in this
+								campaign as a CSV — name, summary, notes, private notes, secret
+								flag, and any in-world dates. Suitable as a backup or as the
+								starting point for an edited re-import.
 							</p>
-						)}
-					</div>
-
-					<div className="space-y-2">
-						<Label className="text-sm font-medium">CSV file</Label>
-						<input
-							ref={fileInputRef}
-							type="file"
-							accept=".csv,text/csv"
-							onChange={handleFile}
-							disabled={busy}
-							className="block w-full text-sm file:mr-3 file:rounded-md file:border file:border-[var(--line)] file:bg-white/90 file:px-3 file:py-1.5 file:text-sm file:font-medium hover:file:bg-white"
-						/>
-						{fileName && (
-							<p className="text-xs text-[var(--sea-ink-soft)]">{fileName}</p>
-						)}
-					</div>
-
-					{preview && partition && (
-						<PreviewPanel preview={preview} partition={partition} />
-					)}
-
-					{resultMsg && (
-						<div className="rounded-lg border border-[var(--line)] bg-white/90 px-4 py-3 text-sm">
-							{resultMsg}
 						</div>
-					)}
-
-					<div className="flex gap-3">
-						<Button type="button" onClick={handleSubmit} disabled={!canSubmit}>
-							{busy
-								? "Importing…"
-								: partition && partition.ok.length > 0
-									? `Import ${partition.ok.length} row${partition.ok.length === 1 ? "" : "s"}`
-									: "Import"}
+						<Button
+							type="button"
+							variant="outline"
+							onClick={handleExport}
+							disabled={exportCount === 0}
+						>
+							{exportCount === 0
+								? `Nothing to export`
+								: `Download ${exportCount} ${
+										kind === "nouns"
+											? exportCount === 1
+												? "entity"
+												: "entities"
+											: exportCount === 1
+												? "session"
+												: "sessions"
+									}`}
 						</Button>
-						{csv && (
+					</section>
+
+					<section className="space-y-4 border-t border-[var(--line)] pt-6">
+						<div>
+							<h3 className="island-kicker">Import</h3>
+							<p className="mt-1 text-sm text-[var(--sea-ink-soft)]">
+								Bulk-create from a CSV. Rows whose name already exists are
+								skipped. EVENT dates aren't read yet — add them by editing the
+								entity after import.
+							</p>
+						</div>
+
+						<div className="space-y-2 text-sm text-[var(--sea-ink-soft)]">
+							<p>
+								<span className="font-medium text-[var(--sea-ink)]">
+									Required columns:
+								</span>{" "}
+								{cols.required.join(", ")}
+							</p>
+							<p>
+								<span className="font-medium text-[var(--sea-ink)]">
+									Optional columns:
+								</span>{" "}
+								{cols.optional.join(", ")}
+							</p>
+							{kind === "nouns" && (
+								<p>
+									<span className="font-medium text-[var(--sea-ink)]">
+										type
+									</span>{" "}
+									must be one of: PERSON, PLACE, THING, FACTION, EVENT
+									(case-insensitive).
+								</p>
+							)}
+						</div>
+
+						<div className="space-y-2">
+							<Label className="text-sm font-medium">CSV file</Label>
+							<input
+								ref={fileInputRef}
+								type="file"
+								accept=".csv,text/csv"
+								onChange={handleFile}
+								disabled={busy}
+								className="block w-full text-sm file:mr-3 file:rounded-md file:border file:border-[var(--line)] file:bg-white/90 file:px-3 file:py-1.5 file:text-sm file:font-medium hover:file:bg-white"
+							/>
+							{fileName && (
+								<p className="text-xs text-[var(--sea-ink-soft)]">{fileName}</p>
+							)}
+						</div>
+
+						{preview && partition && (
+							<PreviewPanel preview={preview} partition={partition} />
+						)}
+
+						{resultMsg && (
+							<div className="rounded-lg border border-[var(--line)] bg-white/90 px-4 py-3 text-sm">
+								{resultMsg}
+							</div>
+						)}
+
+						<div className="flex gap-3">
 							<Button
 								type="button"
-								variant="outline"
-								onClick={reset}
-								disabled={busy}
+								onClick={handleSubmit}
+								disabled={!canSubmit}
 							>
-								Clear
+								{busy
+									? "Importing…"
+									: partition && partition.ok.length > 0
+										? `Import ${partition.ok.length} row${partition.ok.length === 1 ? "" : "s"}`
+										: "Import"}
 							</Button>
-						)}
-					</div>
+							{csv && (
+								<Button
+									type="button"
+									variant="outline"
+									onClick={reset}
+									disabled={busy}
+								>
+									Clear
+								</Button>
+							)}
+						</div>
+					</section>
 				</div>
 			</div>
 		</Page>
