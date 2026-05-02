@@ -53,8 +53,8 @@ function ImportExportPage() {
 
 	const preview: ImportPreview<ImportKind> | null = useMemo(() => {
 		if (!csv) return null;
-		return buildImportPreview(kind, csv, existing);
-	}, [csv, kind, existing]);
+		return buildImportPreview(kind, csv, existing, campaign.calendar);
+	}, [csv, kind, existing, campaign.calendar]);
 
 	const breadcrumbs = [
 		{
@@ -123,13 +123,26 @@ function ImportExportPage() {
 					: await runImportSessions({
 							data: { campaignId, rows: rows as never },
 						});
+			if (!result.ok) {
+				setResultMsg(`Import failed: ${result.error}`);
+				return;
+			}
 			await queryClient.invalidateQueries({ queryKey: bundleKey(campaignId) });
+			const { inserted, skipped } = result.value;
 			const noun = kind === "nouns" ? "entit" : "session";
-			const inserted = `${result.inserted} ${noun}${kind === "nouns" ? (result.inserted === 1 ? "y" : "ies") : result.inserted === 1 ? "" : "s"}`;
+			const insertedLabel = `${inserted} ${noun}${
+				kind === "nouns"
+					? inserted === 1
+						? "y"
+						: "ies"
+					: inserted === 1
+						? ""
+						: "s"
+			}`;
 			setResultMsg(
-				result.skipped > 0
-					? `Imported ${inserted}; ${result.skipped} skipped as duplicates.`
-					: `Imported ${inserted}.`,
+				skipped > 0
+					? `Imported ${insertedLabel}; ${skipped} skipped as duplicates.`
+					: `Imported ${insertedLabel}.`,
 			);
 			setCsv(null);
 			setFileName(null);
@@ -214,8 +227,8 @@ function ImportExportPage() {
 							<h3 className="island-kicker">Import</h3>
 							<p className="mt-1 text-sm text-[var(--sea-ink-soft)]">
 								Bulk-create from a CSV. Rows whose name already exists are
-								skipped. EVENT dates aren't read yet — add them by editing the
-								entity after import.
+								skipped. Date columns are validated against this campaign's
+								calendar.
 							</p>
 						</div>
 

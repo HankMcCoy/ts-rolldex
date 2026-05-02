@@ -189,18 +189,22 @@ describe("export round-trip", () => {
 		const { ok, errors } = partitionPreview(preview);
 		expect(errors).toHaveLength(0);
 		expect(ok).toHaveLength(1);
-		// Compare on the columns import currently understands; the date columns
-		// are exercised by the dedicated date round-trip test below.
 		expect(ok[0].data).toEqual({
 			name: "Session 3 — Into the Reach",
 			summary: "The party crosses the marsh.",
 			notes: "Combat with two ghouls; Velga critical-failed a save.",
 			privateNotes: "",
 			isSecret: false,
+			dateYear: null,
+			dateMonth: null,
+			dateDay: null,
+			endDateYear: null,
+			endDateMonth: null,
+			endDateDay: null,
 		});
 	});
 
-	it("date columns survive export but are reported as unknown on import", () => {
+	it("dates round-trip losslessly through export → import", () => {
 		const exported = [
 			{
 				name: "The Burning of Faldorne",
@@ -216,27 +220,84 @@ describe("export round-trip", () => {
 				endDateMonth: 3,
 				endDateDay: 28,
 			},
+			{
+				name: "The Hollow Gate",
+				nounType: "PLACE" as const,
+				summary: "A ruined arch.",
+				notes: "",
+				privateNotes: "",
+				isSecret: false,
+				// Undated row sits next to a dated one in the same export.
+				dateYear: null,
+				dateMonth: null,
+				dateDay: null,
+				endDateYear: null,
+				endDateMonth: null,
+				endDateDay: null,
+			},
 		];
 		const csv = serializeNounsToCsv(exported);
-		// The date values appear in the serialized CSV.
-		expect(csv).toContain("1492");
-		expect(csv).toContain("15");
 		const preview = buildImportPreview("nouns", csv, emptyExisting);
 		const { ok, errors } = partitionPreview(preview);
 		expect(errors).toHaveLength(0);
-		expect(ok).toHaveLength(1);
-		// Import doesn't yet read the date columns — they're listed as unknown
-		// so the user is warned that this round-trip is currently lossy.
-		expect(preview.unknownColumns).toEqual(
-			expect.arrayContaining([
-				"dateYear",
-				"dateMonth",
-				"dateDay",
-				"endDateYear",
-				"endDateMonth",
-				"endDateDay",
-			]),
-		);
+		expect(ok).toHaveLength(2);
+		// Date columns are now part of the schema, so they don't show up in the
+		// "unknown columns will be ignored" list.
+		expect(preview.unknownColumns).toEqual([]);
+		expect(ok[0].data).toMatchObject({
+			dateYear: 1492,
+			dateMonth: 3,
+			dateDay: 15,
+			endDateYear: 1492,
+			endDateMonth: 3,
+			endDateDay: 28,
+		});
+		expect(ok[1].data).toMatchObject({
+			dateYear: null,
+			dateMonth: null,
+			dateDay: null,
+			endDateYear: null,
+			endDateMonth: null,
+			endDateDay: null,
+		});
+	});
+});
+
+describe("date column validation", () => {
+	it("rejects a partial start triplet", () => {
+		const csv = "name,type,summary,dateYear,dateMonth\nA,EVENT,x,1492,3\n";
+		const preview = buildImportPreview("nouns", csv, emptyExisting);
+		const { errors } = partitionPreview(preview);
+		expect(errors).toHaveLength(1);
+		expect(errors[0].message).toMatch(/all be set together/);
+	});
+
+	it("rejects an end date without a start date", () => {
+		const csv =
+			"name,type,summary,endDateYear,endDateMonth,endDateDay\nA,EVENT,x,1492,3,15\n";
+		const preview = buildImportPreview("nouns", csv, emptyExisting);
+		const { errors } = partitionPreview(preview);
+		expect(errors).toHaveLength(1);
+		expect(errors[0].message).toMatch(/end date requires a start date/i);
+	});
+
+	it("rejects a day outside the month's range (Earth Gregorian)", () => {
+		const csv =
+			"name,type,summary,dateYear,dateMonth,dateDay\nA,EVENT,x,1492,1,30\n";
+		// February (monthIndex 1) only has 28 days in the default calendar.
+		const preview = buildImportPreview("nouns", csv, emptyExisting);
+		const { errors } = partitionPreview(preview);
+		expect(errors).toHaveLength(1);
+		expect(errors[0].message).toMatch(/Day must be between/);
+	});
+
+	it("rejects an end date before its start date", () => {
+		const csv =
+			"name,type,summary,dateYear,dateMonth,dateDay,endDateYear,endDateMonth,endDateDay\nA,EVENT,x,1492,3,28,1492,3,15\n";
+		const preview = buildImportPreview("nouns", csv, emptyExisting);
+		const { errors } = partitionPreview(preview);
+		expect(errors).toHaveLength(1);
+		expect(errors[0].message).toMatch(/on or after the start date/);
 	});
 });
 
