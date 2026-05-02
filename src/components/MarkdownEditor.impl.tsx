@@ -249,7 +249,7 @@ export default function MarkdownEditorImpl({
 		content: value,
 		editorProps: {
 			attributes: {
-				class: `${MARKDOWN_PROSE_CLASS} focus:outline-none rounded-md border border-[var(--line)] bg-transparent px-3 py-2`,
+				class: `${MARKDOWN_PROSE_CLASS} focus:outline-none rounded-md border border-[var(--line)] bg-white/90 px-3 py-2`,
 				style: `min-height: ${minHeight}`,
 				...(ariaLabel ? { "aria-label": ariaLabel } : {}),
 			},

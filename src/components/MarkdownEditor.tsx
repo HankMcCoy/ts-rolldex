@@ -51,7 +51,7 @@ function TextareaFallback({
 			maxLength={maxLength}
 			aria-label={ariaLabel}
 			disabled={disabled}
-			className="block w-full rounded-md border border-[var(--line)] bg-transparent px-3 py-2 text-base outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 md:text-sm"
+			className="block w-full rounded-md border border-[var(--line)] bg-white/90 px-3 py-2 text-base outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 md:text-sm"
 		/>
 	);
 }

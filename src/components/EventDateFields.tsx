@@ -137,7 +137,7 @@ export function EventDateFields<T extends FieldValues & DateFieldShape>({
 										field.onChange(raw === "" ? undefined : Number(raw));
 									}}
 									onBlur={field.onBlur}
-									className="h-8 w-full min-w-0 rounded-lg border border-input bg-transparent px-2.5 py-1 text-base outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 md:text-sm"
+									className="h-8 w-full min-w-0 rounded-lg border border-input bg-white/90 px-2.5 py-1 text-base outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 md:text-sm"
 								>
 									<option value="">—</option>
 									{calendar.months.map((m, i) => (
@@ -223,7 +223,7 @@ export function EventDateFields<T extends FieldValues & DateFieldShape>({
 											field.onChange(raw === "" ? undefined : Number(raw));
 										}}
 										onBlur={field.onBlur}
-										className="h-8 w-full min-w-0 rounded-lg border border-input bg-transparent px-2.5 py-1 text-base outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 md:text-sm"
+										className="h-8 w-full min-w-0 rounded-lg border border-input bg-white/90 px-2.5 py-1 text-base outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 md:text-sm"
 									>
 										<option value="">—</option>
 										{calendar.months.map((m, i) => (

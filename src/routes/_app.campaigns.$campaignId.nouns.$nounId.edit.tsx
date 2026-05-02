@@ -237,7 +237,7 @@ function EditNounPage() {
 											<FormControl>
 												<select
 													{...field}
-													className="h-8 w-full min-w-0 rounded-lg border border-input bg-transparent px-2.5 py-1 text-base outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 md:text-sm"
+													className="h-8 w-full min-w-0 rounded-lg border border-input bg-white/90 px-2.5 py-1 text-base outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 md:text-sm"
 												>
 													{NOUN_TYPES.map((t) => (
 														<option key={t} value={t}>
