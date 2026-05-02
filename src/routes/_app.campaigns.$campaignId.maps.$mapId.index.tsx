@@ -6,6 +6,7 @@ import { useRef, useState } from "react";
 import { MapView } from "@/components/MapView";
 import { Page } from "@/components/Page";
 import { Button } from "@/components/ui/button";
+import { useEditShortcut } from "@/lib/keyboard";
 import {
 	BundleMutationError,
 	bundleKey,
@@ -99,6 +100,15 @@ function MapPage() {
 	});
 
 	const isAdmin = accessLevel === "ADMIN";
+
+	useEditShortcut(
+		() =>
+			navigate({
+				to: "/campaigns/$campaignId/maps/$mapId/edit",
+				params: { campaignId: campaign.id, mapId: map.id },
+			}),
+		isAdmin,
+	);
 
 	const breadcrumbs = [
 		{

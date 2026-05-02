@@ -5,6 +5,7 @@ import { Page } from "@/components/Page";
 import { PinnedOnMaps } from "@/components/PinnedOnMaps";
 import { RelatedEntities } from "@/components/RelatedEntities";
 import { Button } from "@/components/ui/button";
+import { useEditShortcut } from "@/lib/keyboard";
 import { useBundleMutation, useCampaign, useSession } from "@/lib/queries";
 import { deleteSession } from "@/server/sessions";
 
@@ -32,6 +33,15 @@ function SessionPage() {
 	});
 
 	const isAdmin = accessLevel === "ADMIN";
+
+	useEditShortcut(
+		() =>
+			navigate({
+				to: "/campaigns/$campaignId/sessions/$sessionId/edit",
+				params: { campaignId: campaign.id, sessionId: session.id },
+			}),
+		isAdmin,
+	);
 
 	async function handleDelete() {
 		if (!confirm(`Delete "${session.name}"? This cannot be undone.`)) return;

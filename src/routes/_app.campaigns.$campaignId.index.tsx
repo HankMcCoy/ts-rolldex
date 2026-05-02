@@ -1,9 +1,10 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { Map as MapIcon } from "lucide-react";
 import { EntityAvatar } from "@/components/EntityAvatar";
 import { Page } from "@/components/Page";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { useEditShortcut } from "@/lib/keyboard";
 import { NOUN_TYPE_LABELS } from "@/lib/noun-types";
 import { useCampaignDashboard } from "@/lib/queries";
 
@@ -22,8 +23,18 @@ function CampaignDashboard() {
 		maps,
 		timelinePreview,
 	} = useCampaignDashboard(campaignId);
+	const navigate = useNavigate();
 
 	const isAdmin = accessLevel === "ADMIN";
+
+	useEditShortcut(
+		() =>
+			navigate({
+				to: "/campaigns/$campaignId/edit",
+				params: { campaignId: campaign.id },
+			}),
+		isAdmin,
+	);
 
 	return (
 		<Page

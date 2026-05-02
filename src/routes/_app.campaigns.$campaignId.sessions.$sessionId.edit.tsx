@@ -18,6 +18,7 @@ import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { applyDateRefinements, dateFields } from "@/lib/date-schema";
 import { zodResolver } from "@/lib/form-resolver";
+import { useSaveShortcut } from "@/lib/keyboard";
 import {
 	BundleMutationError,
 	patchUpdateSession,
@@ -120,6 +121,8 @@ function EditSessionPage() {
 			params: { campaignId: campaign.id, sessionId: session.id },
 		});
 	}
+
+	useSaveShortcut(form.handleSubmit(onSubmit), accessLevel === "ADMIN");
 
 	const breadcrumbs = [
 		{

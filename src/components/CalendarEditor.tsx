@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { type Calendar, calendarSchema, daysPerYear } from "@/lib/calendar";
+import { useSaveShortcut } from "@/lib/keyboard";
 import {
 	BundleMutationError,
 	patchUpdateCampaign,
@@ -72,6 +73,8 @@ export function CalendarEditor({ campaignId, initial, onSaved }: Props) {
 	}
 
 	const busy = saveMutation.isPending;
+
+	useSaveShortcut(onSave, !busy);
 
 	const totalDays = rows.reduce((s, r) => {
 		const n = Number(r.days);

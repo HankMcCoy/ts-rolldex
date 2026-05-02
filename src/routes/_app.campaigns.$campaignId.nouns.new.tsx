@@ -19,6 +19,7 @@ import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { applyDateRefinements, dateFields } from "@/lib/date-schema";
 import { zodResolver } from "@/lib/form-resolver";
+import { useSaveShortcut } from "@/lib/keyboard";
 import { NOUN_TYPE_LABELS, NOUN_TYPES, nounTypeSchema } from "@/lib/noun-types";
 import {
 	BundleMutationError,
@@ -119,6 +120,8 @@ function NewNounPage() {
 			params: { campaignId: campaign.id, nounId: id },
 		});
 	}
+
+	useSaveShortcut(form.handleSubmit(onSubmit));
 
 	const breadcrumbs = [
 		{

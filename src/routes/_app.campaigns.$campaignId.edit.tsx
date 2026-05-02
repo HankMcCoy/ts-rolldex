@@ -14,6 +14,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { zodResolver } from "@/lib/form-resolver";
+import { useSaveShortcut } from "@/lib/keyboard";
 import {
 	BundleMutationError,
 	patchUpdateCampaign,
@@ -71,6 +72,8 @@ function EditCampaignPage() {
 			params: { campaignId: campaign.id },
 		});
 	}
+
+	useSaveShortcut(form.handleSubmit(onSubmit));
 
 	const breadcrumbs = [
 		{ label: "Campaigns", to: "/campaigns" },

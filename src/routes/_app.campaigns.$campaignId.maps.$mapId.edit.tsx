@@ -15,6 +15,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { zodResolver } from "@/lib/form-resolver";
+import { useSaveShortcut } from "@/lib/keyboard";
 import {
 	BundleMutationError,
 	patchUpdateMap,
@@ -101,6 +102,8 @@ function EditMapPage() {
 			params: { campaignId: campaign.id, mapId: map.id },
 		});
 	}
+
+	useSaveShortcut(form.handleSubmit(onSubmit), accessLevel === "ADMIN");
 
 	if (accessLevel !== "ADMIN") {
 		return (

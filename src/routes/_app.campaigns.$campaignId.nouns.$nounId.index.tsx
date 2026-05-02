@@ -6,6 +6,7 @@ import { Page } from "@/components/Page";
 import { PinnedOnMaps } from "@/components/PinnedOnMaps";
 import { RelatedEntities } from "@/components/RelatedEntities";
 import { Button } from "@/components/ui/button";
+import { useEditShortcut } from "@/lib/keyboard";
 import { NOUN_TYPE_LABELS } from "@/lib/noun-types";
 import { useBundleMutation, useCampaign, useNoun } from "@/lib/queries";
 import { deleteNoun } from "@/server/nouns";
@@ -37,6 +38,15 @@ function NounPage() {
 
 	const isAdmin = accessLevel === "ADMIN";
 	const typeLabel = NOUN_TYPE_LABELS[noun.nounType];
+
+	useEditShortcut(
+		() =>
+			navigate({
+				to: "/campaigns/$campaignId/nouns/$nounId/edit",
+				params: { campaignId: campaign.id, nounId: noun.id },
+			}),
+		isAdmin,
+	);
 
 	async function handleDelete() {
 		if (!confirm(`Delete "${noun.name}"? This cannot be undone.`)) return;
