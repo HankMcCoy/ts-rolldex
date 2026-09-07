@@ -6,13 +6,49 @@ Rolldex is a TTRPG campaign manager. A Dungeon Master (DM) creates campaigns and
 
 ## Existing functionality
 
-`docs/features/` documents what the app already does — one file per capability
-(campaigns, entities/sessions, access control, calendar/timeline, maps/pins,
-markdown notes, templates, Quick Find, CSV, images, auth). Start at
-`docs/features/README.md`.
+`docs/features/` documents what the app already does, one file per capability.
+Start at `docs/features/README.md` for the index and the cross-cutting
+invariants.
+
+| If you're touching… | Read |
+|---|---|
+| Campaign CRUD, the dashboard, the settings hub | `campaigns.md` |
+| Nouns, game sessions, related-entity inference | `entities-and-sessions.md` |
+| Permissions, invites, `isSecret`, `privateNotes` | `access-control-and-sharing.md` |
+| In-world dates, calendars, the timeline | `calendar-and-timeline.md` |
+| Maps, pins, `MapView` | `maps-and-pins.md` |
+| The Tiptap editor, callouts, tables, the renderer | `markdown-notes.md` |
+| Slash-menu templates | `templates.md` |
+| Cmd-K, Cmd-E, Cmd-S | `quick-find-and-shortcuts.md` |
+| CSV import or export | `csv-import-export.md` |
+| R2 uploads, `imageKey` | `images.md` |
+| Better Auth, registration, session handling | `auth-and-accounts.md` |
 
 This guide covers *architecture* — how to build. Those docs cover *behaviour* —
-what exists. Check them before adding a feature that may already be there.
+what exists. **Check them before adding a feature that may already be there**;
+several near-misses are already implemented (Quick Find can create an entity,
+CSV import already handles dates, related entities are inferred from note text).
+
+### Keeping them current
+
+These docs are only worth having if they stay true, so **update the affected
+file in the same change as the code**, not as a follow-up:
+
+- **Behaviour changed** — edit the doc that covers it. If the change makes a
+  documented rule wrong, fix the rule; a stale doc is worse than none.
+- **New capability** — if it fits an existing file, add a section. If it's a
+  genuinely new surface, add a file and register it in `README.md`'s index and
+  in the table above.
+- **A gap got closed** — the docs link known gaps to their `RDX-NN` task.
+  When you implement one, replace the "known gap" note with what the feature
+  now does, and set the task's `status: done` in `plans/tasks/`.
+- **Invariants** belong in `README.md` only if they genuinely span features;
+  otherwise keep them in the file they apply to.
+
+Write for a reader who has not seen the code: state the rule and *why* it
+holds, not just where it lives. Prefer file and symbol names over line numbers,
+which drift. Don't restate what the schema or a route file already says plainly
+— the value is in the rules that no single file makes visible.
 
 ## Planned work
 
