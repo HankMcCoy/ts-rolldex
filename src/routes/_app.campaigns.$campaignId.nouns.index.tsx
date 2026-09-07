@@ -2,10 +2,11 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { z } from "zod";
 import { EntityAvatar } from "@/components/EntityAvatar";
 import { Page } from "@/components/Page";
+import { TagList } from "@/components/TagList";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { NOUN_TYPE_LABELS, NOUN_TYPES, nounTypeSchema } from "@/lib/noun-types";
-import { useCampaign, useNouns } from "@/lib/queries";
+import { useCampaign, useNouns, useTags } from "@/lib/queries";
 
 export const Route = createFileRoute("/_app/campaigns/$campaignId/nouns/")({
 	validateSearch: z.object({ type: nounTypeSchema.optional() }),
@@ -22,6 +23,7 @@ function NounsPage() {
 	const { campaign, accessLevel } = useCampaign(campaignId);
 	const { type } = Route.useSearch();
 	const nouns = useNouns(campaignId, type);
+	const tagsById = new Map(useTags(campaignId).map((t) => [t.id, t]));
 
 	const isAdmin = accessLevel === "ADMIN";
 	const label = type ? `${NOUN_TYPE_LABELS[type]}s` : "All entities";
@@ -100,6 +102,12 @@ function NounsPage() {
 											{noun.summary}
 										</p>
 									)}
+									<TagList
+										className="mt-1.5"
+										tags={noun.tagIds
+											.map((id) => tagsById.get(id))
+											.filter((t) => t !== undefined)}
+									/>
 								</div>
 								<div className="flex shrink-0 items-center gap-2">
 									{noun.isSecret && <Badge variant="secondary">Secret</Badge>}

@@ -18,6 +18,7 @@ invariants.
 | In-world dates, calendars, the timeline | `calendar-and-timeline.md` |
 | Maps, pins, `MapView` | `maps-and-pins.md` |
 | The Tiptap editor, callouts, tables, the renderer | `markdown-notes.md` |
+| Tags on nouns or sessions | `tags.md` |
 | Slash-menu templates | `templates.md` |
 | Cmd-K, Cmd-E, Cmd-S | `quick-find-and-shortcuts.md` |
 | CSV import or export | `csv-import-export.md` |
@@ -179,6 +180,11 @@ map_pins        — belong to a map; reference exactly one of nounId or sessionI
                   (DB CHECK enforces XOR); x/y are 0..1 fractions of the image
 campaign_templates — markdown blocks surfaced in the editor's slash menu;
                      ADMIN-only, stripped from the bundle for READ_ONLY users.
+tags            — free-form labels, campaign-scoped; unique per campaign on
+                  lower(name). No CRUD of their own: a tag lives exactly as
+                  long as something carries it (see docs/features/tags.md)
+entity_tags     — belong to a tag; reference exactly one of nounId or sessionId
+                  (DB CHECK enforces XOR), mirroring map_pins
 ```
 
 Date columns are all-or-none and end-requires-start (DB CHECKs in `app.ts`).

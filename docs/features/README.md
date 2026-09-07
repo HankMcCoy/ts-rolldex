@@ -20,6 +20,7 @@ something already exists and how it currently works.
 | [calendar-and-timeline.md](calendar-and-timeline.md) | Per-campaign calendars, in-world dates, the timeline |
 | [maps-and-pins.md](maps-and-pins.md) | Map images, pinning entities to coordinates |
 | [markdown-notes.md](markdown-notes.md) | The Tiptap editor, callouts, tables, the read-side renderer |
+| [tags.md](tags.md) | Free-form labels on nouns and sessions |
 | [templates.md](templates.md) | Reusable markdown blocks in the slash menu |
 | [quick-find-and-shortcuts.md](quick-find-and-shortcuts.md) | Cmd-K palette, Cmd-E, Cmd-S |
 | [csv-import-export.md](csv-import-export.md) | Bulk import and backup export |

@@ -1,5 +1,5 @@
 ---
-status: todo
+status: done
 blockedBy: []
 ---
 
@@ -19,3 +19,9 @@ and small, they belong in the bundle) → selector hooks + `patchAddTag` /
 
 Open question: are tags campaign-scoped or global to the user? Campaign-scoped is
 the safer default and matches every other resource.
+
+**Resolved:** campaign-scoped. Shipped as `tags` + `entity_tags` (noun/session
+XOR, mirroring `map_pins`), with tags saved as part of the entity's own save
+rather than through a server fn of their own. Tags have no independent
+lifecycle — one exists as long as something carries it — which
+[[RDX-03 Tag groups]] will likely need to revisit. See `docs/features/tags.md`.

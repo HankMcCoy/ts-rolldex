@@ -4,6 +4,7 @@ import { z } from "zod";
 import { EventDateFields } from "@/components/EventDateFields";
 import { MarkdownEditor } from "@/components/MarkdownEditor";
 import { Page } from "@/components/Page";
+import { TagInput } from "@/components/TagInput";
 import { Button } from "@/components/ui/button";
 import {
 	Form,
@@ -24,9 +25,12 @@ import { NOUN_TYPE_LABELS, NOUN_TYPES, nounTypeSchema } from "@/lib/noun-types";
 import {
 	BundleMutationError,
 	patchAddNoun,
+	patchSyncTags,
 	useBundleMutation,
 	useCampaign,
+	useTags,
 } from "@/lib/queries";
+import { MAX_TAGS_PER_ENTITY, resolveTagRefs, type TagRef } from "@/lib/tags";
 import { createNoun } from "@/server/nouns";
 
 export const Route = createFileRoute("/_app/campaigns/$campaignId/nouns/new")({
@@ -46,24 +50,32 @@ const schema = applyDateRefinements(
 		notes: z.string(),
 		privateNotes: z.string(),
 		isSecret: z.boolean(),
+		tags: z.array(z.string()).max(MAX_TAGS_PER_ENTITY),
 		...dateFields,
 	}),
 );
 type Values = z.infer<typeof schema>;
+type CreateVars = Values & { id: string; tagRefs: TagRef[] };
 
 function NewNounPage() {
 	const { campaignId } = Route.useParams();
 	const { campaign, accessLevel, templates } = useCampaign(campaignId);
+	const campaignTags = useTags(campaignId);
 	const { type, name } = Route.useSearch();
 	const navigate = useNavigate();
 
 	const createMutation = useBundleMutation({
 		campaignId: campaign.id,
-		mutationFn: (vars: Values & { id: string }) =>
-			createNoun({ data: { campaignId: campaign.id, ...vars } }),
+		// The form carries tag *names*; `tagRefs` pairs them with ids (existing
+		// where the name already exists) so the optimistic patch and the row the
+		// server writes agree.
+		mutationFn: ({ tags: _names, tagRefs, ...vars }: CreateVars) =>
+			createNoun({
+				data: { campaignId: campaign.id, ...vars, tags: tagRefs },
+			}),
 		patch: (bundle, vars) => {
 			const now = new Date();
-			return patchAddNoun(bundle, {
+			const withNoun = patchAddNoun(bundle, {
 				id: vars.id,
 				campaignId: campaign.id,
 				name: vars.name,
@@ -80,9 +92,11 @@ function NewNounPage() {
 				endDateYear: vars.endDateYear ?? null,
 				endDateMonth: vars.endDateMonth ?? null,
 				endDateDay: vars.endDateDay ?? null,
+				tagIds: vars.tagRefs.map((t) => t.id),
 				createdAt: now,
 				updatedAt: now,
 			});
+			return patchSyncTags(withNoun, vars.tagRefs);
 		},
 	});
 
@@ -95,6 +109,7 @@ function NewNounPage() {
 			notes: "",
 			privateNotes: "",
 			isSecret: false,
+			tags: [],
 			dateYear: undefined,
 			dateMonth: undefined,
 			dateDay: undefined,
@@ -106,8 +121,9 @@ function NewNounPage() {
 
 	async function onSubmit(values: Values) {
 		const id = crypto.randomUUID();
+		const tagRefs = resolveTagRefs(campaignTags, values.tags);
 		try {
-			await createMutation.mutateAsync({ id, ...values });
+			await createMutation.mutateAsync({ id, tagRefs, ...values });
 		} catch (e) {
 			if (e instanceof BundleMutationError) {
 				form.setError("name", { message: e.message });
@@ -202,6 +218,24 @@ function NewNounPage() {
 									<FormLabel>Summary</FormLabel>
 									<FormControl>
 										<Textarea rows={2} {...field} />
+									</FormControl>
+									<FormMessage />
+								</FormItem>
+							)}
+						/>
+						<FormField
+							control={form.control}
+							name="tags"
+							render={({ field }) => (
+								<FormItem>
+									<FormLabel>Tags</FormLabel>
+									<FormControl>
+										<TagInput
+											value={field.value}
+											onChange={field.onChange}
+											onBlur={field.onBlur}
+											suggestions={campaignTags.map((t) => t.name)}
+										/>
 									</FormControl>
 									<FormMessage />
 								</FormItem>

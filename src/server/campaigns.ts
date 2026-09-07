@@ -5,11 +5,13 @@ import { db } from "@/db/index";
 import {
 	campaigns,
 	campaignTemplates,
+	entityTags,
 	gameSessions,
 	mapPins,
 	maps,
 	members,
 	nouns,
+	tags,
 	users,
 } from "@/db/schema/index";
 import {
@@ -82,53 +84,75 @@ export const getCampaignBundle = createServerFn()
 			columns: { id: true, name: true, email: true },
 		});
 
-		const [allNouns, allSessions, allMaps, allPins, allMembers, allTemplates] =
-			await Promise.all([
-				db.query.nouns.findMany({
-					where: and(
-						eq(nouns.campaignId, data.campaignId),
-						visibilityFilter(nouns.isSecret, accessLevel),
-					),
-					orderBy: (n, { asc }) => asc(n.name),
-				}),
-				db.query.gameSessions.findMany({
-					where: and(
-						eq(gameSessions.campaignId, data.campaignId),
-						visibilityFilter(gameSessions.isSecret, accessLevel),
-					),
-					orderBy: (s, { desc }) => desc(s.createdAt),
-				}),
-				db.query.maps.findMany({
-					where: and(
-						eq(maps.campaignId, data.campaignId),
-						visibilityFilter(maps.isSecret, accessLevel),
-					),
-					orderBy: (m, { asc }) => asc(m.name),
-				}),
-				db
-					.select({
-						id: mapPins.id,
-						mapId: mapPins.mapId,
-						nounId: mapPins.nounId,
-						sessionId: mapPins.sessionId,
-						x: mapPins.x,
-						y: mapPins.y,
-						label: mapPins.label,
+		const [
+			allNouns,
+			allSessions,
+			allMaps,
+			allPins,
+			allMembers,
+			allTemplates,
+			allTags,
+			allEntityTags,
+		] = await Promise.all([
+			db.query.nouns.findMany({
+				where: and(
+					eq(nouns.campaignId, data.campaignId),
+					visibilityFilter(nouns.isSecret, accessLevel),
+				),
+				orderBy: (n, { asc }) => asc(n.name),
+			}),
+			db.query.gameSessions.findMany({
+				where: and(
+					eq(gameSessions.campaignId, data.campaignId),
+					visibilityFilter(gameSessions.isSecret, accessLevel),
+				),
+				orderBy: (s, { desc }) => desc(s.createdAt),
+			}),
+			db.query.maps.findMany({
+				where: and(
+					eq(maps.campaignId, data.campaignId),
+					visibilityFilter(maps.isSecret, accessLevel),
+				),
+				orderBy: (m, { asc }) => asc(m.name),
+			}),
+			db
+				.select({
+					id: mapPins.id,
+					mapId: mapPins.mapId,
+					nounId: mapPins.nounId,
+					sessionId: mapPins.sessionId,
+					x: mapPins.x,
+					y: mapPins.y,
+					label: mapPins.label,
+				})
+				.from(mapPins)
+				.innerJoin(maps, eq(mapPins.mapId, maps.id))
+				.where(eq(maps.campaignId, data.campaignId)),
+			db.query.members.findMany({
+				where: eq(members.campaignId, data.campaignId),
+				with: { user: { columns: { id: true, name: true, email: true } } },
+			}),
+			accessLevel === "ADMIN"
+				? db.query.campaignTemplates.findMany({
+						where: eq(campaignTemplates.campaignId, data.campaignId),
+						orderBy: (t, { asc }) => asc(t.name),
 					})
-					.from(mapPins)
-					.innerJoin(maps, eq(mapPins.mapId, maps.id))
-					.where(eq(maps.campaignId, data.campaignId)),
-				db.query.members.findMany({
-					where: eq(members.campaignId, data.campaignId),
-					with: { user: { columns: { id: true, name: true, email: true } } },
-				}),
-				accessLevel === "ADMIN"
-					? db.query.campaignTemplates.findMany({
-							where: eq(campaignTemplates.campaignId, data.campaignId),
-							orderBy: (t, { asc }) => asc(t.name),
-						})
-					: Promise.resolve([] as (typeof campaignTemplates.$inferSelect)[]),
-			]);
+				: Promise.resolve([] as (typeof campaignTemplates.$inferSelect)[]),
+			db.query.tags.findMany({
+				where: eq(tags.campaignId, data.campaignId),
+				columns: { id: true, name: true },
+				orderBy: (t, { asc }) => asc(t.name),
+			}),
+			db
+				.select({
+					tagId: entityTags.tagId,
+					nounId: entityTags.nounId,
+					sessionId: entityTags.sessionId,
+				})
+				.from(entityTags)
+				.innerJoin(tags, eq(entityTags.tagId, tags.id))
+				.where(eq(tags.campaignId, data.campaignId)),
+		]);
 
 		// Drop pins on hidden maps and pins targeting hidden entities.
 		const visibleMapIds = new Set(allMaps.map((m) => m.id));
@@ -142,6 +166,36 @@ export const getCampaignBundle = createServerFn()
 		});
 
 		const isReadOnly = accessLevel === "READ_ONLY";
+		// Tags ride on their entity rather than in a flat join list: a tag has no
+		// payload of its own, so `tagIds` on each row is all the client needs and
+		// keeps the optimistic patchers simple. Assignments to hidden entities are
+		// dropped, and for READ_ONLY the tag list itself is narrowed to tags that
+		// survive that filter — otherwise a tag applied only to secret entities
+		// would leak its name through the picker and the filter chips.
+		const tagOrder = new Map(allTags.map((t, i) => [t.id, i]));
+		const tagIdsFor = (
+			key: "nounId" | "sessionId",
+			id: string,
+			visible: Set<string>,
+		) =>
+			allEntityTags
+				.filter((et) => et[key] === id && visible.has(et.tagId))
+				.map((et) => et.tagId)
+				.sort((a, b) => (tagOrder.get(a) ?? 0) - (tagOrder.get(b) ?? 0));
+
+		const usedTagIds = new Set(
+			allEntityTags
+				.filter(
+					(et) =>
+						(et.nounId && visibleNounIds.has(et.nounId)) ||
+						(et.sessionId && visibleSessionIds.has(et.sessionId)),
+				)
+				.map((et) => et.tagId),
+		);
+		const visibleTags = isReadOnly
+			? allTags.filter((t) => usedTagIds.has(t.id))
+			: allTags;
+		const visibleTagIds = new Set(visibleTags.map((t) => t.id));
 
 		// Single normalized shape so the client doesn't have to branch on access
 		// level when rendering members. READ_ONLY just gets email=null and pending
@@ -185,10 +239,12 @@ export const getCampaignBundle = createServerFn()
 				...n,
 				imageUrl: n.imageKey ? publicUrlFor(n.imageKey) : null,
 				privateNotes: isReadOnly ? "" : n.privateNotes,
+				tagIds: tagIdsFor("nounId", n.id, visibleTagIds),
 			})),
 			sessions: allSessions.map((s) => ({
 				...s,
 				privateNotes: isReadOnly ? "" : s.privateNotes,
+				tagIds: tagIdsFor("sessionId", s.id, visibleTagIds),
 			})),
 			maps: allMaps.map((m) => ({
 				id: m.id,
@@ -198,6 +254,7 @@ export const getCampaignBundle = createServerFn()
 				imageUrl: m.imageKey ? publicUrlFor(m.imageKey) : null,
 			})),
 			mapPins: visiblePins,
+			tags: visibleTags,
 			members: memberList,
 			templates: allTemplates,
 		};

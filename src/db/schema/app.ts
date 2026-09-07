@@ -166,6 +166,63 @@ export const mapPins = pgTable(
 	],
 );
 
+/**
+ * Free-form labels, scoped to a campaign. Tags have no lifecycle of their own:
+ * one exists exactly as long as at least one noun or session carries it, and
+ * `pruneOrphanTags` (`src/server/tags.ts`) deletes it once the last assignment
+ * goes. That keeps the picker's suggestion list free of typos without needing
+ * a management screen. Names are unique per campaign case-insensitively, so
+ * "Villain" and "villain" can never both appear as chips.
+ */
+export const tags = pgTable(
+	"tags",
+	{
+		id: idColumn(),
+		campaignId: text("campaign_id")
+			.notNull()
+			.references(() => campaigns.id, { onDelete: "cascade" }),
+		name: text("name").notNull(),
+		createdAt: timestamp("created_at").notNull().defaultNow(),
+	},
+	(t) => [
+		uniqueIndex("tags_campaign_name_unique").on(
+			t.campaignId,
+			sql`lower(${t.name})`,
+		),
+	],
+);
+
+/**
+ * Polymorphic join from a tag to exactly one noun or session, mirroring how
+ * `map_pins` targets one or the other. The pair of unique indexes stops the
+ * same tag being applied twice; Postgres treats NULLs as distinct, so the
+ * (tag, noun) index does not constrain session rows and vice versa.
+ */
+export const entityTags = pgTable(
+	"entity_tags",
+	{
+		id: idColumn(),
+		tagId: text("tag_id")
+			.notNull()
+			.references(() => tags.id, { onDelete: "cascade" }),
+		nounId: text("noun_id").references(() => nouns.id, {
+			onDelete: "cascade",
+		}),
+		sessionId: text("session_id").references(() => gameSessions.id, {
+			onDelete: "cascade",
+		}),
+		createdAt: timestamp("created_at").notNull().defaultNow(),
+	},
+	(t) => [
+		check(
+			"entity_tags_target_exclusive",
+			sql`(${t.nounId} IS NULL) <> (${t.sessionId} IS NULL)`,
+		),
+		uniqueIndex("entity_tags_tag_noun_unique").on(t.tagId, t.nounId),
+		uniqueIndex("entity_tags_tag_session_unique").on(t.tagId, t.sessionId),
+	],
+);
+
 export const campaignTemplates = pgTable(
 	"campaign_templates",
 	{
@@ -219,6 +276,7 @@ export const campaignsRelations = relations(campaigns, ({ one, many }) => ({
 	members: many(members),
 	maps: many(maps),
 	templates: many(campaignTemplates),
+	tags: many(tags),
 }));
 
 export const campaignTemplatesRelations = relations(
@@ -248,17 +306,39 @@ export const mapPinsRelations = relations(mapPins, ({ one }) => ({
 	}),
 }));
 
-export const nounsRelations = relations(nouns, ({ one }) => ({
+export const nounsRelations = relations(nouns, ({ one, many }) => ({
 	campaign: one(campaigns, {
 		fields: [nouns.campaignId],
 		references: [campaigns.id],
 	}),
+	entityTags: many(entityTags),
 }));
 
-export const gameSessionsRelations = relations(gameSessions, ({ one }) => ({
+export const gameSessionsRelations = relations(
+	gameSessions,
+	({ one, many }) => ({
+		campaign: one(campaigns, {
+			fields: [gameSessions.campaignId],
+			references: [campaigns.id],
+		}),
+		entityTags: many(entityTags),
+	}),
+);
+
+export const tagsRelations = relations(tags, ({ one, many }) => ({
 	campaign: one(campaigns, {
-		fields: [gameSessions.campaignId],
+		fields: [tags.campaignId],
 		references: [campaigns.id],
+	}),
+	entityTags: many(entityTags),
+}));
+
+export const entityTagsRelations = relations(entityTags, ({ one }) => ({
+	tag: one(tags, { fields: [entityTags.tagId], references: [tags.id] }),
+	noun: one(nouns, { fields: [entityTags.nounId], references: [nouns.id] }),
+	session: one(gameSessions, {
+		fields: [entityTags.sessionId],
+		references: [gameSessions.id],
 	}),
 }));
 

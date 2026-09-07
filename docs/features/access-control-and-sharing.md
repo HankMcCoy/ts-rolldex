@@ -60,6 +60,7 @@ client never receives hidden data:
 | Member email addresses | `email: null` on every entry |
 | Pending invites | Members with no linked `user` are filtered out of the list |
 | Pins on hidden maps, or targeting hidden entities | Post-filtered against the visible id sets |
+| Tags carried only by hidden entities | `bundle.tags` is narrowed to tags on visible rows — a tag has no `isSecret` of its own, so its *name* would otherwise leak. See [tags.md](tags.md) |
 
 The DM appears in `members` as a **synthetic entry** with `id:
 "dm-<createdById>"` and `role: "DM"` — it is not a `members` row. Anything
