@@ -1,0 +1,30 @@
+# Local Postgres only — the app itself runs on the host via `vite dev`.
+# Credentials and port are derived from DATABASE_URL in .env by
+# scripts/dev-db.mjs, so this file has no hardcoded secrets and there is only
+# one place to change the connection string.
+#
+# You normally don't run this directly: `pnpm dev` brings it up first.
+name: rolldex
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:?run via pnpm dev / pnpm db:up}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?run via pnpm dev / pnpm db:up}
+      POSTGRES_DB: ${POSTGRES_DB:?run via pnpm dev / pnpm db:up}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      # `docker compose up --wait` blocks on this, so dev never races the DB.
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+      start_period: 5s
+
+volumes:
+  pgdata:

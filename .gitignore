@@ -22,3 +22,9 @@ plans/tasks/.obsidian/
 # bundled community-plugin code (community-plugins.json stays tracked)
 plans/.obsidian/plugins/
 plans/.obsidian/graph.json
+
+# Playwright
+test-results
+playwright-report
+blob-report
+.playwright

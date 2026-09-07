@@ -9,6 +9,9 @@ export default defineConfig({
 	},
 	test: {
 		environment: "node",
+		// Playwright owns e2e/ — without this, vitest's default include
+		// globs e2e/*.spec.ts and fails on the missing browser runner.
+		exclude: ["**/node_modules/**", "**/dist/**", "e2e/**"],
 		env: {
 			DATABASE_URL:
 				process.env.DATABASE_URL ??

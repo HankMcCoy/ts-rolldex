@@ -197,10 +197,44 @@ Entity and map images go to Cloudflare R2 via `src/lib/storage.ts`. Bucket objec
 ## Running locally
 
 ```bash
-pnpm dev                  # starts dev server on :3000
+pnpm dev                  # the only command you need — see below
 pnpm db:generate          # generate Drizzle migration after schema changes
 pnpm db:migrate           # apply migrations
 pnpm exec tsc --noEmit    # type check
 pnpm check                # Biome lint + format check
-pnpm test                 # Vitest
+pnpm test                 # Vitest (needs the database — see below)
+pnpm e2e                  # Playwright browser checks
 ```
+
+`pnpm dev` runs `scripts/dev-db.mjs` first, which starts the Postgres container
+from `docker-compose.yml`, waits for its healthcheck, applies migrations, and
+only then boots Vite on :3000. There is no ordering to remember and no second
+terminal. **Only the database is containerised** — the app runs on the host, so
+HMR and debugging behave normally.
+
+Credentials come from `DATABASE_URL` in `.env`; the compose file has none
+hardcoded. If `DATABASE_URL` points at a non-local host the container step is
+skipped, so pointing at a hosted database still works. If Docker isn't running
+the script says so and tells you how to start it.
+
+```bash
+pnpm db:up                # just the database, no Vite
+pnpm db:down              # stop it, keep the data
+pnpm db:reset             # drop the volume and start clean
+```
+
+**`pnpm test` needs a live database.** `src/lib/access.test.ts` exercises real
+membership queries rather than mocking them, so run `pnpm db:up` (or `pnpm dev`)
+before `pnpm test` or you'll get `ECONNREFUSED` on 12 tests.
+
+## Browser testing
+
+Playwright is set up as **tooling, not a regression suite** — one smoke test
+proves the harness works, and the helpers exist so you can write a throwaway
+check that a change actually renders. See `e2e/README.md`.
+
+`playwright.config.ts` boots the app with `pnpm dev` when nothing is on :3000,
+and reuses an existing dev server when there is one. Every run registers a
+fresh user and leaves rows behind; `pnpm db:reset` clears them. Keep browser
+specs in `e2e/` — `vitest.config.ts` excludes that directory, and both runners
+claim `*.spec.ts` by default.
