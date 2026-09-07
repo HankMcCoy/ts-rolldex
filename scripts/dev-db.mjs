@@ -11,6 +11,7 @@
  * run.
  */
 import { spawnSync } from "node:child_process";
+import { createServer } from "node:net";
 
 const MODES = new Set(["up", "down", "reset"]);
 const mode = process.argv[2] ?? "up";
@@ -107,3 +108,34 @@ console.log("[db] applying migrations…");
 if (run("node", ["scripts/migrate.mjs"], { env }).status !== 0) {
 	fail("Migrations failed.");
 }
+
+/**
+ * Vite's response to a busy port is a single line and a silent move to the
+ * next one, which is easy to miss in a wall of startup output — you then load
+ * :3000, get whatever stale server is squatting there, and conclude the app
+ * didn't start. Fail loudly instead, and say what to kill.
+ */
+const appPort = Number(
+	new URL(process.env.APP_URL ?? "http://localhost:3000").port || 3000,
+);
+
+const inUse = await new Promise((resolve) => {
+	const probe = createServer();
+	probe.once("error", (e) => resolve(e.code === "EADDRINUSE"));
+	probe.once("listening", () => probe.close(() => resolve(false)));
+	probe.listen(appPort, "127.0.0.1");
+});
+
+if (inUse) {
+	const lsof = spawnSync("lsof", ["-nP", `-iTCP:${appPort}`, "-sTCP:LISTEN"], {
+		encoding: "utf8",
+	});
+	fail(
+		`Port ${appPort} is already in use, so Vite would quietly start on another\n` +
+			"      port and :3000 would serve a stale process.\n\n" +
+			`${(lsof.stdout ?? "").trim() || "      (could not identify the process)"}\n\n` +
+			`      Free it with:\n        kill $(lsof -nP -iTCP:${appPort} -sTCP:LISTEN -t)`,
+	);
+}
+
+console.log(`[db] ready — starting vite on :${appPort}…`);

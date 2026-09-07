@@ -212,6 +212,12 @@ only then boots Vite on :3000. There is no ordering to remember and no second
 terminal. **Only the database is containerised** — the app runs on the host, so
 HMR and debugging behave normally.
 
+It also refuses to start if something is already listening on the app port.
+Vite's own response to a busy port is one easily-missed line and a silent move
+to :3001 — you then load :3000, get whatever stale server is squatting there,
+and conclude the app didn't start. The script names the offending PID and the
+command to kill it instead.
+
 Credentials come from `DATABASE_URL` in `.env`; the compose file has none
 hardcoded. If `DATABASE_URL` points at a non-local host the container step is
 skipped, so pointing at a hosted database still works. If Docker isn't running

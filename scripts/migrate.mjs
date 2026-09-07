@@ -8,7 +8,9 @@ if (!url) {
 	process.exit(1);
 }
 
-const client = postgres(url, { max: 1 });
+// `onnotice` silences the "already exists, skipping" NOTICEs drizzle
+// triggers on every run; genuine errors still reject.
+const client = postgres(url, { max: 1, onnotice: () => {} });
 const db = drizzle(client);
 
 await migrate(db, { migrationsFolder: "drizzle" });

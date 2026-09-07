@@ -4,7 +4,7 @@
   "type": "module",
   "packageManager": "pnpm@10.33.0",
   "scripts": {
-    "dev": "node --env-file-if-exists=.env scripts/dev-db.mjs && vite dev --port 3000",
+    "dev": "node --env-file-if-exists=.env scripts/dev-db.mjs && vite dev --port 3000 --clearScreen false",
     "db:up": "node --env-file-if-exists=.env scripts/dev-db.mjs",
     "db:down": "node --env-file-if-exists=.env scripts/dev-db.mjs down",
     "db:reset": "node --env-file-if-exists=.env scripts/dev-db.mjs reset",
