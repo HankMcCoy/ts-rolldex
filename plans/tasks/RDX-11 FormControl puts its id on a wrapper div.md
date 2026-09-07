@@ -21,7 +21,8 @@ its field, and that `aria-invalid` lands on the input.
 
 Note the Tiptap editable is a contenteditable div, which is not a labelable
 element — `<label for>` can't name it. Its accessible name comes from the
-`ariaLabel` prop, which every call site already passes.
+`ariaLabel` prop, which every call site already passes, and clicking its label
+focuses it via the shim in [[RDX-13 Clicking a markdown field's label doesn't focus the editor]].
 
 ## Notes
 

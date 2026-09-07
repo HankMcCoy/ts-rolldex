@@ -27,6 +27,31 @@ test("form labels are associated with their controls (RDX-11)", async ({
 	await expect(page.getByLabel("Confirm password")).toBeFocused();
 });
 
+test("clicking a markdown field's label focuses the editor (RDX-13)", async ({
+	page,
+}) => {
+	await registerAndLogin(page);
+	const id = await createCampaign(page, `Focus ${Date.now().toString(36)}`);
+	await page.goto(`/campaigns/${id}/nouns/new`);
+	await waitForHydration(page);
+	await page.waitForSelector(".ProseMirror");
+
+	// Tiptap renders a contenteditable div, which the platform will not focus
+	// from a label click however correct the `for` is — FormLabel does it.
+	await page.getByText("Notes", { exact: true }).click();
+	await expect(page.getByLabel("Notes", { exact: true })).toBeFocused();
+
+	// Typing must land in the editor we just focused, not somewhere else.
+	await page.keyboard.type("Knows every rumour.");
+	await expect(page.getByLabel("Notes", { exact: true })).toContainText(
+		"Knows every rumour.",
+	);
+
+	// The native fields must keep working through the same code path.
+	await page.getByText("Summary", { exact: true }).click();
+	await expect(page.getByLabel("Summary")).toBeFocused();
+});
+
 test("server-rendered forms cannot submit before hydration (RDX-12)", async ({
 	request,
 }) => {

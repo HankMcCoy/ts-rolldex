@@ -75,16 +75,46 @@ function FormItem({ className, ...props }: React.ComponentProps<"div">) {
 	);
 }
 
+/**
+ * Elements the platform focuses when their label is clicked. Anything else —
+ * notably the `contenteditable` div Tiptap renders — has to be focused by
+ * hand, since label activation is spec'd only for labelable elements.
+ */
+const LABELABLE = new Set([
+	"BUTTON",
+	"INPUT",
+	"METER",
+	"OUTPUT",
+	"PROGRESS",
+	"SELECT",
+	"TEXTAREA",
+]);
+
+function focusIfNotLabelable(id: string) {
+	const el = document.getElementById(id);
+	if (!el || LABELABLE.has(el.tagName)) return;
+	el.focus();
+}
+
 function FormLabel({
 	className,
+	htmlFor,
+	onClick,
 	...props
 }: React.ComponentProps<typeof LabelPrimitive.Root> & { className?: string }) {
 	const { error, formItemId, formLabelId } = useFormField();
+	// A caller-supplied htmlFor still wins, so resolve the effective target.
+	const target = htmlFor ?? formItemId;
 	return (
 		<Label
 			id={formLabelId}
 			className={cn(error && "text-destructive", className)}
-			htmlFor={formItemId}
+			htmlFor={target}
+			onClick={(event) => {
+				onClick?.(event);
+				if (event.defaultPrevented) return;
+				focusIfNotLabelable(target);
+			}}
 			{...props}
 		/>
 	);
