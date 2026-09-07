@@ -4,6 +4,17 @@
 
 Rolldex is a TTRPG campaign manager. A Dungeon Master (DM) creates campaigns and populates them with **nouns** (named entities: people, places, things, factions, events) and **game sessions** (session notes). Players can be invited by email and given read-only access.
 
+## Planned work
+
+Upcoming work is tracked as Markdown in `plans/` (an Obsidian vault). One task per
+file in `plans/tasks/`, named `RDX-NN Short title.md`; the `RDX-NN` prefix is the
+stable ID to use in commit messages and branch names. Frontmatter carries
+`status` (`todo` | `doing` | `done` | `dropped`) and `blockedBy` (wikilinks to
+other tasks). See `plans/README.md`.
+
+When a user references a task by ID, read that file first — it holds the intent
+and the constraints, which are usually not derivable from the code.
+
 ## Concurrency expectations
 
 **This app does not need to handle high concurrency.** Any given campaign will have at most one DM actively editing it at a time. Optimistic locking, conflict detection, and similar patterns are out of scope. Simple `UPDATE … WHERE id = $id` writes are fine. The data layer leans into this — see "Local-first campaign bundle" below.

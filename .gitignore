@@ -12,3 +12,10 @@ dist-ssr
 __unconfig*
 todos.json
 .claude
+
+# Obsidian per-machine UI state (plans/ vault)
+plans/.obsidian/workspace.json
+plans/.obsidian/workspace-mobile.json
+plans/.obsidian/cache
+# stray vault root — the vault is plans/, not plans/tasks/
+plans/tasks/.obsidian/

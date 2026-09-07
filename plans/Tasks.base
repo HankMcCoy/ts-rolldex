@@ -1,0 +1,58 @@
+filters:
+  and:
+    - file.inFolder("tasks")
+
+formulas:
+  openBlockers: 'if(blockedBy, blockedBy.filter(value.asFile().properties.status != "done"), [])'
+
+properties:
+  status:
+    displayName: Status
+  blockedBy:
+    displayName: Blocked by
+  formula.openBlockers:
+    displayName: Waiting on
+
+views:
+  - type: table
+    name: Ready
+    filters:
+      and:
+        - 'status != "done"'
+        - 'status != "dropped"'
+        - 'formula.openBlockers.isEmpty()'
+    order:
+      - file.name
+      - status
+
+  - type: table
+    name: Blocked
+    filters:
+      and:
+        - 'status != "done"'
+        - 'status != "dropped"'
+        - not:
+            - 'formula.openBlockers.isEmpty()'
+    order:
+      - file.name
+      - status
+      - formula.openBlockers
+
+  - type: table
+    name: All open
+    filters:
+      and:
+        - 'status != "done"'
+        - 'status != "dropped"'
+    order:
+      - file.name
+      - status
+      - formula.openBlockers
+
+  - type: table
+    name: Done
+    filters:
+      and:
+        - 'status == "done"'
+    order:
+      - file.name
