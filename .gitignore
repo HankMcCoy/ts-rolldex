@@ -19,3 +19,6 @@ plans/.obsidian/workspace-mobile.json
 plans/.obsidian/cache
 # stray vault root — the vault is plans/, not plans/tasks/
 plans/tasks/.obsidian/
+# bundled community-plugin code (community-plugins.json stays tracked)
+plans/.obsidian/plugins/
+plans/.obsidian/graph.json
