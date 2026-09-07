@@ -1,4 +1,4 @@
-import type { Label as LabelPrimitive } from "radix-ui";
+import { type Label as LabelPrimitive, Slot } from "radix-ui";
 import * as React from "react";
 import {
 	Controller,
@@ -51,6 +51,7 @@ function useFormField() {
 		id,
 		name: fieldContext.name,
 		formItemId: `${id}-form-item`,
+		formLabelId: `${id}-form-item-label`,
 		formDescriptionId: `${id}-form-item-description`,
 		formMessageId: `${id}-form-item-message`,
 		...fieldState,
@@ -78,9 +79,10 @@ function FormLabel({
 	className,
 	...props
 }: React.ComponentProps<typeof LabelPrimitive.Root> & { className?: string }) {
-	const { error, formItemId } = useFormField();
+	const { error, formItemId, formLabelId } = useFormField();
 	return (
 		<Label
+			id={formLabelId}
 			className={cn(error && "text-destructive", className)}
 			htmlFor={formItemId}
 			{...props}
@@ -88,11 +90,22 @@ function FormLabel({
 	);
 }
 
-function FormControl({ ...props }: React.ComponentProps<"div">) {
+/**
+ * Merges the field's id and ARIA wiring onto its control. This must be a
+ * `Slot` and not a wrapping element: `FormLabel` renders `<label for>`
+ * pointing at `formItemId`, and a label whose target is a `<div>` is inert —
+ * the input gets no accessible name, clicking the label doesn't focus it, and
+ * `aria-invalid` / `aria-describedby` end up on the wrapper rather than the
+ * field they describe.
+ *
+ * Slot renders no element of its own, so it requires exactly one child and
+ * that child must forward props to a real DOM node.
+ */
+function FormControl({ ...props }: React.ComponentProps<typeof Slot.Root>) {
 	const { error, formItemId, formDescriptionId, formMessageId } =
 		useFormField();
 	return (
-		<div
+		<Slot.Root
 			id={formItemId}
 			aria-describedby={
 				!error

@@ -64,7 +64,11 @@ export function TemplateForm({
 
 	return (
 		<Form {...form}>
-			<form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
+			<form
+				method="post"
+				onSubmit={form.handleSubmit(handleSubmit)}
+				className="space-y-4"
+			>
 				<FormField
 					control={form.control}
 					name="name"

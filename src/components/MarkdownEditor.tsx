@@ -12,6 +12,18 @@ export interface MarkdownEditorProps {
 	disabled?: boolean;
 	/** Per-campaign user templates surfaced in the slash menu. */
 	templates?: CampaignTemplate[];
+	/**
+	 * Supplied by `FormControl`, which merges the field's id and ARIA wiring
+	 * onto whatever control it wraps. Forwarded to the underlying editable
+	 * element so validation state is announced against the field.
+	 *
+	 * Note the Tiptap editable is a contenteditable `<div>`, which is not a
+	 * labelable element — `<label for>` can't name it. Pass `ariaLabel` for the
+	 * accessible name; every call site does.
+	 */
+	id?: string;
+	"aria-describedby"?: string;
+	"aria-invalid"?: boolean;
 }
 
 const MarkdownEditorImpl = lazy(() => import("./MarkdownEditor.impl"));
@@ -40,9 +52,15 @@ function TextareaFallback({
 	maxLength,
 	ariaLabel,
 	disabled,
+	id,
+	"aria-describedby": ariaDescribedBy,
+	"aria-invalid": ariaInvalid,
 }: MarkdownEditorProps) {
 	return (
 		<textarea
+			id={id}
+			aria-describedby={ariaDescribedBy}
+			aria-invalid={ariaInvalid}
 			value={value}
 			onChange={(e) => onChange(e.target.value)}
 			onBlur={onBlur}

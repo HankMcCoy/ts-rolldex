@@ -26,14 +26,11 @@ against anything whose data you care about: they create accounts and campaigns.
 
 ## Gotchas
 
-- **Wait for hydration before clicking anything.** `waitForHydration(page)` is
-  exported from `helpers/auth.ts` and every helper that navigates calls it. The
-  SSR'd HTML contains a complete `<form>` with no `method`, so a click that
-  beats React does a native GET and reloads with the fields in the query
-  string. Symptom: a URL like `/register?email=…&password=…`. See RDX-12.
-- Locate fields by placeholder or role, not `getByLabel` — labels aren't
-  associated with their inputs yet (RDX-11). Switch to `getByLabel` once that
-  lands.
+- **Wait for hydration before filling fields.** `waitForHydration(page)` is
+  exported from `helpers/auth.ts` and every helper that navigates calls it.
+  Submit buttons ship disabled until hydration, so Playwright already waits
+  before *clicking* — but the fields are controlled inputs, and text typed into
+  one before React takes over gets wiped.
 - Vitest and Playwright both claim `*.spec.ts` by default. `vitest.config.ts`
   excludes `e2e/`, so keep browser specs in this directory.
 - Traces and screenshots are captured only on failure, into `test-results/`

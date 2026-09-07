@@ -2,6 +2,7 @@ import { cva, type VariantProps } from "class-variance-authority";
 import { Slot } from "radix-ui";
 import type * as React from "react";
 
+import { useHydrated } from "@/lib/hydration";
 import { cn } from "@/lib/utils";
 
 const buttonVariants = cva(
@@ -52,6 +53,15 @@ function Button({
 		asChild?: boolean;
 	}) {
 	const Comp = asChild ? Slot.Root : "button";
+	const hydrated = useHydrated();
+
+	// A submit button is genuinely non-functional until React attaches its
+	// onSubmit — clicking it before then fires the browser's native submit and
+	// reloads the page with the form fields in the URL. Render it disabled
+	// until hydration so that click can't happen. `asChild` is excluded: the
+	// child owns its own semantics and may not be a <button> at all.
+	const disabled =
+		props.disabled || (!asChild && props.type === "submit" && !hydrated);
 
 	return (
 		<Comp
@@ -60,6 +70,7 @@ function Button({
 			data-size={size}
 			className={cn(buttonVariants({ variant, size, className }))}
 			{...props}
+			{...(asChild ? {} : { disabled })}
 		/>
 	);
 }

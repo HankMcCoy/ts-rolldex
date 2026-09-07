@@ -1,10 +1,21 @@
 ---
-status: todo
+status: done
 blockedBy: []
 ---
 
 Submitting a form before React hydrates does a native GET, reloading the page
 with every field — **including passwords** — in the query string.
+
+## Resolution
+
+Fixed two ways. `Button` renders `type="submit"` disabled until hydrated
+(`useHydrated` in `src/lib/hydration.ts`), so the native submit can't fire at
+all; and all 12 `<form>` elements now carry `method="post"`, so even if one
+did fire, the fields would never reach the URL.
+
+Guarded by `e2e/forms.spec.ts`, which asserts against the raw SSR HTML — no
+browser, nothing hydrated — that the form is POST and the submit button ships
+disabled.
 
 ## Notes
 

@@ -215,7 +215,11 @@ function EditNounPage() {
 		<Page breadcrumbs={breadcrumbs} title={`Edit ${noun.name}`}>
 			<div className="island-shell max-w-2xl rounded-2xl p-6">
 				<Form {...form}>
-					<form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+					<form
+						method="post"
+						onSubmit={form.handleSubmit(onSubmit)}
+						className="space-y-4"
+					>
 						<div className="grid gap-4 sm:grid-cols-[1fr_180px]">
 							<div className="space-y-4">
 								<FormField

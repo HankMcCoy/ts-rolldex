@@ -1,11 +1,27 @@
 ---
-status: todo
+status: done
 blockedBy: []
 ---
 
 `FormControl` sets `id={formItemId}` on a wrapping `<div>` instead of forwarding
 it to the input, so every `<label for>` in the app points at an element that
 can't be labelled.
+
+## Resolution
+
+Fixed: `FormControl` now renders `Slot.Root`, so the field's id and ARIA
+wiring land on the control itself. `FormLabel` also gained an id, and
+`MarkdownEditor` accepts and forwards `id` / `aria-describedby` /
+`aria-invalid` to both the textarea fallback and the Tiptap editable (which
+also now declares `role="textbox"` and `aria-multiline`).
+
+Guarded by `e2e/forms.spec.ts`, which checks label association across Input,
+native select, Textarea and both Tiptap editors, that clicking a label focuses
+its field, and that `aria-invalid` lands on the input.
+
+Note the Tiptap editable is a contenteditable div, which is not a labelable
+element — `<label for>` can't name it. Its accessible name comes from the
+`ariaLabel` prop, which every call site already passes.
 
 ## Notes
 

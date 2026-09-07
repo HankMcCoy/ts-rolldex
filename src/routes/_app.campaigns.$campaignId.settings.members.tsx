@@ -109,7 +109,7 @@ function InviteForm({ campaignId }: InviteFormProps) {
 	const busy = inviteMutation.isPending;
 
 	return (
-		<form onSubmit={onSubmit} className="space-y-2">
+		<form method="post" onSubmit={onSubmit} className="space-y-2">
 			<div className="flex gap-2">
 				<Input
 					type="email"

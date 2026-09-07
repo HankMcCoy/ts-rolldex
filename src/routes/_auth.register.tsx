@@ -72,7 +72,11 @@ function RegisterPage() {
 			</p>
 
 			<Form {...form}>
-				<form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+				<form
+					method="post"
+					onSubmit={form.handleSubmit(onSubmit)}
+					className="space-y-4"
+				>
 					{form.formState.errors.root && (
 						<p className="rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">
 							{form.formState.errors.root.message}

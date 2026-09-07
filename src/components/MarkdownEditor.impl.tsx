@@ -104,6 +104,9 @@ export interface MarkdownEditorImplProps {
 	ariaLabel?: string;
 	disabled?: boolean;
 	templates?: CampaignTemplate[];
+	id?: string;
+	"aria-describedby"?: string;
+	"aria-invalid"?: boolean;
 }
 
 interface SlashState {
@@ -123,6 +126,9 @@ export default function MarkdownEditorImpl({
 	ariaLabel,
 	disabled = false,
 	templates,
+	id,
+	"aria-describedby": ariaDescribedBy,
+	"aria-invalid": ariaInvalid,
 }: MarkdownEditorImplProps) {
 	const templatesRef = useRef<CampaignTemplate[]>(templates ?? []);
 	templatesRef.current = templates ?? [];
@@ -251,7 +257,14 @@ export default function MarkdownEditorImpl({
 			attributes: {
 				class: `${MARKDOWN_PROSE_CLASS} focus:outline-none rounded-md border border-[var(--line)] bg-white/90 px-3 py-2`,
 				style: `min-height: ${minHeight}`,
+				// ProseMirror renders a contenteditable div; spelling out the
+				// textbox role keeps it announced as a multi-line field.
+				role: "textbox",
+				"aria-multiline": "true",
 				...(ariaLabel ? { "aria-label": ariaLabel } : {}),
+				...(id ? { id } : {}),
+				...(ariaDescribedBy ? { "aria-describedby": ariaDescribedBy } : {}),
+				...(ariaInvalid ? { "aria-invalid": "true" } : {}),
 			},
 			handleDOMEvents: {
 				contextmenu: (view, event) => {
