@@ -4,6 +4,16 @@
 
 Rolldex is a TTRPG campaign manager. A Dungeon Master (DM) creates campaigns and populates them with **nouns** (named entities: people, places, things, factions, events) and **game sessions** (session notes). Players can be invited by email and given read-only access.
 
+## Existing functionality
+
+`docs/features/` documents what the app already does — one file per capability
+(campaigns, entities/sessions, access control, calendar/timeline, maps/pins,
+markdown notes, templates, Quick Find, CSV, images, auth). Start at
+`docs/features/README.md`.
+
+This guide covers *architecture* — how to build. Those docs cover *behaviour* —
+what exists. Check them before adding a feature that may already be there.
+
 ## Planned work
 
 Upcoming work is tracked as Markdown in `plans/` (an Obsidian vault). One task per
