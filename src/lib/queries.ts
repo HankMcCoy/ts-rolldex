@@ -11,6 +11,7 @@ import {
 	type CandidateEntity,
 	computeRelatedEntities,
 } from "@/lib/relationships";
+import { sortTagsByName, type TagRef, tagKey } from "@/lib/tags";
 import { buildTimeline, type TimelineEntry } from "@/lib/timeline";
 import { getCampaignBundle } from "@/server/campaigns";
 
@@ -25,6 +26,7 @@ export type BundleMap = CampaignBundle["maps"][number];
 export type BundleMapPin = CampaignBundle["mapPins"][number];
 export type BundleMember = CampaignBundle["members"][number];
 export type BundleTemplate = CampaignBundle["templates"][number];
+export type BundleTag = CampaignBundle["tags"][number];
 
 export const bundleKey = (campaignId: string) =>
 	["campaign-bundle", campaignId] as const;
@@ -99,6 +101,21 @@ export function useSessions(campaignId: string) {
 
 export function useMaps(campaignId: string) {
 	return useBundle(campaignId).maps;
+}
+
+export function useTags(campaignId: string) {
+	return useBundle(campaignId).tags;
+}
+
+/**
+ * Resolves the `tagIds` carried by a noun or session into tag rows, dropping
+ * ids the bundle doesn't know about — that only happens mid-flight, between an
+ * optimistic patch and the refetch that reconciles it.
+ */
+function resolveTags(b: CampaignBundle, tagIds: string[]): BundleTag[] {
+	return tagIds
+		.map((id) => b.tags.find((t) => t.id === id))
+		.filter((t): t is BundleTag => t !== undefined);
 }
 
 export function useTemplates(campaignId: string) {
@@ -193,7 +210,8 @@ export function useNoun(campaignId: string, nounId: string) {
 		buildCandidates(b),
 	);
 	const mapPinLocations = pinsForTarget(b, (p) => p.nounId === noun.id);
-	return { noun, accessLevel: b.accessLevel, related, mapPinLocations };
+	const tags = resolveTags(b, noun.tagIds);
+	return { noun, accessLevel: b.accessLevel, related, mapPinLocations, tags };
 }
 
 export function useSession(campaignId: string, sessionId: string) {
@@ -211,7 +229,14 @@ export function useSession(campaignId: string, sessionId: string) {
 		buildCandidates(b),
 	);
 	const mapPinLocations = pinsForTarget(b, (p) => p.sessionId === session.id);
-	return { session, accessLevel: b.accessLevel, related, mapPinLocations };
+	const tags = resolveTags(b, session.tagIds);
+	return {
+		session,
+		accessLevel: b.accessLevel,
+		related,
+		mapPinLocations,
+		tags,
+	};
 }
 
 /**
@@ -579,6 +604,37 @@ export function patchRemoveMember(
 	return {
 		...bundle,
 		members: bundle.members.filter((m) => m.id !== memberId),
+	};
+}
+
+/**
+ * Folds the tags a save is about to persist back into the bundle: adds any that
+ * are new, then drops any left with no carrier. Mirrors `applyEntityTags` +
+ * `pruneOrphanTags` on the server (`src/server/tags.ts`) — the two have to
+ * agree or the optimistic view will differ from the refetch.
+ *
+ * Call it *after* the patcher that writes the entity's `tagIds`, so the prune
+ * pass sees the new assignment.
+ */
+export function patchSyncTags(
+	bundle: CampaignBundle,
+	tags: TagRef[],
+): CampaignBundle {
+	const byKey = new Map(bundle.tags.map((t) => [tagKey(t.name), t]));
+	const merged = [...bundle.tags];
+	for (const tag of tags) {
+		if (byKey.has(tagKey(tag.name))) continue;
+		byKey.set(tagKey(tag.name), tag);
+		merged.push(tag);
+	}
+
+	const used = new Set([
+		...bundle.nouns.flatMap((n) => n.tagIds),
+		...bundle.sessions.flatMap((s) => s.tagIds),
+	]);
+	return {
+		...bundle,
+		tags: sortTagsByName(merged.filter((t) => used.has(t.id))),
 	};
 }
 

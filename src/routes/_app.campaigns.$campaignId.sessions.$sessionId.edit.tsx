@@ -4,6 +4,7 @@ import { z } from "zod";
 import { EventDateFields } from "@/components/EventDateFields";
 import { MarkdownEditor } from "@/components/MarkdownEditor";
 import { Page } from "@/components/Page";
+import { TagInput } from "@/components/TagInput";
 import { Button } from "@/components/ui/button";
 import {
 	Form,
@@ -21,11 +22,14 @@ import { zodResolver } from "@/lib/form-resolver";
 import { useSaveShortcut } from "@/lib/keyboard";
 import {
 	BundleMutationError,
+	patchSyncTags,
 	patchUpdateSession,
 	useBundleMutation,
 	useCampaign,
 	useSession,
+	useTags,
 } from "@/lib/queries";
+import { MAX_TAGS_PER_ENTITY, resolveTagRefs, type TagRef } from "@/lib/tags";
 import { updateSession } from "@/server/sessions";
 
 export const Route = createFileRoute(
@@ -54,25 +58,36 @@ const schema = applyDateRefinements(
 		notes: z.string(),
 		privateNotes: z.string(),
 		isSecret: z.boolean(),
+		tags: z.array(z.string()).max(MAX_TAGS_PER_ENTITY),
 		...dateFields,
 	}),
 );
 type Values = z.infer<typeof schema>;
+type UpdateVars = Values & { tagRefs: TagRef[] };
 
 function EditSessionPage() {
 	const { campaignId, sessionId } = Route.useParams();
 	const { campaign, templates } = useCampaign(campaignId);
-	const { session, accessLevel } = useSession(campaignId, sessionId);
+	const { session, accessLevel, tags } = useSession(campaignId, sessionId);
+	const campaignTags = useTags(campaignId);
 	const navigate = useNavigate();
 
 	const updateMutation = useBundleMutation({
 		campaignId: campaign.id,
-		mutationFn: (vars: Values) =>
+		// The form carries tag *names*; `tagRefs` pairs them with ids (existing
+		// where the name already exists) so the optimistic patch and the row the
+		// server writes agree.
+		mutationFn: ({ tags: _names, tagRefs, ...vars }: UpdateVars) =>
 			updateSession({
-				data: { campaignId: campaign.id, sessionId: session.id, ...vars },
+				data: {
+					campaignId: campaign.id,
+					sessionId: session.id,
+					...vars,
+					tags: tagRefs,
+				},
 			}),
-		patch: (bundle, vars) =>
-			patchUpdateSession(bundle, session.id, (s) => ({
+		patch: (bundle, vars) => {
+			const withSession = patchUpdateSession(bundle, session.id, (s) => ({
 				...s,
 				name: vars.name,
 				summary: vars.summary,
@@ -85,8 +100,11 @@ function EditSessionPage() {
 				endDateYear: vars.endDateYear ?? null,
 				endDateMonth: vars.endDateMonth ?? null,
 				endDateDay: vars.endDateDay ?? null,
+				tagIds: vars.tagRefs.map((t) => t.id),
 				updatedAt: new Date(),
-			})),
+			}));
+			return patchSyncTags(withSession, vars.tagRefs);
+		},
 	});
 
 	const form = useForm<Values>({
@@ -97,6 +115,7 @@ function EditSessionPage() {
 			notes: session.notes,
 			privateNotes: session.privateNotes,
 			isSecret: session.isSecret,
+			tags: tags.map((t) => t.name),
 			dateYear: session.dateYear ?? undefined,
 			dateMonth: session.dateMonth ?? undefined,
 			dateDay: session.dateDay ?? undefined,
@@ -107,8 +126,9 @@ function EditSessionPage() {
 	});
 
 	async function onSubmit(values: Values) {
+		const tagRefs = resolveTagRefs(campaignTags, values.tags);
 		try {
-			await updateMutation.mutateAsync(values);
+			await updateMutation.mutateAsync({ ...values, tagRefs });
 		} catch (e) {
 			if (e instanceof BundleMutationError) {
 				form.setError("name", { message: e.message });
@@ -186,6 +206,24 @@ function EditSessionPage() {
 							)}
 						/>
 						<EventDateFields form={form} calendar={campaign.calendar} />
+						<FormField
+							control={form.control}
+							name="tags"
+							render={({ field }) => (
+								<FormItem>
+									<FormLabel>Tags</FormLabel>
+									<FormControl>
+										<TagInput
+											value={field.value}
+											onChange={field.onChange}
+											onBlur={field.onBlur}
+											suggestions={campaignTags.map((t) => t.name)}
+										/>
+									</FormControl>
+									<FormMessage />
+								</FormItem>
+							)}
+						/>
 						<FormField
 							control={form.control}
 							name="notes"

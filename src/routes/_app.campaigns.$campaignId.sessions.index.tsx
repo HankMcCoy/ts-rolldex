@@ -1,9 +1,10 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { EntityAvatar } from "@/components/EntityAvatar";
 import { Page } from "@/components/Page";
+import { TagList } from "@/components/TagList";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { useCampaign, useSessions } from "@/lib/queries";
+import { useCampaign, useSessions, useTags } from "@/lib/queries";
 
 export const Route = createFileRoute("/_app/campaigns/$campaignId/sessions/")({
 	head: () => ({ meta: [{ title: "Sessions - Rolldex" }] }),
@@ -14,6 +15,7 @@ function SessionsPage() {
 	const { campaignId } = Route.useParams();
 	const { campaign, accessLevel } = useCampaign(campaignId);
 	const sessions = useSessions(campaignId);
+	const tagsById = new Map(useTags(campaignId).map((t) => [t.id, t]));
 
 	const isAdmin = accessLevel === "ADMIN";
 
@@ -63,6 +65,12 @@ function SessionsPage() {
 											{s.summary}
 										</p>
 									)}
+									<TagList
+										className="mt-1.5"
+										tags={s.tagIds
+											.map((id) => tagsById.get(id))
+											.filter((t) => t !== undefined)}
+									/>
 								</div>
 								{s.isSecret && <Badge variant="secondary">Secret</Badge>}
 							</Link>

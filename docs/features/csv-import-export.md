@@ -13,6 +13,10 @@ sessions separately — pick a kind, then import or export.
 Date columns are `dateYear`, `dateMonth`, `dateDay`, `endDateYear`,
 `endDateMonth`, `endDateDay`.
 
+> **Tags are not a column.** Neither import nor export handles them, so an
+> export/import round-trip silently drops an entity's tags. Closing that is
+> `RDX-14`. See [tags.md](tags.md).
+
 Two gotchas for anyone hand-editing a file:
 
 - The noun type column is called **`type`** in CSV but `nounType` in the

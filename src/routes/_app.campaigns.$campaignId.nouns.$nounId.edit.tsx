@@ -9,6 +9,7 @@ import { EntityImage } from "@/components/EntityImage";
 import { EventDateFields } from "@/components/EventDateFields";
 import { MarkdownEditor } from "@/components/MarkdownEditor";
 import { Page } from "@/components/Page";
+import { TagInput } from "@/components/TagInput";
 import { Button } from "@/components/ui/button";
 import {
 	Form,
@@ -29,11 +30,14 @@ import { NOUN_TYPE_LABELS, NOUN_TYPES, nounTypeSchema } from "@/lib/noun-types";
 import {
 	BundleMutationError,
 	bundleKey,
+	patchSyncTags,
 	patchUpdateNoun,
 	useBundleMutation,
 	useCampaign,
 	useNoun,
+	useTags,
 } from "@/lib/queries";
+import { MAX_TAGS_PER_ENTITY, resolveTagRefs, type TagRef } from "@/lib/tags";
 import { removeNounImage, updateNoun, uploadNounImage } from "@/server/nouns";
 
 export const Route = createFileRoute(
@@ -62,15 +66,18 @@ const schema = applyDateRefinements(
 		notes: z.string(),
 		privateNotes: z.string(),
 		isSecret: z.boolean(),
+		tags: z.array(z.string()).max(MAX_TAGS_PER_ENTITY),
 		...dateFields,
 	}),
 );
 type Values = z.infer<typeof schema>;
+type UpdateVars = Values & { tagRefs: TagRef[] };
 
 function EditNounPage() {
 	const { campaignId, nounId } = Route.useParams();
 	const { campaign, templates } = useCampaign(campaignId);
-	const { noun, accessLevel } = useNoun(campaignId, nounId);
+	const { noun, accessLevel, tags } = useNoun(campaignId, nounId);
+	const campaignTags = useTags(campaignId);
 	const navigate = useNavigate();
 	const queryClient = useQueryClient();
 	const uploadImage = useServerFn(uploadNounImage);
@@ -78,12 +85,20 @@ function EditNounPage() {
 
 	const updateMutation = useBundleMutation({
 		campaignId: campaign.id,
-		mutationFn: (vars: Values) =>
+		// The form carries tag *names*; `tagRefs` pairs them with ids (existing
+		// where the name already exists) so the optimistic patch and the row the
+		// server writes agree.
+		mutationFn: ({ tags: _names, tagRefs, ...vars }: UpdateVars) =>
 			updateNoun({
-				data: { campaignId: campaign.id, nounId: noun.id, ...vars },
+				data: {
+					campaignId: campaign.id,
+					nounId: noun.id,
+					...vars,
+					tags: tagRefs,
+				},
 			}),
-		patch: (bundle, vars) =>
-			patchUpdateNoun(bundle, noun.id, (n) => ({
+		patch: (bundle, vars) => {
+			const withNoun = patchUpdateNoun(bundle, noun.id, (n) => ({
 				...n,
 				name: vars.name,
 				nounType: vars.nounType,
@@ -97,8 +112,11 @@ function EditNounPage() {
 				endDateYear: vars.endDateYear ?? null,
 				endDateMonth: vars.endDateMonth ?? null,
 				endDateDay: vars.endDateDay ?? null,
+				tagIds: vars.tagRefs.map((t) => t.id),
 				updatedAt: new Date(),
-			})),
+			}));
+			return patchSyncTags(withNoun, vars.tagRefs);
+		},
 	});
 
 	const [imageUrl, setImageUrl] = useState<string | null>(noun.imageUrl);
@@ -115,6 +133,7 @@ function EditNounPage() {
 			notes: noun.notes,
 			privateNotes: noun.privateNotes,
 			isSecret: noun.isSecret,
+			tags: tags.map((t) => t.name),
 			dateYear: noun.dateYear ?? undefined,
 			dateMonth: noun.dateMonth ?? undefined,
 			dateDay: noun.dateDay ?? undefined,
@@ -186,8 +205,9 @@ function EditNounPage() {
 	}
 
 	async function onSubmit(values: Values) {
+		const tagRefs = resolveTagRefs(campaignTags, values.tags);
 		try {
-			await updateMutation.mutateAsync(values);
+			await updateMutation.mutateAsync({ ...values, tagRefs });
 		} catch (e) {
 			if (e instanceof BundleMutationError) {
 				form.setError("name", { message: e.message });
@@ -317,6 +337,24 @@ function EditNounPage() {
 						{form.watch("nounType") === "EVENT" && (
 							<EventDateFields form={form} calendar={campaign.calendar} />
 						)}
+						<FormField
+							control={form.control}
+							name="tags"
+							render={({ field }) => (
+								<FormItem>
+									<FormLabel>Tags</FormLabel>
+									<FormControl>
+										<TagInput
+											value={field.value}
+											onChange={field.onChange}
+											onBlur={field.onBlur}
+											suggestions={campaignTags.map((t) => t.name)}
+										/>
+									</FormControl>
+									<FormMessage />
+								</FormItem>
+							)}
+						/>
 						<FormField
 							control={form.control}
 							name="notes"

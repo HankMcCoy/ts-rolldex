@@ -19,6 +19,7 @@ Both have, in `src/db/schema/app.ts`:
 | `privateNotes` | Optional, ≤50,000. Markdown. Stripped to `""` for READ_ONLY |
 | `isSecret` | Hides the whole row from READ_ONLY |
 | date triplets | `dateYear/Month/Day` + `endDate*`. See [calendar-and-timeline.md](calendar-and-timeline.md) |
+| `tagIds` | Free-form labels, saved with the entity. See [tags.md](tags.md) |
 
 `summary` being required is easy to miss — it's `z.string().min(1)` on both
 create and update, so a blank summary fails validation rather than defaulting.
@@ -55,7 +56,7 @@ action — see [quick-find-and-shortcuts.md](quick-find-and-shortcuts.md).
 
 ## Detail page
 
-Main column: summary card, notes (markdown-rendered), private notes
+Main column: tag chips, summary card, notes (markdown-rendered), private notes
 (ADMIN only, and only if non-empty), then `PinnedOnMaps`. Right rail: entity
 image and `RelatedEntities`.
 

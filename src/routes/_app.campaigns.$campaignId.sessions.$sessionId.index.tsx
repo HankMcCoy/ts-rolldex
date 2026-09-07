@@ -4,6 +4,7 @@ import { MarkdownRenderer } from "@/components/MarkdownRenderer";
 import { Page } from "@/components/Page";
 import { PinnedOnMaps } from "@/components/PinnedOnMaps";
 import { RelatedEntities } from "@/components/RelatedEntities";
+import { TagList } from "@/components/TagList";
 import { Button } from "@/components/ui/button";
 import { useEditShortcut } from "@/lib/keyboard";
 import { useBundleMutation, useCampaign, useSession } from "@/lib/queries";
@@ -18,7 +19,7 @@ export const Route = createFileRoute(
 function SessionPage() {
 	const { campaignId, sessionId } = Route.useParams();
 	const { campaign } = useCampaign(campaignId);
-	const { session, accessLevel, related, mapPinLocations } = useSession(
+	const { session, accessLevel, related, mapPinLocations, tags } = useSession(
 		campaignId,
 		sessionId,
 	);
@@ -97,6 +98,8 @@ function SessionPage() {
 		>
 			<div className="flex gap-12">
 				<div className="min-w-0 flex-1 space-y-6">
+					<TagList tags={tags} />
+
 					{session.summary && (
 						<section>
 							<h2 className="island-kicker mb-3">Summary</h2>

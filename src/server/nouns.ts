@@ -10,6 +10,7 @@ import { err } from "@/lib/result";
 import { deleteObject } from "@/lib/storage";
 import { resolveDateColumns } from "@/server/date-resolver";
 import { performImageRemove, performImageUpload } from "@/server/image-uploads";
+import { applyEntityTags, pruneOrphanTags, tagRefsField } from "@/server/tags";
 import { withUniqueName } from "@/server/unique-name";
 
 const NOUN_NAME_CONFLICT =
@@ -31,6 +32,7 @@ export const createNoun = createServerFn({ method: "POST" })
 				notes: z.string().max(50_000),
 				privateNotes: z.string().max(50_000),
 				isSecret: z.boolean(),
+				tags: tagRefsField,
 				...dateFields,
 			}),
 		),
@@ -67,7 +69,12 @@ export const createNoun = createServerFn({ method: "POST" })
 						...dateResult.cols,
 					})
 					.returning();
-				return noun;
+				const tags = await applyEntityTags(
+					data.campaignId,
+					{ nounId: noun.id },
+					data.tags,
+				);
+				return { ...noun, tags };
 			},
 		);
 	});
@@ -84,6 +91,7 @@ export const updateNoun = createServerFn({ method: "POST" })
 				notes: z.string().max(50_000),
 				privateNotes: z.string().max(50_000),
 				isSecret: z.boolean(),
+				tags: tagRefsField,
 				...dateFields,
 			}),
 		),
@@ -126,7 +134,12 @@ export const updateNoun = createServerFn({ method: "POST" })
 						),
 					)
 					.returning();
-				return noun;
+				const tags = await applyEntityTags(
+					data.campaignId,
+					{ nounId: data.nounId },
+					data.tags,
+				);
+				return { ...noun, tags };
 			},
 		);
 	});
@@ -150,6 +163,9 @@ export const deleteNoun = createServerFn({ method: "POST" })
 			.where(
 				and(eq(nouns.id, data.nounId), eq(nouns.campaignId, data.campaignId)),
 			);
+
+		// entity_tags cascade with the noun, which can leave a tag with no carrier.
+		await pruneOrphanTags(data.campaignId);
 
 		if (existing?.imageKey) {
 			try {
