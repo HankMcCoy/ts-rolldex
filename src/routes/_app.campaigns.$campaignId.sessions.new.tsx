@@ -26,6 +26,7 @@ import {
 	patchSyncTags,
 	useBundleMutation,
 	useCampaign,
+	useEntityLinkTargets,
 	useTags,
 } from "@/lib/queries";
 import { MAX_TAGS_PER_ENTITY, resolveTagRefs, type TagRef } from "@/lib/tags";
@@ -56,6 +57,7 @@ function NewSessionPage() {
 	const { campaignId } = Route.useParams();
 	const { campaign, accessLevel, templates } = useCampaign(campaignId);
 	const campaignTags = useTags(campaignId);
+	const entityLinks = useEntityLinkTargets(campaignId);
 	const navigate = useNavigate();
 
 	const createMutation = useBundleMutation({
@@ -219,6 +221,8 @@ function NewSessionPage() {
 											maxLength={50_000}
 											ariaLabel="Notes"
 											templates={templates}
+											campaignId={campaign.id}
+											entityLinks={entityLinks}
 										/>
 									</FormControl>
 									<FormMessage />
@@ -240,6 +244,8 @@ function NewSessionPage() {
 											maxLength={50_000}
 											ariaLabel="Private notes"
 											templates={templates}
+											campaignId={campaign.id}
+											entityLinks={entityLinks}
 										/>
 									</FormControl>
 									<FormMessage />

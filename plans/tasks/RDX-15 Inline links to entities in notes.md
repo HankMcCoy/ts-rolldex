@@ -1,11 +1,24 @@
 ---
-status: todo
+status: done
 blockedBy: []
 ---
 
 There is no way to write a link to another entity inside a note. Typing "Dave"
 in a session note gets you the name in prose and an entry in the related-entities
 sidebar, but not something a reader can click.
+
+## Resolution
+
+Shipped as `@` autocomplete in the noun and session editors. Selecting a
+visible noun or session inserts a standard Markdown link to its campaign route,
+using the target's ID. The route stays valid through a rename; on read,
+`MarkdownRenderer` resolves the visible target from the campaign bundle and
+renders its current name. Links to deleted or hidden targets intentionally
+degrade to plain text rather than a dead link or visibility probe.
+
+`EntityMention` has a dedicated ProseMirror suggestion key so it coexists with
+the slash palette. The ID form is guarded in `MarkdownEditor.roundtrip.test.ts`
+and `e2e/entity-links.spec.ts` verifies suggestion → save → render → navigate.
 
 ## Notes
 

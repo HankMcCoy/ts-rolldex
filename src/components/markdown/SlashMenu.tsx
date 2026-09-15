@@ -36,6 +36,11 @@ export function SlashMenu<T extends SlashMenuItem>({
 					<button
 						key={item.id}
 						type="button"
+						// Keep ProseMirror's cursor and stored marks alive while a menu
+						// item is chosen with the mouse. The item's command restores focus,
+						// but preventing this earlier focus transfer avoids losing the
+						// selection between mousedown and click.
+						onMouseDown={(event) => event.preventDefault()}
 						onClick={() => onSelect(item)}
 						onMouseEnter={() => onHoverIndex(index)}
 						className={`flex w-full items-center gap-2 rounded px-2 py-1.5 text-left text-sm transition ${active ? "bg-[var(--surface)] text-[var(--sea-ink)]" : "text-[var(--sea-ink)]"}`}

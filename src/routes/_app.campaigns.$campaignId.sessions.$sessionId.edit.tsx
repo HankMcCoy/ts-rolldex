@@ -26,6 +26,7 @@ import {
 	patchUpdateSession,
 	useBundleMutation,
 	useCampaign,
+	useEntityLinkTargets,
 	useSession,
 	useTags,
 } from "@/lib/queries";
@@ -70,6 +71,7 @@ function EditSessionPage() {
 	const { campaign, templates } = useCampaign(campaignId);
 	const { session, accessLevel, tags } = useSession(campaignId, sessionId);
 	const campaignTags = useTags(campaignId);
+	const entityLinks = useEntityLinkTargets(campaignId);
 	const navigate = useNavigate();
 
 	const updateMutation = useBundleMutation({
@@ -239,6 +241,8 @@ function EditSessionPage() {
 											maxLength={50_000}
 											ariaLabel="Notes"
 											templates={templates}
+											campaignId={campaign.id}
+											entityLinks={entityLinks}
 										/>
 									</FormControl>
 									<FormMessage />
@@ -260,6 +264,8 @@ function EditSessionPage() {
 											maxLength={50_000}
 											ariaLabel="Private notes"
 											templates={templates}
+											campaignId={campaign.id}
+											entityLinks={entityLinks}
 										/>
 									</FormControl>
 									<FormMessage />

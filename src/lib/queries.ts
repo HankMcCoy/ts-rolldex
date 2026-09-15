@@ -6,6 +6,7 @@ import {
 	useQueryClient,
 } from "@tanstack/react-query";
 import { notFound } from "@tanstack/react-router";
+import type { EntityLinkTarget } from "@/lib/entity-links";
 import type { NounType } from "@/lib/noun-types";
 import {
 	type CandidateEntity,
@@ -153,6 +154,27 @@ export function useMaps(campaignId: string) {
 
 export function useTags(campaignId: string) {
 	return useBundle(campaignId).tags;
+}
+
+/**
+ * Every visible noun and session that the markdown editor may link to. This is
+ * deliberately derived from the already-filtered bundle: READ_ONLY users never
+ * receive secret entities, so an @ suggestion cannot reveal one.
+ */
+export function useEntityLinkTargets(campaignId: string): EntityLinkTarget[] {
+	const b = useBundle(campaignId);
+	return [
+		...b.nouns.map((noun) => ({
+			id: noun.id,
+			name: noun.name,
+			collection: "nouns" as const,
+		})),
+		...b.sessions.map((session) => ({
+			id: session.id,
+			name: session.name,
+			collection: "sessions" as const,
+		})),
+	];
 }
 
 /**

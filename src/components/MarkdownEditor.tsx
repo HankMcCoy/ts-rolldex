@@ -1,5 +1,6 @@
 import { lazy, Suspense } from "react";
 import type { CampaignTemplate } from "@/components/markdown/extensions/slash-command";
+import type { EntityLinkTarget } from "@/lib/entity-links";
 
 export interface MarkdownEditorProps {
 	value: string;
@@ -12,6 +13,10 @@ export interface MarkdownEditorProps {
 	disabled?: boolean;
 	/** Per-campaign user templates surfaced in the slash menu. */
 	templates?: CampaignTemplate[];
+	/** Visible campaign entities offered by the `@` link autocomplete. */
+	entityLinks?: EntityLinkTarget[];
+	/** Required with `entityLinks` to produce durable in-campaign link URLs. */
+	campaignId?: string;
 	/**
 	 * Supplied by `FormControl`, which merges the field's id and ARIA wiring
 	 * onto whatever control it wraps. Forwarded to the underlying editable

@@ -7,7 +7,12 @@ import { RelatedEntities } from "@/components/RelatedEntities";
 import { TagList } from "@/components/TagList";
 import { Button } from "@/components/ui/button";
 import { useEditShortcut } from "@/lib/keyboard";
-import { useBundleMutation, useCampaign, useSession } from "@/lib/queries";
+import {
+	useBundleMutation,
+	useCampaign,
+	useEntityLinkTargets,
+	useSession,
+} from "@/lib/queries";
 import { deleteSession } from "@/server/sessions";
 
 export const Route = createFileRoute(
@@ -23,6 +28,7 @@ function SessionPage() {
 		campaignId,
 		sessionId,
 	);
+	const entityLinks = useEntityLinkTargets(campaignId);
 	const navigate = useNavigate();
 
 	const deleteMutation = useBundleMutation({
@@ -116,7 +122,11 @@ function SessionPage() {
 						<section>
 							<h2 className="island-kicker mb-3">Notes</h2>
 							<div className="max-w-2xl rounded-2xl border border-[var(--line)] bg-white/90 p-5 shadow-sm">
-								<MarkdownRenderer content={session.notes} />
+								<MarkdownRenderer
+									content={session.notes}
+									campaignId={campaign.id}
+									entityLinks={entityLinks}
+								/>
 							</div>
 						</section>
 					)}
@@ -125,7 +135,11 @@ function SessionPage() {
 						<section>
 							<h2 className="island-kicker mb-3">Private notes</h2>
 							<div className="max-w-2xl rounded-2xl border border-[var(--line)] bg-white/90 p-5 shadow-sm">
-								<MarkdownRenderer content={session.privateNotes} />
+								<MarkdownRenderer
+									content={session.privateNotes}
+									campaignId={campaign.id}
+									entityLinks={entityLinks}
+								/>
 							</div>
 						</section>
 					)}

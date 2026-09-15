@@ -34,6 +34,7 @@ import {
 	patchUpdateNoun,
 	useBundleMutation,
 	useCampaign,
+	useEntityLinkTargets,
 	useNoun,
 	useTags,
 } from "@/lib/queries";
@@ -78,6 +79,7 @@ function EditNounPage() {
 	const { campaign, templates } = useCampaign(campaignId);
 	const { noun, accessLevel, tags } = useNoun(campaignId, nounId);
 	const campaignTags = useTags(campaignId);
+	const entityLinks = useEntityLinkTargets(campaignId);
 	const navigate = useNavigate();
 	const queryClient = useQueryClient();
 	const uploadImage = useServerFn(uploadNounImage);
@@ -370,6 +372,8 @@ function EditNounPage() {
 											maxLength={50_000}
 											ariaLabel="Notes"
 											templates={templates}
+											campaignId={campaign.id}
+											entityLinks={entityLinks}
 										/>
 									</FormControl>
 									<FormMessage />
@@ -391,6 +395,8 @@ function EditNounPage() {
 											maxLength={50_000}
 											ariaLabel="Private notes"
 											templates={templates}
+											campaignId={campaign.id}
+											entityLinks={entityLinks}
 										/>
 									</FormControl>
 									<FormMessage />

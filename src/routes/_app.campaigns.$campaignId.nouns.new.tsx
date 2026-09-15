@@ -28,6 +28,7 @@ import {
 	patchSyncTags,
 	useBundleMutation,
 	useCampaign,
+	useEntityLinkTargets,
 	useTags,
 } from "@/lib/queries";
 import { MAX_TAGS_PER_ENTITY, resolveTagRefs, type TagRef } from "@/lib/tags";
@@ -61,6 +62,7 @@ function NewNounPage() {
 	const { campaignId } = Route.useParams();
 	const { campaign, accessLevel, templates } = useCampaign(campaignId);
 	const campaignTags = useTags(campaignId);
+	const entityLinks = useEntityLinkTargets(campaignId);
 	const { type, name } = Route.useSearch();
 	const navigate = useNavigate();
 
@@ -256,6 +258,8 @@ function NewNounPage() {
 											maxLength={50_000}
 											ariaLabel="Notes"
 											templates={templates}
+											campaignId={campaign.id}
+											entityLinks={entityLinks}
 										/>
 									</FormControl>
 									<FormMessage />
@@ -277,6 +281,8 @@ function NewNounPage() {
 											maxLength={50_000}
 											ariaLabel="Private notes"
 											templates={templates}
+											campaignId={campaign.id}
+											entityLinks={entityLinks}
 										/>
 									</FormControl>
 									<FormMessage />

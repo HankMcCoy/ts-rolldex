@@ -9,7 +9,12 @@ import { TagList } from "@/components/TagList";
 import { Button } from "@/components/ui/button";
 import { useEditShortcut } from "@/lib/keyboard";
 import { NOUN_TYPE_LABELS } from "@/lib/noun-types";
-import { useBundleMutation, useCampaign, useNoun } from "@/lib/queries";
+import {
+	useBundleMutation,
+	useCampaign,
+	useEntityLinkTargets,
+	useNoun,
+} from "@/lib/queries";
 import { deleteNoun } from "@/server/nouns";
 
 export const Route = createFileRoute(
@@ -25,6 +30,7 @@ function NounPage() {
 		campaignId,
 		nounId,
 	);
+	const entityLinks = useEntityLinkTargets(campaignId);
 	const navigate = useNavigate();
 
 	// Delete-and-navigate flows skip optimism: removing the noun from the bundle
@@ -120,7 +126,11 @@ function NounPage() {
 						<section>
 							<h2 className="island-kicker mb-3">Notes</h2>
 							<div className="max-w-2xl rounded-2xl border border-[var(--line)] bg-white/90 p-5 shadow-sm">
-								<MarkdownRenderer content={noun.notes} />
+								<MarkdownRenderer
+									content={noun.notes}
+									campaignId={campaign.id}
+									entityLinks={entityLinks}
+								/>
 							</div>
 						</section>
 					)}
@@ -129,7 +139,11 @@ function NounPage() {
 						<section>
 							<h2 className="island-kicker mb-3">Private notes</h2>
 							<div className="max-w-2xl rounded-2xl border border-[var(--line)] bg-white/90 p-5 shadow-sm">
-								<MarkdownRenderer content={noun.privateNotes} />
+								<MarkdownRenderer
+									content={noun.privateNotes}
+									campaignId={campaign.id}
+									entityLinks={entityLinks}
+								/>
 							</div>
 						</section>
 					)}

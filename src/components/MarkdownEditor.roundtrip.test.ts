@@ -81,6 +81,11 @@ describe("markdown editor round-trip", () => {
 		);
 	});
 
+	it("ID-backed in-campaign entity links", () => {
+		const href = "/campaigns/campaign-1/nouns/noun-1";
+		expect(expectIdempotent(`[Stale display name](${href})\n`)).toContain(href);
+	});
+
 	it("headings h1 through h3", () => {
 		expectIdempotent("# H1\n\n## H2\n\n### H3\n\nbody\n");
 	});
