@@ -322,11 +322,6 @@ export function RelatedEntities({
 					</section>
 				))}
 				<div className="space-y-5">
-					{groups.length > 0 && explicitGroups.length > 0 && (
-						<h3 className="text-[10px] font-semibold tracking-[0.15em] uppercase text-[var(--sea-ink-soft)]">
-							Inferred
-						</h3>
-					)}
 					{groups.map(({ type, items }) => (
 						<section key={type}>
 							<h3 className="mb-2 text-[10px] font-semibold tracking-[0.15em] uppercase text-[var(--sea-ink-soft)]">
