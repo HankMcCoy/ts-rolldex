@@ -1,23 +1,49 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { z } from "zod";
 import { EntityAvatar } from "@/components/EntityAvatar";
 import { Page } from "@/components/Page";
+import { TagFilterBar } from "@/components/TagFilterBar";
 import { TagList } from "@/components/TagList";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { useCampaign, useSessions, useTags } from "@/lib/queries";
+import {
+	useCampaign,
+	useSessions,
+	useSessionTagOptions,
+	useTags,
+} from "@/lib/queries";
+import { tagFilterSchema, toggleTagName } from "@/lib/tags";
 
 export const Route = createFileRoute("/_app/campaigns/$campaignId/sessions/")({
-	head: () => ({ meta: [{ title: "Sessions - Rolldex" }] }),
+	validateSearch: z.object({ tags: tagFilterSchema }),
+	head: ({ match }) => {
+		const { tags } = match.search;
+		const filter = tags?.length ? ` tagged ${tags.join(" + ")}` : "";
+		return { meta: [{ title: `Sessions${filter} - Rolldex` }] };
+	},
 	component: SessionsPage,
 });
 
 function SessionsPage() {
 	const { campaignId } = Route.useParams();
 	const { campaign, accessLevel } = useCampaign(campaignId);
-	const sessions = useSessions(campaignId);
+	const { tags } = Route.useSearch();
+	const activeTags = tags ?? [];
+	const sessions = useSessions(campaignId, { tags: activeTags });
+	const tagOptions = useSessionTagOptions(campaignId);
 	const tagsById = new Map(useTags(campaignId).map((t) => [t.id, t]));
+	const navigate = Route.useNavigate();
 
 	const isAdmin = accessLevel === "ADMIN";
+
+	// The filter lives in the URL so the view is linkable, but replace: true
+	// keeps a session of chip-toggling out of the back-button history.
+	function setTags(next: string[]) {
+		navigate({
+			search: (prev) => ({ ...prev, tags: next.length ? next : undefined }),
+			replace: true,
+		});
+	}
 
 	return (
 		<Page
@@ -42,8 +68,19 @@ function SessionsPage() {
 				)
 			}
 		>
+			<TagFilterBar
+				tags={tagOptions}
+				active={activeTags}
+				onToggle={(name) => setTags(toggleTagName(activeTags, name))}
+				onClear={() => setTags([])}
+			/>
+
 			{sessions.length === 0 ? (
-				<p className="text-sm text-[var(--sea-ink-soft)]">No sessions yet.</p>
+				<p className="text-sm text-[var(--sea-ink-soft)]">
+					{activeTags.length > 0
+						? "No sessions carry all of those tags."
+						: "No sessions yet."}
+				</p>
 			) : (
 				<ul className="space-y-2">
 					{sessions.map((s) => (

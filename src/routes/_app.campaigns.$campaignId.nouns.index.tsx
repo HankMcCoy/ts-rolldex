@@ -2,18 +2,29 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { z } from "zod";
 import { EntityAvatar } from "@/components/EntityAvatar";
 import { Page } from "@/components/Page";
+import { TagFilterBar } from "@/components/TagFilterBar";
 import { TagList } from "@/components/TagList";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { NOUN_TYPE_LABELS, NOUN_TYPES, nounTypeSchema } from "@/lib/noun-types";
-import { useCampaign, useNouns, useTags } from "@/lib/queries";
+import {
+	useCampaign,
+	useNouns,
+	useNounTagOptions,
+	useTags,
+} from "@/lib/queries";
+import { tagFilterSchema, toggleTagName } from "@/lib/tags";
 
 export const Route = createFileRoute("/_app/campaigns/$campaignId/nouns/")({
-	validateSearch: z.object({ type: nounTypeSchema.optional() }),
+	validateSearch: z.object({
+		type: nounTypeSchema.optional(),
+		tags: tagFilterSchema,
+	}),
 	head: ({ match }) => {
-		const type = match.search.type;
+		const { type, tags } = match.search;
 		const label = type ? `${NOUN_TYPE_LABELS[type]}s` : "All entities";
-		return { meta: [{ title: `${label} - Rolldex` }] };
+		const filter = tags?.length ? ` tagged ${tags.join(" + ")}` : "";
+		return { meta: [{ title: `${label}${filter} - Rolldex` }] };
 	},
 	component: NounsPage,
 });
@@ -21,12 +32,24 @@ export const Route = createFileRoute("/_app/campaigns/$campaignId/nouns/")({
 function NounsPage() {
 	const { campaignId } = Route.useParams();
 	const { campaign, accessLevel } = useCampaign(campaignId);
-	const { type } = Route.useSearch();
-	const nouns = useNouns(campaignId, type);
+	const { type, tags } = Route.useSearch();
+	const activeTags = tags ?? [];
+	const nouns = useNouns(campaignId, { type, tags: activeTags });
+	const tagOptions = useNounTagOptions(campaignId, type);
 	const tagsById = new Map(useTags(campaignId).map((t) => [t.id, t]));
+	const navigate = Route.useNavigate();
 
 	const isAdmin = accessLevel === "ADMIN";
 	const label = type ? `${NOUN_TYPE_LABELS[type]}s` : "All entities";
+
+	// The filter lives in the URL so the view is linkable, but replace: true
+	// keeps a session of chip-toggling out of the back-button history.
+	function setTags(next: string[]) {
+		navigate({
+			search: (prev) => ({ ...prev, tags: next.length ? next : undefined }),
+			replace: true,
+		});
+	}
 
 	return (
 		<Page
@@ -57,6 +80,7 @@ function NounsPage() {
 					<Link
 						to="/campaigns/$campaignId/nouns"
 						params={{ campaignId: campaign.id }}
+						search={(prev) => ({ ...prev, type: undefined })}
 					>
 						All
 					</Link>
@@ -71,7 +95,7 @@ function NounsPage() {
 						<Link
 							to="/campaigns/$campaignId/nouns"
 							params={{ campaignId: campaign.id }}
-							search={{ type: t }}
+							search={(prev) => ({ ...prev, type: t })}
 						>
 							{NOUN_TYPE_LABELS[t]}s
 						</Link>
@@ -79,8 +103,19 @@ function NounsPage() {
 				))}
 			</div>
 
+			<TagFilterBar
+				tags={tagOptions}
+				active={activeTags}
+				onToggle={(name) => setTags(toggleTagName(activeTags, name))}
+				onClear={() => setTags([])}
+			/>
+
 			{nouns.length === 0 ? (
-				<p className="text-sm text-[var(--sea-ink-soft)]">Nothing here yet.</p>
+				<p className="text-sm text-[var(--sea-ink-soft)]">
+					{activeTags.length > 0
+						? "Nothing carries all of those tags."
+						: "Nothing here yet."}
+				</p>
 			) : (
 				<ul className="space-y-2">
 					{nouns.map((noun) => (

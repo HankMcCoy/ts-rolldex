@@ -98,7 +98,10 @@ function SessionPage() {
 		>
 			<div className="flex gap-12">
 				<div className="min-w-0 flex-1 space-y-6">
-					<TagList tags={tags} />
+					<TagList
+						tags={tags}
+						filterLink={{ campaignId: campaign.id, collection: "sessions" }}
+					/>
 
 					{session.summary && (
 						<section>

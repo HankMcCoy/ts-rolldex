@@ -1,11 +1,14 @@
 import { describe, expect, it } from "vitest";
 import {
+	filterByTagNames,
 	MAX_TAGS_PER_ENTITY,
 	normalizeTagName,
 	normalizeTagNames,
 	resolveTagRefs,
 	TAG_MAX_LENGTH,
+	tagFilterSchema,
 	tagKey,
+	toggleTagName,
 } from "@/lib/tags";
 
 describe("normalizeTagName", () => {
@@ -51,5 +54,58 @@ describe("resolveTagRefs", () => {
 		expect(resolveTagRefs(existing, ["Ally"], () => `new-${n++}`)).toEqual([
 			{ id: "new-0", name: "Ally" },
 		]);
+	});
+});
+
+describe("toggleTagName", () => {
+	it("adds a name that isn't active", () => {
+		expect(toggleTagName(["Ally"], "Villain")).toEqual(["Ally", "Villain"]);
+	});
+
+	it("removes a case variant of an active name", () => {
+		expect(toggleTagName(["Ally", "Villain"], "villain")).toEqual(["Ally"]);
+	});
+});
+
+describe("filterByTagNames", () => {
+	const tags = [
+		{ id: "t1", name: "Villain" },
+		{ id: "t2", name: "Ally" },
+	];
+	const rows = [
+		{ id: "a", tagIds: ["t1"] },
+		{ id: "b", tagIds: ["t1", "t2"] },
+		{ id: "c", tagIds: [] },
+	];
+
+	it("returns every row when no names are given", () => {
+		expect(filterByTagNames(rows, tags, [])).toEqual(rows);
+	});
+
+	it("matches names case-insensitively", () => {
+		expect(filterByTagNames(rows, tags, ["villain"]).map((r) => r.id)).toEqual([
+			"a",
+			"b",
+		]);
+	});
+
+	it("ANDs multiple names rather than ORing them", () => {
+		expect(
+			filterByTagNames(rows, tags, ["Villain", "Ally"]).map((r) => r.id),
+		).toEqual(["b"]);
+	});
+
+	it("returns nothing when a name matches no campaign tag", () => {
+		expect(filterByTagNames(rows, tags, ["Ghost"])).toEqual([]);
+	});
+});
+
+describe("tagFilterSchema", () => {
+	it("coerces a hand-written single value into a list", () => {
+		expect(tagFilterSchema.parse("villain")).toEqual(["villain"]);
+	});
+
+	it("passes an absent filter through as undefined", () => {
+		expect(tagFilterSchema.parse(undefined)).toBeUndefined();
 	});
 });
