@@ -11,6 +11,7 @@ import {
 	useBundleMutation,
 	useCampaign,
 	useEntityLinkTargets,
+	useRelationshipOptions,
 	useSession,
 } from "@/lib/queries";
 import { deleteSession } from "@/server/sessions";
@@ -24,10 +25,9 @@ export const Route = createFileRoute(
 function SessionPage() {
 	const { campaignId, sessionId } = Route.useParams();
 	const { campaign } = useCampaign(campaignId);
-	const { session, accessLevel, related, mapPinLocations, tags } = useSession(
-		campaignId,
-		sessionId,
-	);
+	const { session, accessLevel, related, explicit, mapPinLocations, tags } =
+		useSession(campaignId, sessionId);
+	const relationshipOptions = useRelationshipOptions(campaignId);
 	const entityLinks = useEntityLinkTargets(campaignId);
 	const navigate = useNavigate();
 
@@ -147,11 +147,17 @@ function SessionPage() {
 					<PinnedOnMaps campaignId={campaign.id} locations={mapPinLocations} />
 				</div>
 
-				{related.length > 0 && (
-					<div className="w-44 shrink-0">
-						<RelatedEntities campaignId={campaign.id} related={related} />
-					</div>
-				)}
+				<div className="w-44 shrink-0">
+					<RelatedEntities
+						campaignId={campaign.id}
+						current={{ id: session.id, kind: "session" }}
+						related={related}
+						explicit={explicit}
+						candidates={relationshipOptions.candidates}
+						types={relationshipOptions.types}
+						canEdit={isAdmin}
+					/>
+				</div>
 			</div>
 		</Page>
 	);

@@ -85,10 +85,43 @@ Details that matter:
   `src/lib/queries.ts`. `privateNotes` is only included in the searchable text
   for non-READ_ONLY viewers, so players never get a relationship inferred from
   DM-only text.
+- ID-backed inline entity links count as implicit relationships in both
+  directions even after an entity is renamed. `extractEntityLinkIds` resolves
+  only links scoped to the current campaign.
 - The `text` field is stripped from the returned objects — it exists only for
   the reverse-direction check.
 
-This is entirely implicit: there is no way to assert a relationship the text
-doesn't imply, and no way to label one ("Rachel is Dave's daughter").
-Adding explicit relationships, plus suppressing the implicit one when an
-explicit one exists, is `RDX-09`.
+## Related entities — declared relationships
+
+An ADMIN can declare a typed relationship between any two campaign entries,
+including noun-to-session and session-to-session links. The detail-page sidebar
+supports both starting a relationship from scratch and promoting an implicit
+match with the adjacent plus action.
+
+Relationship types are reusable, campaign-owned vocabulary. Each type has:
+
+- a picker name, such as `Family`;
+- a forward label, such as `daughter of`;
+- an optional reverse label, such as `father of`.
+
+The source page shows the forward label and the target page shows the reverse
+label. If a type has no natural reverse label, the target page uses the neutral
+type name instead. This keeps one-way relationships such as `born in` visible
+from both endpoints without inventing a misleading inverse.
+
+`relationship_types` stores the vocabulary and `entity_relationships` stores
+the edges. Both endpoints use noun/session XOR columns, mirroring `map_pins` and
+`entity_tags`. Writes live in `src/server/relationships.ts`; reads are part of
+`getCampaignBundle`, and `relationshipsFor` in `src/lib/queries.ts` resolves the
+label and opposite endpoint for the current detail page.
+
+A declared edge suppresses the implicit match for the same pair on **both**
+detail pages, regardless of whether the implicit signal came from a name
+mention or an inline entity link, and regardless of which endpoint contains it.
+Deleting the declared edge therefore allows any text-derived relationship to
+appear again.
+
+Relationships have no independent secret flag. Visibility is inherited from
+both endpoints: the bundle drops an edge unless the caller can see both entries.
+For READ_ONLY callers it also returns only relationship types used by visible
+edges, so labels attached exclusively to hidden content are not disclosed.

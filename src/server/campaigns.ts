@@ -5,12 +5,14 @@ import { db } from "@/db/index";
 import {
 	campaigns,
 	campaignTemplates,
+	entityRelationships,
 	entityTags,
 	gameSessions,
 	mapPins,
 	maps,
 	members,
 	nouns,
+	relationshipTypes,
 	tags,
 	users,
 } from "@/db/schema/index";
@@ -61,8 +63,9 @@ export const getCampaigns = createServerFn().handler(async () => {
  * Single source of truth for the campaign route tree. Returns everything a
  * client needs to render any view inside `/campaigns/$campaignId/*` from one
  * round-trip: the campaign row, all visible entities, sessions, maps, pins,
- * members, and (for ADMINs) templates. Visibility filtering — `isSecret`
- * hiding, `privateNotes` stripping, member-email redaction, template hiding —
+ * members, tags, declared relationships, and (for ADMINs) templates.
+ * Visibility filtering — `isSecret` hiding, `privateNotes` stripping,
+ * member-email redaction, template hiding, and relationship endpoint checks —
  * happens server-side, so the client never sees data it shouldn't.
  *
  * Children consume slices via the selector hooks in `src/lib/queries.ts`.
@@ -93,6 +96,8 @@ export const getCampaignBundle = createServerFn()
 			allTemplates,
 			allTags,
 			allEntityTags,
+			allRelationshipTypes,
+			allRelationships,
 		] = await Promise.all([
 			db.query.nouns.findMany({
 				where: and(
@@ -152,6 +157,26 @@ export const getCampaignBundle = createServerFn()
 				.from(entityTags)
 				.innerJoin(tags, eq(entityTags.tagId, tags.id))
 				.where(eq(tags.campaignId, data.campaignId)),
+			db.query.relationshipTypes.findMany({
+				where: eq(relationshipTypes.campaignId, data.campaignId),
+				orderBy: (t, { asc }) => asc(t.name),
+			}),
+			db
+				.select({
+					id: entityRelationships.id,
+					relationshipTypeId: entityRelationships.relationshipTypeId,
+					sourceNounId: entityRelationships.sourceNounId,
+					sourceSessionId: entityRelationships.sourceSessionId,
+					targetNounId: entityRelationships.targetNounId,
+					targetSessionId: entityRelationships.targetSessionId,
+					createdAt: entityRelationships.createdAt,
+				})
+				.from(entityRelationships)
+				.innerJoin(
+					relationshipTypes,
+					eq(entityRelationships.relationshipTypeId, relationshipTypes.id),
+				)
+				.where(eq(relationshipTypes.campaignId, data.campaignId)),
 		]);
 
 		// Drop pins on hidden maps and pins targeting hidden entities.
@@ -196,6 +221,25 @@ export const getCampaignBundle = createServerFn()
 			? allTags.filter((t) => usedTagIds.has(t.id))
 			: allTags;
 		const visibleTagIds = new Set(visibleTags.map((t) => t.id));
+		const visibleRelationships = allRelationships.filter((r) => {
+			const sourceVisible = r.sourceNounId
+				? visibleNounIds.has(r.sourceNounId)
+				: Boolean(
+						r.sourceSessionId && visibleSessionIds.has(r.sourceSessionId),
+					);
+			const targetVisible = r.targetNounId
+				? visibleNounIds.has(r.targetNounId)
+				: Boolean(
+						r.targetSessionId && visibleSessionIds.has(r.targetSessionId),
+					);
+			return sourceVisible && targetVisible;
+		});
+		const visibleRelationshipTypeIds = new Set(
+			visibleRelationships.map((r) => r.relationshipTypeId),
+		);
+		const visibleRelationshipTypes = isReadOnly
+			? allRelationshipTypes.filter((t) => visibleRelationshipTypeIds.has(t.id))
+			: allRelationshipTypes;
 
 		// Single normalized shape so the client doesn't have to branch on access
 		// level when rendering members. READ_ONLY just gets email=null and pending
@@ -255,6 +299,8 @@ export const getCampaignBundle = createServerFn()
 			})),
 			mapPins: visiblePins,
 			tags: visibleTags,
+			relationshipTypes: visibleRelationshipTypes,
+			relationships: visibleRelationships,
 			members: memberList,
 			templates: allTemplates,
 		};

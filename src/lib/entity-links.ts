@@ -50,3 +50,13 @@ export function parseEntityLinkHref(
 
 	return { collection: parts[3], id: parts[4] };
 }
+
+/** Extract unique durable entity targets from links written by EntityMention. */
+export function extractEntityLinkIds(markdown: string, campaignId: string) {
+	const ids = new Set<string>();
+	for (const match of markdown.matchAll(/\]\(([^)\s]+)\)/g)) {
+		const parsed = parseEntityLinkHref(match[1], campaignId);
+		if (parsed) ids.add(parsed.id);
+	}
+	return ids;
+}

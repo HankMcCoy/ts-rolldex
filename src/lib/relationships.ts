@@ -9,15 +9,26 @@ export interface CandidateEntity {
 	imageUrl: string | null;
 	summary?: string; // shown in hover preview
 	text?: string; // summary + notes, used for reverse-direction lookup — stripped on return
+	linkedEntityIds?: readonly string[]; // durable links, also stripped on return
 }
 
-export type RelatedEntity = Omit<CandidateEntity, "text">;
+export type RelatedEntity = Omit<CandidateEntity, "text" | "linkedEntityIds">;
+
+export interface ExplicitRelationship {
+	id: string;
+	typeId: string;
+	typeName: string;
+	label: string;
+	target: RelatedEntity;
+}
 
 export function computeRelatedEntities(
 	currentId: string,
 	currentName: string,
 	current: { summary: string; notes: string; privateNotes: string },
 	candidates: CandidateEntity[],
+	explicitIds: ReadonlySet<string> = new Set(),
+	currentLinkedIds: ReadonlySet<string> = new Set(),
 ): RelatedEntity[] {
 	// Text of the current entity (forward direction)
 	const currentText = [current.summary, current.notes, current.privateNotes]
@@ -35,6 +46,7 @@ export function computeRelatedEntities(
 	return candidates
 		.filter((c) => {
 			if (c.id === currentId) return false;
+			if (explicitIds.has(c.id)) return false;
 
 			const candidateName = c.name.toLowerCase().replace(/'\s*s\b/g, "");
 			const candidatePattern = new RegExp(
@@ -42,10 +54,12 @@ export function computeRelatedEntities(
 				"i",
 			);
 
-			// Forward: does the current entity mention this candidate?
-			if (candidatePattern.test(currentText)) return true;
+			// Forward: does the current entity name or link this candidate?
+			if (currentLinkedIds.has(c.id) || candidatePattern.test(currentText))
+				return true;
 
-			// Reverse: does this candidate mention the current entity?
+			// Reverse: does this candidate name or link the current entity?
+			if (c.linkedEntityIds?.includes(currentId)) return true;
 			if (c.text) {
 				const candidateText = c.text.toLowerCase().replace(/'\s*s\b/g, "");
 				if (currentNamePattern.test(candidateText)) return true;
@@ -53,7 +67,7 @@ export function computeRelatedEntities(
 
 			return false;
 		})
-		.map(({ text: _text, ...rest }) => rest);
+		.map(({ text: _text, linkedEntityIds: _linkedEntityIds, ...rest }) => rest);
 }
 
 function escapeRegex(s: string): string {

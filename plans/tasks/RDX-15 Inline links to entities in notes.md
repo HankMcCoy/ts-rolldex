@@ -71,5 +71,10 @@ link doesn't become a probe for what exists.
   suppressing an implicit relationship when an explicit one exists. An inline
   link is a third signal, stronger than a name mention and weaker than a
   declared relationship. Decide whether a linked entity is surfaced by
-  `computeRelatedEntities` at all, and if so how it's ranked — but decide it
-  once, alongside RDX-09, rather than twice.
+`computeRelatedEntities` at all, and if so how it's ranked — but decide it
+once, alongside RDX-09, rather than twice.
+
+RDX-09 resolved this interaction: an ID-backed inline link is an implicit
+relationship signal in either direction and survives renames. A declared
+relationship has higher precedence and suppresses that implicit entry on both
+detail pages.

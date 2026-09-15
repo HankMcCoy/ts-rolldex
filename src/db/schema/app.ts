@@ -223,6 +223,72 @@ export const entityTags = pgTable(
 	],
 );
 
+/**
+ * Campaign-owned vocabulary for declared connections. A type has a readable
+ * name for the picker plus the label each endpoint should see; the reverse
+ * label is optional for one-way relationships such as "born in".
+ */
+export const relationshipTypes = pgTable(
+	"relationship_types",
+	{
+		id: idColumn(),
+		campaignId: text("campaign_id")
+			.notNull()
+			.references(() => campaigns.id, { onDelete: "cascade" }),
+		name: text("name").notNull(),
+		forwardLabel: text("forward_label").notNull(),
+		reverseLabel: text("reverse_label"),
+		createdAt: timestamp("created_at").notNull().defaultNow(),
+	},
+	(t) => [
+		uniqueIndex("relationship_types_campaign_name_unique").on(
+			t.campaignId,
+			t.name,
+		),
+	],
+);
+
+/**
+ * A declared edge between any two campaign entities (noun or session). Both
+ * endpoints use the same polymorphic XOR representation as tags and map pins;
+ * the four-column CHECK below requires one source and one target, and FKs
+ * cascade when either endpoint is deleted.
+ */
+export const entityRelationships = pgTable(
+	"entity_relationships",
+	{
+		id: idColumn(),
+		relationshipTypeId: text("relationship_type_id")
+			.notNull()
+			.references(() => relationshipTypes.id, { onDelete: "cascade" }),
+		sourceNounId: text("source_noun_id").references(() => nouns.id, {
+			onDelete: "cascade",
+		}),
+		sourceSessionId: text("source_session_id").references(
+			() => gameSessions.id,
+			{ onDelete: "cascade" },
+		),
+		targetNounId: text("target_noun_id").references(() => nouns.id, {
+			onDelete: "cascade",
+		}),
+		targetSessionId: text("target_session_id").references(
+			() => gameSessions.id,
+			{ onDelete: "cascade" },
+		),
+		createdAt: timestamp("created_at").notNull().defaultNow(),
+	},
+	(t) => [
+		check(
+			"entity_relationships_source_exclusive",
+			sql`(${t.sourceNounId} IS NULL) <> (${t.sourceSessionId} IS NULL)`,
+		),
+		check(
+			"entity_relationships_target_exclusive",
+			sql`(${t.targetNounId} IS NULL) <> (${t.targetSessionId} IS NULL)`,
+		),
+	],
+);
+
 export const campaignTemplates = pgTable(
 	"campaign_templates",
 	{
@@ -277,6 +343,7 @@ export const campaignsRelations = relations(campaigns, ({ one, many }) => ({
 	maps: many(maps),
 	templates: many(campaignTemplates),
 	tags: many(tags),
+	relationshipTypes: many(relationshipTypes),
 }));
 
 export const campaignTemplatesRelations = relations(
@@ -312,6 +379,12 @@ export const nounsRelations = relations(nouns, ({ one, many }) => ({
 		references: [campaigns.id],
 	}),
 	entityTags: many(entityTags),
+	sourceRelationships: many(entityRelationships, {
+		relationName: "relationshipSourceNoun",
+	}),
+	targetRelationships: many(entityRelationships, {
+		relationName: "relationshipTargetNoun",
+	}),
 }));
 
 export const gameSessionsRelations = relations(
@@ -322,6 +395,12 @@ export const gameSessionsRelations = relations(
 			references: [campaigns.id],
 		}),
 		entityTags: many(entityTags),
+		sourceRelationships: many(entityRelationships, {
+			relationName: "relationshipSourceSession",
+		}),
+		targetRelationships: many(entityRelationships, {
+			relationName: "relationshipTargetSession",
+		}),
 	}),
 );
 
@@ -341,6 +420,47 @@ export const entityTagsRelations = relations(entityTags, ({ one }) => ({
 		references: [gameSessions.id],
 	}),
 }));
+
+export const relationshipTypesRelations = relations(
+	relationshipTypes,
+	({ one, many }) => ({
+		campaign: one(campaigns, {
+			fields: [relationshipTypes.campaignId],
+			references: [campaigns.id],
+		}),
+		relationships: many(entityRelationships),
+	}),
+);
+
+export const entityRelationshipsRelations = relations(
+	entityRelationships,
+	({ one }) => ({
+		type: one(relationshipTypes, {
+			fields: [entityRelationships.relationshipTypeId],
+			references: [relationshipTypes.id],
+		}),
+		sourceNoun: one(nouns, {
+			fields: [entityRelationships.sourceNounId],
+			references: [nouns.id],
+			relationName: "relationshipSourceNoun",
+		}),
+		sourceSession: one(gameSessions, {
+			fields: [entityRelationships.sourceSessionId],
+			references: [gameSessions.id],
+			relationName: "relationshipSourceSession",
+		}),
+		targetNoun: one(nouns, {
+			fields: [entityRelationships.targetNounId],
+			references: [nouns.id],
+			relationName: "relationshipTargetNoun",
+		}),
+		targetSession: one(gameSessions, {
+			fields: [entityRelationships.targetSessionId],
+			references: [gameSessions.id],
+			relationName: "relationshipTargetSession",
+		}),
+	}),
+);
 
 export const membersRelations = relations(members, ({ one }) => ({
 	campaign: one(campaigns, {

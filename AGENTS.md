@@ -85,10 +85,10 @@ and the constraints, which are usually not derivable from the code.
 
 This is the dominant data-flow pattern. **Read it before adding new routes or mutations.**
 
-A campaign and everything in it (nouns, sessions, maps, pins, members, templates) is small enough to fit in memory comfortably (~150 KB gzipped pessimistically). The data layer ships the whole thing in one round-trip:
+A campaign and everything in it (nouns, sessions, maps, pins, members, templates, tags, relationships) is small enough to fit in memory comfortably (~150 KB gzipped pessimistically). The data layer ships the whole thing in one round-trip:
 
-- `getCampaignBundle` (`src/server/campaigns.ts`) is the only read-side server fn for campaign-scoped data. It applies all access-control filtering server-side (`isSecret` hiding, `privateNotes` stripping, member-email redaction, template hiding).
-- `src/lib/queries.ts` defines the bundle key, the `campaignBundleQuery`, and selector hooks: `useCampaign`, `useNoun`, `useNouns`, `useSession`, `useSessions`, `useMap`/`useMapWithPins`, `useMaps`, `useTemplates`, `useTemplate`, `useTimeline`, `useCampaignDashboard`, `useSettingsSummary`, `useAccessLevel`. Components use these — they don't fetch.
+- `getCampaignBundle` (`src/server/campaigns.ts`) is the only read-side server fn for campaign-scoped data. It applies all access-control filtering server-side (`isSecret` hiding, `privateNotes` stripping, member-email redaction, template hiding, relationship endpoint visibility).
+- `src/lib/queries.ts` defines the bundle key, the `campaignBundleQuery`, and selector hooks: `useCampaign`, `useNoun`, `useNouns`, `useSession`, `useSessions`, `useMap`/`useMapWithPins`, `useMaps`, `useTemplates`, `useTemplate`, `useTimeline`, `useCampaignDashboard`, `useSettingsSummary`, `useRelationshipOptions`, `useAccessLevel`. Components use these — they don't fetch.
 - The parent route `/_app/campaigns/$campaignId` calls `context.queryClient.ensureQueryData(campaignBundleQuery(...))` in its loader. Child routes either have no loader (most of them) or a tiny one that re-uses the cached bundle to derive a single row plus throw `notFound()` if it's missing/filtered (e.g. `nouns/$nounId`, `sessions/$sessionId`, `maps/$mapId`, `settings/templates/$templateId`).
 - Pure derivations live client-side: `computeRelatedEntities` in `src/lib/relationships.ts`, `buildTimeline` in `src/lib/timeline.ts`, and the pin-grouping helper in `src/lib/queries.ts`. They run synchronously off the bundle on every render. The previous server-side equivalents (`loadCampaignCandidates`, `loadTimelineEntries`, `loadMapPinLocations`) are gone.
 - Quick Find (Cmd-K) filters the in-memory bundle synchronously — no debounce, no server roundtrip.
@@ -185,6 +185,10 @@ tags            — free-form labels, campaign-scoped; unique per campaign on
                   long as something carries it (see docs/features/tags.md)
 entity_tags     — belong to a tag; reference exactly one of nounId or sessionId
                   (DB CHECK enforces XOR), mirroring map_pins
+relationship_types — campaign-owned reusable labels with a forward label and
+                  optional reverse label
+entity_relationships — typed edges whose source and target each reference
+                  exactly one noun or session (DB CHECKs enforce both XORs)
 ```
 
 Date columns are all-or-none and end-requires-start (DB CHECKs in `app.ts`).

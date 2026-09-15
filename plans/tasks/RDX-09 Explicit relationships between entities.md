@@ -1,5 +1,5 @@
 ---
-status: todo
+status: done
 blockedBy: []
 ---
 
@@ -54,3 +54,12 @@ Open questions:
   inherit visibility from the two entities it connects? Inheriting is simpler and
   probably right — a relationship to a hidden entity should vanish for READ_ONLY
   users along with the entity itself.
+
+## Resolution
+
+Implemented for nouns and sessions. Relationship types are campaign-scoped and
+carry a name, forward label, and optional reverse label. Relationships inherit
+visibility from both endpoints; they have no separate `isSecret` flag. ADMINs
+can create a relationship directly or promote an implicit match, reuse existing
+types, and delete declared relationships from either endpoint. A declared edge
+symmetrically suppresses the corresponding implicit match.
