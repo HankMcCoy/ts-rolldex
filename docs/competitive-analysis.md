@@ -218,7 +218,7 @@ Rolldex's column is what actually ships today, per `docs/features/`.
 | **Explicit typed relationships** | ❌ `RDX-09` | ✅ | ✅ | ✅ | — | ✅ |
 | Implicit / mention-based relations | ✅ **distinctive** | — | — | partial (auto-link) | — | partial |
 | Relationship graph view | ❌ | ✅ webs | ✅ (paid) | ✅ boards | — | ✅ |
-| Inline `@mention` entity links | ❌ `RDX-15` | ✅ | ✅ | ✅ auto-link | ✅ | ✅ |
+| Inline `@mention` entity links | ✅ ID-backed, rename-safe | ✅ | ✅ | ✅ auto-link | ✅ | ✅ |
 | Interactive maps with pins | ✅ | ✅ | ✅ | ✅ | ✅ (1 free) | ✅ |
 | Nested / layered maps | ❌ | ✅ layers | ✅ layers | ✅ nested | — | — |
 | Custom fantasy calendar | ✅ **strong** | ✅ | ✅ +moons/seasons | ✅ +moons | ✅ (paid) | — |
@@ -303,35 +303,29 @@ These are things a DM evaluating Rolldex against any of the five wiki tools
 will notice within ten minutes. Each is now tracked; roughly in order of how
 loudly they're missing:
 
-1. **Inline entity links** (`RDX-15`). There is no way to write `[[Dave]]` in a
-   session note and get a link. Every competitor has this, usually as
-   `@mention` autocomplete. It is also the natural companion to `RDX-06`'s
-   quick-create, which already contemplates inserting a link at the cursor.
-   The open question is the storage format, since markdown round-tripping is a
-   hard contract and renames break name-based links.
-2. **Explicit relationships** (`RDX-09`). Implicit inference is a differentiator
+1. **Explicit relationships** (`RDX-09`). Implicit inference is a differentiator
    *in addition to* declared links, not a replacement for them — "Rachel is
    Dave's daughter" is not expressible today.
-3. **Full-text search** (`RDX-16`). Quick Find matches names only, on
+2. **Full-text search** (`RDX-16`). Quick Find matches names only, on
    substring, capped at 5 per group in bundle order. The bundle already
    contains every note body; this is client-side work, not a backend project.
-4. **A second admin** (`RDX-17`). `memberTypeEnum` has one value and
+3. **A second admin** (`RDX-17`). `memberTypeEnum` has one value and
    `createdById` is the only route to ADMIN. Co-GMs and ownership transfer are
    ordinary asks; the current model can't express either.
-5. **Quest / plot tracking** (`RDX-18`). The one content shape every
+4. **Quest / plot tracking** (`RDX-18`). The one content shape every
    RPG-native competitor has that Rolldex doesn't. The composition of `RDX-03`,
    `RDX-04` and `RDX-09` covers the quest *page* but not the *tracking* — see
    "Zooming in" above. Two of the gaps are better closed inside those tasks
    than here: terminal-value marking on a tag group, and a per-instance note
    and visibility on a relationship.
-6. **Full-fidelity export** (`RDX-19`). CSV covers nouns and sessions and
+5. **Full-fidelity export** (`RDX-19`). CSV covers nouns and sessions and
    silently drops tags (`RDX-14`), maps, pins and templates. "You own your
    data" is a stated selling point for LegendKeeper and Obsidian, and a real
    objection for a hosted tool with no export. The bundle is already almost
    exactly the right payload, which makes this cheap for its weight.
-7. **User-definable entity types** (`RDX-04`). Five hard-coded types is the
+6. **User-definable entity types** (`RDX-04`). Five hard-coded types is the
    fewest in the market by a wide margin.
-8. **Version history** (`RDX-20`). Nothing protects against a bad edit to a
+7. **Version history** (`RDX-20`). Nothing protects against a bad edit to a
    50,000-character note. Two competitors sell this as a paid feature. Note
    this is an undo of last resort, not the concurrent-edit handling `AGENTS.md`
    rules out.

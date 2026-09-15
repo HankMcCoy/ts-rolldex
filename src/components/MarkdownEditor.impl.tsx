@@ -23,6 +23,11 @@ import { Markdown, type MarkdownStorage } from "tiptap-markdown";
 import { Callout } from "@/components/markdown/extensions/callout";
 import { EnforceTableHeader } from "@/components/markdown/extensions/enforce-table-header";
 import {
+	EntityMention,
+	type EntityMentionItem,
+	type EntityMentionRendererHandlers,
+} from "@/components/markdown/extensions/entity-mention";
+import {
 	type CampaignTemplate,
 	type CommandItem,
 	SlashCommand,
@@ -32,6 +37,7 @@ import { TableKeymap } from "@/components/markdown/extensions/table-keymap";
 import { TsvPaste } from "@/components/markdown/extensions/tsv-paste";
 import { SlashMenu, type SlashMenuItem } from "@/components/markdown/SlashMenu";
 import { MARKDOWN_PROSE_CLASS } from "@/components/markdown-styles";
+import type { EntityLinkTarget } from "@/lib/entity-links";
 
 interface ContextItem extends SlashMenuItem {
 	run: (editor: Editor) => void;
@@ -104,6 +110,8 @@ export interface MarkdownEditorImplProps {
 	ariaLabel?: string;
 	disabled?: boolean;
 	templates?: CampaignTemplate[];
+	entityLinks?: EntityLinkTarget[];
+	campaignId?: string;
 	id?: string;
 	"aria-describedby"?: string;
 	"aria-invalid"?: boolean;
@@ -113,6 +121,13 @@ interface SlashState {
 	items: CommandItem[];
 	activeIndex: number;
 	selectItem: (item: CommandItem) => void;
+	rect: DOMRect | null;
+}
+
+interface MentionState {
+	items: EntityMentionItem[];
+	activeIndex: number;
+	selectItem: (item: EntityMentionItem) => void;
 	rect: DOMRect | null;
 }
 
@@ -126,15 +141,22 @@ export default function MarkdownEditorImpl({
 	ariaLabel,
 	disabled = false,
 	templates,
+	entityLinks,
+	campaignId,
 	id,
 	"aria-describedby": ariaDescribedBy,
 	"aria-invalid": ariaInvalid,
 }: MarkdownEditorImplProps) {
 	const templatesRef = useRef<CampaignTemplate[]>(templates ?? []);
 	templatesRef.current = templates ?? [];
+	const entityLinksRef = useRef<EntityLinkTarget[]>(entityLinks ?? []);
+	entityLinksRef.current = entityLinks ?? [];
 	const [slash, setSlash] = useState<SlashState | null>(null);
 	const slashRef = useRef<SlashState | null>(null);
 	slashRef.current = slash;
+	const [mention, setMention] = useState<MentionState | null>(null);
+	const mentionRef = useRef<MentionState | null>(null);
+	mentionRef.current = mention;
 
 	const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
 	const contextMenuRef = useRef<HTMLDivElement | null>(null);
@@ -251,6 +273,83 @@ export default function MarkdownEditorImpl({
 					onExit: () => setSlash(null),
 				}),
 			}),
+			...(campaignId
+				? [
+						EntityMention.configure({
+							campaignId,
+							getTargets: () => entityLinksRef.current,
+							createRenderer: (): EntityMentionRendererHandlers => ({
+								onStart: (props) => {
+									const rect = props.clientRect ? props.clientRect() : null;
+									setMention({
+										items: props.items,
+										activeIndex: 0,
+										selectItem: props.command,
+										rect,
+									});
+								},
+								onUpdate: (props) => {
+									const rect = props.clientRect ? props.clientRect() : null;
+									setMention((prev) => ({
+										items: props.items,
+										activeIndex: Math.min(
+											prev?.activeIndex ?? 0,
+											Math.max(0, props.items.length - 1),
+										),
+										selectItem: props.command,
+										rect,
+									}));
+								},
+								onKeyDown: ({ event }) => {
+									const current = mentionRef.current;
+									if (!current) return false;
+									if (event.key === "ArrowDown") {
+										setMention((prev) =>
+											prev
+												? {
+														...prev,
+														activeIndex:
+															prev.items.length > 0
+																? (prev.activeIndex + 1) % prev.items.length
+																: 0,
+													}
+												: prev,
+										);
+										return true;
+									}
+									if (event.key === "ArrowUp") {
+										setMention((prev) =>
+											prev
+												? {
+														...prev,
+														activeIndex:
+															prev.items.length > 0
+																? (prev.activeIndex - 1 + prev.items.length) %
+																	prev.items.length
+																: 0,
+													}
+												: prev,
+										);
+										return true;
+									}
+									if (event.key === "Enter") {
+										const item = current.items[current.activeIndex];
+										if (item) {
+											current.selectItem(item);
+											return true;
+										}
+									}
+									if (event.key === "Escape") {
+										setMention(null);
+										return true;
+									}
+									return false;
+								},
+								onExit: () => setMention(null),
+							}),
+						}),
+					]
+				: []),
 		],
 		content: value,
 		editorProps: {
@@ -400,6 +499,29 @@ export default function MarkdownEditorImpl({
 							onSelect={(item) => slash.selectItem(item)}
 							onHoverIndex={(index) =>
 								setSlash((prev) =>
+									prev ? { ...prev, activeIndex: index } : prev,
+								)
+							}
+						/>
+					</div>,
+					document.body,
+				)}
+			{mention?.rect &&
+				typeof document !== "undefined" &&
+				createPortal(
+					<div
+						className="fixed z-50"
+						style={{
+							top: mention.rect.bottom + 4,
+							left: mention.rect.left,
+						}}
+					>
+						<SlashMenu
+							items={mention.items}
+							activeIndex={mention.activeIndex}
+							onSelect={(item) => mention.selectItem(item)}
+							onHoverIndex={(index) =>
+								setMention((prev) =>
 									prev ? { ...prev, activeIndex: index } : prev,
 								)
 							}

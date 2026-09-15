@@ -89,8 +89,31 @@ Two nice touches worth knowing before adding items:
 - Typing dimensions produces a dynamic item — `5x3` or `2×4` offers
   "Table 5 × 3", clamped to 50 rows and 20 columns, alongside the presets.
 - Templates come from a `getTemplates()` callback, not a captured array, so the
-  menu always sees the current list without recreating the editor when
-  templates change.
+menu always sees the current list without recreating the editor when
+templates change.
+
+## Entity links
+
+Typing `@` in a noun or session's Notes or Private notes opens a synchronous
+autocomplete over every **visible** noun and session in the campaign. Selecting
+one inserts a standard Markdown link whose URL contains the target's ID:
+`[Baron Talver](/campaigns/<campaignId>/nouns/<nounId>)`. This is deliberately
+plain Markdown so exports and other readers retain a useful link, while the ID
+makes a rename safe.
+
+On a detail page, `MarkdownRenderer` resolves those in-campaign links against
+the already-filtered campaign bundle, then displays the target's **current**
+name and navigates with a router link. A link to an entity that was deleted or
+is secret to the current READ_ONLY viewer is rendered as inert text. That
+avoids a dead link and, more importantly, prevents a Markdown URL from probing
+whether a hidden entity exists. Ordinary external Markdown links keep their
+normal anchor behaviour.
+
+The editor's `EntityMention` extension has its own ProseMirror suggestion key;
+the slash palette uses a separate suggestion extension and both may coexist in
+the same editor. ID-backed link round-tripping is covered by
+`MarkdownEditor.roundtrip.test.ts`; the browser flow is covered by
+`e2e/entity-links.spec.ts`.
 
 ## Character limits
 
