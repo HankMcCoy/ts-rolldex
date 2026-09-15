@@ -104,14 +104,49 @@ The real `<input>` carries the id and ARIA wiring, so `FormControl`'s Slot and
 `<FormLabel htmlFor>` land on a focusable element (see `RDX-11`).
 
 `TagList` (`src/components/TagList.tsx`) is the read side — chips on the noun
-and session detail pages and in both list views.
+and session detail pages and in both list views. On the detail pages each chip
+links to that collection's list filtered by the tag. In the **list** views the
+chips are inert, because each row is already wrapped in a `<Link>` and nesting
+anchors is invalid HTML — the list views put their toggles in `TagFilterBar`
+instead. That's what `TagList`'s optional `filterLink` prop selects between.
 
 Limits: `TAG_MAX_LENGTH` 40 characters, `MAX_TAGS_PER_ENTITY` 25, both in
 `src/lib/tags.ts` and enforced on the server by `tagRefsField`.
 
+## Filtering a list by tag
+
+The noun list and the session list both take a `tags` search param, and
+`TagFilterBar` (`src/components/TagFilterBar.tsx`) renders one toggle chip per
+tag above the list.
+
+**The filter is carried as tag names, not ids.** Ids would be shorter, but a
+tag row does not survive losing its last carrier (see the lifecycle rule
+above), so retyping the same name mints a *new* id — a bookmarked or shared
+`?tags=` URL would silently stop matching. Names also keep a hand-written URL
+readable, and `tagFilterSchema` coerces a bare `?tags=villain` into a
+one-element list so hand-writing one works. Matching is case-insensitive via
+`tagKey`, like everywhere else.
+
+**Multiple tags narrow with AND**, not OR: each extra chip shows fewer rows.
+The pure helper is `filterByTagNames` (`src/lib/tags.ts`), applied by the
+`useNouns` / `useSessions` selectors. A name matching no campaign tag yields an
+empty list rather than being ignored — nothing can carry a tag that doesn't
+exist, and silently dropping it would show a filtered view that isn't filtered.
+
+The chips a view offers come from `useNounTagOptions` / `useSessionTagOptions`,
+which list tags carried by at least one row *in scope* — so the bar never
+offers a filter that would empty the list. Scope deliberately ignores the
+active tag filter: recomputing the options as you select would make chips
+vanish from under the pointer. `TagFilterBar` additionally renders any active
+name that has no chip (its tag was pruned, or the noun type filter moved away
+from it), so an active filter can always be switched off.
+
+Toggling navigates with `replace: true` — the URL stays linkable, which is what
+`RDX-05` needs, without filling the back button with every chip click. The
+noun list's type buttons carry the tag filter across rather than dropping it.
+
 ## Not covered yet
 
-- **Filtering a list by tag** is `RDX-02`; the chips are currently inert text.
 - **Tags in Quick Find** is `RDX-05`.
 - **CSV import/export ignores tags** — the column set in `src/lib/csv.ts` is
   unchanged, so a round-trip through export/import drops them. That's `RDX-14`.

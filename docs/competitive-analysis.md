@@ -212,7 +212,7 @@ Rolldex's column is what actually ships today, per `docs/features/`.
 | GM-only private notes | ✅ field-level | ✅ inline spoilers | ✅ | ✅ inline | ✅ section | ✅ |
 | Hide whole entity from players | ✅ `isSecret` | ✅ | ✅ granular | ✅ granular | ✅ | ✅ |
 | Free-form tags | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| Filter lists by tag | ❌ `RDX-02` | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Filter lists by tag | ✅ AND, in the URL | ✅ | ✅ | ✅ | ✅ | ✅ |
 | User-definable entity types | ❌ 5 hard enum, `RDX-04` | ✅ | ✅ ~20 | ✅ free-form | — | ✅ |
 | Custom fields / attributes | ❌ | ✅ | ✅ | ✅ | — | ✅ |
 | **Explicit typed relationships** | ❌ `RDX-09` | ✅ | ✅ | ✅ | — | ✅ |
@@ -315,25 +315,23 @@ loudly they're missing:
 3. **Full-text search** (`RDX-16`). Quick Find matches names only, on
    substring, capped at 5 per group in bundle order. The bundle already
    contains every note body; this is client-side work, not a backend project.
-4. **Tag filtering** (`RDX-02`) — tag chips are currently inert text, which
-   reads as broken rather than incomplete.
-5. **A second admin** (`RDX-17`). `memberTypeEnum` has one value and
+4. **A second admin** (`RDX-17`). `memberTypeEnum` has one value and
    `createdById` is the only route to ADMIN. Co-GMs and ownership transfer are
    ordinary asks; the current model can't express either.
-6. **Quest / plot tracking** (`RDX-18`). The one content shape every
+5. **Quest / plot tracking** (`RDX-18`). The one content shape every
    RPG-native competitor has that Rolldex doesn't. The composition of `RDX-03`,
    `RDX-04` and `RDX-09` covers the quest *page* but not the *tracking* — see
    "Zooming in" above. Two of the gaps are better closed inside those tasks
    than here: terminal-value marking on a tag group, and a per-instance note
    and visibility on a relationship.
-7. **Full-fidelity export** (`RDX-19`). CSV covers nouns and sessions and
+6. **Full-fidelity export** (`RDX-19`). CSV covers nouns and sessions and
    silently drops tags (`RDX-14`), maps, pins and templates. "You own your
    data" is a stated selling point for LegendKeeper and Obsidian, and a real
    objection for a hosted tool with no export. The bundle is already almost
    exactly the right payload, which makes this cheap for its weight.
-8. **User-definable entity types** (`RDX-04`). Five hard-coded types is the
+7. **User-definable entity types** (`RDX-04`). Five hard-coded types is the
    fewest in the market by a wide margin.
-9. **Version history** (`RDX-20`). Nothing protects against a bad edit to a
+8. **Version history** (`RDX-20`). Nothing protects against a bad edit to a
    50,000-character note. Two competitors sell this as a paid feature. Note
    this is an undo of last resort, not the concurrent-edit handling `AGENTS.md`
    rules out.

@@ -5,6 +5,8 @@
  * the row the server writes back.
  */
 
+import { z } from "zod";
+
 export const TAG_MAX_LENGTH = 40;
 export const MAX_TAGS_PER_ENTITY = 25;
 
@@ -66,4 +68,56 @@ export function resolveTagRefs(
 
 export function sortTagsByName<T extends { name: string }>(tags: T[]): T[] {
 	return [...tags].sort((a, b) => a.name.localeCompare(b.name));
+}
+
+/**
+ * Search-param schema for a tag filter, shared by the noun and session list
+ * routes. The filter is carried as tag **names**, not ids: names survive a tag
+ * being pruned and retyped (which mints a new id — see the lifecycle rule in
+ * `docs/features/tags.md`), and a hand-written URL stays readable. A bare
+ * `?tags=villain` is coerced to a one-element list so those URLs work too.
+ */
+export const tagFilterSchema = z
+	.preprocess(
+		(v) => (typeof v === "string" ? [v] : v),
+		z.array(z.string()).max(MAX_TAGS_PER_ENTITY),
+	)
+	.optional();
+
+/**
+ * Adds `name` to the active filter, or removes it if an equal-keyed name is
+ * already there. Returns a new array; order of the survivors is preserved.
+ */
+export function toggleTagName(
+	active: readonly string[],
+	name: string,
+): string[] {
+	const key = tagKey(name);
+	const without = active.filter((n) => tagKey(n) !== key);
+	return without.length === active.length ? [...active, name] : without;
+}
+
+/**
+ * Narrows rows to those carrying **every** named tag (AND, not OR — stacking
+ * chips should keep narrowing). Names are matched case-insensitively against
+ * `tags`; a name no campaign tag matches can't be carried by anything, so the
+ * result is empty rather than silently ignored.
+ */
+export function filterByTagNames<T extends { tagIds: string[] }>(
+	rows: readonly T[],
+	tags: readonly TagRef[],
+	names: readonly string[],
+): T[] {
+	const wanted = [...new Set(names.map(tagKey))].filter(Boolean);
+	if (wanted.length === 0) return [...rows];
+
+	const idByKey = new Map(tags.map((t) => [tagKey(t.name), t.id]));
+	const ids: string[] = [];
+	for (const key of wanted) {
+		const id = idByKey.get(key);
+		if (id === undefined) return [];
+		ids.push(id);
+	}
+
+	return rows.filter((row) => ids.every((id) => row.tagIds.includes(id)));
 }

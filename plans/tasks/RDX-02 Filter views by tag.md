@@ -1,5 +1,5 @@
 ---
-status: todo
+status: done
 blockedBy:
   - "[[RDX-01 Arbitrary tags on nouns and sessions]]"
 ---

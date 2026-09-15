@@ -11,7 +11,12 @@ import {
 	type CandidateEntity,
 	computeRelatedEntities,
 } from "@/lib/relationships";
-import { sortTagsByName, type TagRef, tagKey } from "@/lib/tags";
+import {
+	filterByTagNames,
+	sortTagsByName,
+	type TagRef,
+	tagKey,
+} from "@/lib/tags";
 import { buildTimeline, type TimelineEntry } from "@/lib/timeline";
 import { getCampaignBundle } from "@/server/campaigns";
 
@@ -90,13 +95,56 @@ export function useAccessLevel(campaignId: string) {
 	return useBundle(campaignId).accessLevel;
 }
 
-export function useNouns(campaignId: string, type?: NounType) {
+/**
+ * The campaign's nouns, narrowed by the list view's filters. `tags` holds tag
+ * *names* straight off the URL and narrows with AND semantics; see
+ * `filterByTagNames`.
+ */
+export function useNouns(
+	campaignId: string,
+	filter?: { type?: NounType; tags?: readonly string[] },
+) {
 	const b = useBundle(campaignId);
-	return type ? b.nouns.filter((n) => n.nounType === type) : b.nouns;
+	const byType = filter?.type
+		? b.nouns.filter((n) => n.nounType === filter.type)
+		: b.nouns;
+	return filter?.tags?.length
+		? filterByTagNames(byType, b.tags, filter.tags)
+		: byType;
 }
 
-export function useSessions(campaignId: string) {
-	return useBundle(campaignId).sessions;
+export function useSessions(
+	campaignId: string,
+	filter?: { tags?: readonly string[] },
+) {
+	const b = useBundle(campaignId);
+	return filter?.tags?.length
+		? filterByTagNames(b.sessions, b.tags, filter.tags)
+		: b.sessions;
+}
+
+/**
+ * The chips a list view offers as filters: campaign tags carried by at least
+ * one row *in scope*, so the bar can't offer a filter that yields nothing.
+ * Scope deliberately ignores the active tag filter — narrowing the options as
+ * you select would make chips disappear out from under the pointer.
+ */
+function tagsInUse(b: CampaignBundle, rows: readonly { tagIds: string[] }[]) {
+	const used = new Set(rows.flatMap((r) => r.tagIds));
+	return b.tags.filter((t) => used.has(t.id));
+}
+
+export function useNounTagOptions(campaignId: string, type?: NounType) {
+	const b = useBundle(campaignId);
+	return tagsInUse(
+		b,
+		type ? b.nouns.filter((n) => n.nounType === type) : b.nouns,
+	);
+}
+
+export function useSessionTagOptions(campaignId: string) {
+	const b = useBundle(campaignId);
+	return tagsInUse(b, b.sessions);
 }
 
 export function useMaps(campaignId: string) {

@@ -29,8 +29,8 @@ It **navigates** to `nouns/new?name=<query>`, which prefills the name field.
 > planned version creates in a modal and returns you to what you were looking
 > at. See `plans/tasks/RDX-06 Quick create from the Cmd-K palette.md`.
 
-Tags aren't searchable because they don't exist yet; adding tag results that
-jump to a filtered view is `RDX-05`.
+Tags aren't searchable in Quick Find yet; adding tag results that jump to a
+filtered view is `RDX-05`.
 
 ## Cmd-E / Ctrl-E — edit
 
