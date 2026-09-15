@@ -220,4 +220,47 @@ describe("computeRelatedEntities — output shape", () => {
 		);
 		expect(result.map((r) => r.id)).toEqual(["v"]);
 	});
+
+	it("symmetrically suppresses candidates that have an explicit relationship", () => {
+		const candidates = [
+			candidate({ id: "forward", name: "Forward" }),
+			candidate({
+				id: "reverse",
+				name: "Reverse",
+				text: "Hero appears in this candidate's text.",
+			}),
+			candidate({ id: "visible", name: "Visible" }),
+		];
+		const result = computeRelatedEntities(
+			"current",
+			"Hero",
+			{ ...empty, notes: "Forward and Visible appear here." },
+			candidates,
+			new Set(["forward", "reverse"]),
+		);
+
+		expect(result.map((r) => r.id)).toEqual(["visible"]);
+	});
+
+	it("includes durable inline links in both directions without leaking metadata", () => {
+		const candidates = [
+			candidate({ id: "forward", name: "Renamed target" }),
+			candidate({
+				id: "reverse",
+				name: "Reverse link owner",
+				linkedEntityIds: ["current"],
+			}),
+		];
+		const result = computeRelatedEntities(
+			"current",
+			"Renamed current entity",
+			empty,
+			candidates,
+			new Set(),
+			new Set(["forward"]),
+		);
+
+		expect(result.map((r) => r.id)).toEqual(["forward", "reverse"]);
+		expect(result[1]).not.toHaveProperty("linkedEntityIds");
+	});
 });

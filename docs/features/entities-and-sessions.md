@@ -85,10 +85,53 @@ Details that matter:
   `src/lib/queries.ts`. `privateNotes` is only included in the searchable text
   for non-READ_ONLY viewers, so players never get a relationship inferred from
   DM-only text.
+- ID-backed inline entity links count as implicit relationships in both
+  directions even after an entity is renamed. `extractEntityLinkIds` resolves
+  only links scoped to the current campaign.
 - The `text` field is stripped from the returned objects — it exists only for
   the reverse-direction check.
 
-This is entirely implicit: there is no way to assert a relationship the text
-doesn't imply, and no way to label one ("Rachel is Dave's daughter").
-Adding explicit relationships, plus suppressing the implicit one when an
-explicit one exists, is `RDX-09`.
+## Related entities — declared relationships
+
+An ADMIN can declare a categorised relationship between any two campaign entries,
+including noun-to-session and session-to-session links. The detail-page sidebar
+supports both starting a relationship from scratch and promoting an implicit
+match with the adjacent plus action.
+
+Relationship categories are reusable, campaign-owned groups such as `Family`,
+`Political`, or `Goals`. The optional directional labels live on each
+relationship instance instead:
+
+- a forward label can say `daughter of` or `is pursuing`;
+- a reverse label can independently say `father of` or be omitted;
+- both labels may be omitted for a neutral connection grouped only by category.
+
+The source page shows the forward label and the target page shows the reverse
+label. An omitted label renders no substitute phrase; the entity still appears
+under the category on that endpoint. The creation form offers previous labels
+from the chosen category as autocomplete suggestions, but labels are not
+canonical vocabulary and never accumulate in a dropdown of their own.
+
+`relationship_categories` stores the groups and `entity_relationships` stores
+the edges plus their labels. Both endpoints use noun/session XOR columns,
+mirroring `map_pins` and `entity_tags`. Writes live in
+`src/server/relationships.ts`; reads are part of `getCampaignBundle`, and
+`relationshipsFor` in `src/lib/queries.ts` resolves the category, directional
+label, and opposite endpoint for the current detail page.
+
+Multiple relationships may connect the same pair in the same category. Only an
+exact duplicate is rejected; entering the equivalent relationship from the
+opposite endpoint, with the directional labels swapped, is also an exact
+duplicate.
+
+A declared edge suppresses the implicit match for the same pair on **both**
+detail pages, regardless of whether the implicit signal came from a name
+mention or an inline entity link, and regardless of which endpoint contains it.
+Deleting the declared edge therefore allows any text-derived relationship to
+appear again.
+
+Relationships have no independent secret flag. Visibility is inherited from
+both endpoints: the bundle drops an edge unless the caller can see both entries.
+For READ_ONLY callers it also returns only relationship categories used by
+visible edges, so category names and labels attached exclusively to hidden
+content are not disclosed.

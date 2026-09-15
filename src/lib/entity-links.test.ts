@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { entityLinkHref, parseEntityLinkHref } from "@/lib/entity-links";
+import {
+	entityLinkHref,
+	extractEntityLinkIds,
+	parseEntityLinkHref,
+} from "@/lib/entity-links";
 
 describe("entity links", () => {
 	const campaignId = "campaign-1";
@@ -24,5 +28,20 @@ describe("entity links", () => {
 			parseEntityLinkHref("/campaigns/elsewhere/nouns/noun-1", campaignId),
 		).toBeNull();
 		expect(parseEntityLinkHref("https://example.com", campaignId)).toBeNull();
+	});
+
+	it("extracts unique in-campaign entity ids from markdown links", () => {
+		expect([
+			...extractEntityLinkIds(
+				[
+					"[Dave](/campaigns/campaign-1/nouns/noun-1)",
+					"[Session](/campaigns/campaign-1/sessions/session-1)",
+					"[Dave again](/campaigns/campaign-1/nouns/noun-1)",
+					"[Elsewhere](/campaigns/campaign-2/nouns/hidden)",
+					"[External](https://example.com)",
+				].join(" "),
+				campaignId,
+			),
+		]).toEqual(["noun-1", "session-1"]);
 	});
 });

@@ -6,11 +6,15 @@ import {
 	useQueryClient,
 } from "@tanstack/react-query";
 import { notFound } from "@tanstack/react-router";
-import type { EntityLinkTarget } from "@/lib/entity-links";
+import {
+	type EntityLinkTarget,
+	extractEntityLinkIds,
+} from "@/lib/entity-links";
 import type { NounType } from "@/lib/noun-types";
 import {
 	type CandidateEntity,
 	computeRelatedEntities,
+	type ExplicitRelationship,
 } from "@/lib/relationships";
 import {
 	filterByTagNames,
@@ -33,6 +37,9 @@ export type BundleMapPin = CampaignBundle["mapPins"][number];
 export type BundleMember = CampaignBundle["members"][number];
 export type BundleTemplate = CampaignBundle["templates"][number];
 export type BundleTag = CampaignBundle["tags"][number];
+export type BundleRelationship = CampaignBundle["relationships"][number];
+export type BundleRelationshipCategory =
+	CampaignBundle["relationshipCategories"][number];
 
 export const bundleKey = (campaignId: string) =>
 	["campaign-bundle", campaignId] as const;
@@ -212,27 +219,91 @@ export function useTimeline(campaignId: string, limit?: number) {
 function buildCandidates(b: CampaignBundle): CandidateEntity[] {
 	const includePrivate = b.accessLevel !== "READ_ONLY";
 	return [
-		...b.nouns.map((n) => ({
-			id: n.id,
-			name: n.name,
-			entityType: n.nounType as CandidateEntity["entityType"],
-			imageUrl: n.imageUrl,
-			summary: n.summary,
-			text: includePrivate
+		...b.nouns.map((n) => {
+			const text = includePrivate
 				? `${n.summary} ${n.notes} ${n.privateNotes}`
-				: `${n.summary} ${n.notes}`,
-		})),
-		...b.sessions.map((s) => ({
-			id: s.id,
-			name: s.name,
-			entityType: "SESSION" as const,
-			imageUrl: null,
-			summary: s.summary,
-			text: includePrivate
+				: `${n.summary} ${n.notes}`;
+			return {
+				id: n.id,
+				name: n.name,
+				entityType: n.nounType as CandidateEntity["entityType"],
+				imageUrl: n.imageUrl,
+				summary: n.summary,
+				text,
+				linkedEntityIds: [...extractEntityLinkIds(text, b.campaign.id)],
+			};
+		}),
+		...b.sessions.map((s) => {
+			const text = includePrivate
 				? `${s.summary} ${s.notes} ${s.privateNotes}`
-				: `${s.summary} ${s.notes}`,
-		})),
+				: `${s.summary} ${s.notes}`;
+			return {
+				id: s.id,
+				name: s.name,
+				entityType: "SESSION" as const,
+				imageUrl: null,
+				summary: s.summary,
+				text,
+				linkedEntityIds: [...extractEntityLinkIds(text, b.campaign.id)],
+			};
+		}),
 	];
+}
+
+function relationshipsFor(
+	b: CampaignBundle,
+	id: string,
+): ExplicitRelationship[] {
+	const categories = new Map(b.relationshipCategories.map((c) => [c.id, c]));
+	const candidates = new Map(buildCandidates(b).map((c) => [c.id, c]));
+	return b.relationships.flatMap((r) => {
+		const category = categories.get(r.relationshipCategoryId);
+		const sourceId = r.sourceNounId ?? r.sourceSessionId;
+		const targetId = r.targetNounId ?? r.targetSessionId;
+		if (
+			!category ||
+			!sourceId ||
+			!targetId ||
+			(sourceId !== id && targetId !== id)
+		)
+			return [];
+		const fromSource = sourceId === id;
+		const target = candidates.get(fromSource ? targetId : sourceId);
+		if (!target) return [];
+		const {
+			text: _text,
+			linkedEntityIds: _linkedEntityIds,
+			...visibleTarget
+		} = target;
+		return [
+			{
+				id: r.id,
+				categoryId: category.id,
+				categoryName: category.name,
+				label: fromSource ? r.forwardLabel : r.reverseLabel,
+				target: visibleTarget,
+			},
+		];
+	});
+}
+
+export function useRelationshipOptions(campaignId: string) {
+	const b = useBundle(campaignId);
+	return {
+		candidates: buildCandidates(b).map(
+			({ text: _text, linkedEntityIds: _linkedEntityIds, ...candidate }) =>
+				candidate,
+		),
+		categories: b.relationshipCategories,
+		labelSuggestions: b.relationships.flatMap((relationship) =>
+			[relationship.forwardLabel, relationship.reverseLabel]
+				.filter((label): label is string => Boolean(label))
+				.map((label) => ({
+					categoryId: relationship.relationshipCategoryId,
+					label,
+				})),
+		),
+	};
 }
 
 export interface MapPinLocation {
@@ -269,6 +340,7 @@ export function useNoun(campaignId: string, nounId: string) {
 	const b = useBundle(campaignId);
 	const noun = b.nouns.find((n) => n.id === nounId);
 	if (!noun) throw notFound();
+	const explicit = relationshipsFor(b, noun.id);
 	const related = computeRelatedEntities(
 		noun.id,
 		noun.name,
@@ -278,16 +350,29 @@ export function useNoun(campaignId: string, nounId: string) {
 			privateNotes: noun.privateNotes,
 		},
 		buildCandidates(b),
+		new Set(explicit.map((r) => r.target.id)),
+		extractEntityLinkIds(
+			[noun.summary, noun.notes, noun.privateNotes].join(" "),
+			b.campaign.id,
+		),
 	);
 	const mapPinLocations = pinsForTarget(b, (p) => p.nounId === noun.id);
 	const tags = resolveTags(b, noun.tagIds);
-	return { noun, accessLevel: b.accessLevel, related, mapPinLocations, tags };
+	return {
+		noun,
+		accessLevel: b.accessLevel,
+		related,
+		explicit,
+		mapPinLocations,
+		tags,
+	};
 }
 
 export function useSession(campaignId: string, sessionId: string) {
 	const b = useBundle(campaignId);
 	const session = b.sessions.find((s) => s.id === sessionId);
 	if (!session) throw notFound();
+	const explicit = relationshipsFor(b, session.id);
 	const related = computeRelatedEntities(
 		session.id,
 		session.name,
@@ -297,6 +382,11 @@ export function useSession(campaignId: string, sessionId: string) {
 			privateNotes: session.privateNotes,
 		},
 		buildCandidates(b),
+		new Set(explicit.map((r) => r.target.id)),
+		extractEntityLinkIds(
+			[session.summary, session.notes, session.privateNotes].join(" "),
+			b.campaign.id,
+		),
 	);
 	const mapPinLocations = pinsForTarget(b, (p) => p.sessionId === session.id);
 	const tags = resolveTags(b, session.tagIds);
@@ -304,6 +394,7 @@ export function useSession(campaignId: string, sessionId: string) {
 		session,
 		accessLevel: b.accessLevel,
 		related,
+		explicit,
 		mapPinLocations,
 		tags,
 	};
@@ -674,6 +765,34 @@ export function patchRemoveMember(
 	return {
 		...bundle,
 		members: bundle.members.filter((m) => m.id !== memberId),
+	};
+}
+
+export function patchAddRelationship(
+	bundle: CampaignBundle,
+	relationship: BundleRelationship,
+	category?: BundleRelationshipCategory,
+): CampaignBundle {
+	return {
+		...bundle,
+		relationships: [...bundle.relationships, relationship],
+		relationshipCategories:
+			category &&
+			!bundle.relationshipCategories.some((c) => c.id === category.id)
+				? [...bundle.relationshipCategories, category].sort((a, b) =>
+						a.name.localeCompare(b.name),
+					)
+				: bundle.relationshipCategories,
+	};
+}
+
+export function patchRemoveRelationship(
+	bundle: CampaignBundle,
+	relationshipId: string,
+): CampaignBundle {
+	return {
+		...bundle,
+		relationships: bundle.relationships.filter((r) => r.id !== relationshipId),
 	};
 }
 

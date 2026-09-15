@@ -14,6 +14,7 @@ import {
 	useCampaign,
 	useEntityLinkTargets,
 	useNoun,
+	useRelationshipOptions,
 } from "@/lib/queries";
 import { deleteNoun } from "@/server/nouns";
 
@@ -26,10 +27,9 @@ export const Route = createFileRoute(
 function NounPage() {
 	const { campaignId, nounId } = Route.useParams();
 	const { campaign } = useCampaign(campaignId);
-	const { noun, accessLevel, related, mapPinLocations, tags } = useNoun(
-		campaignId,
-		nounId,
-	);
+	const { noun, accessLevel, related, explicit, mapPinLocations, tags } =
+		useNoun(campaignId, nounId);
+	const relationshipOptions = useRelationshipOptions(campaignId);
 	const entityLinks = useEntityLinkTargets(campaignId);
 	const navigate = useNavigate();
 
@@ -157,9 +157,16 @@ function NounPage() {
 						imageUrl={noun.imageUrl}
 						name={noun.name}
 					/>
-					{related.length > 0 && (
-						<RelatedEntities campaignId={campaign.id} related={related} />
-					)}
+					<RelatedEntities
+						campaignId={campaign.id}
+						current={{ id: noun.id, kind: "noun" }}
+						related={related}
+						explicit={explicit}
+						candidates={relationshipOptions.candidates}
+						categories={relationshipOptions.categories}
+						labelSuggestions={relationshipOptions.labelSuggestions}
+						canEdit={isAdmin}
+					/>
 				</div>
 			</div>
 		</Page>

@@ -31,9 +31,10 @@ something already exists and how it currently works.
 
 Every view under `/campaigns/$campaignId/*` is rendered from a **single
 server round-trip**. `getCampaignBundle` (`src/server/campaigns.ts`) returns
-the campaign plus every noun, session, map, pin, member, and template the
-caller is allowed to see. The parent route loads it once; children read
-slices through selector hooks in `src/lib/queries.ts` and never fetch.
+the campaign plus every noun, session, map, pin, member, template, tag, and
+declared relationship the caller is allowed to see. The parent route loads it
+once; children read slices through selector hooks in `src/lib/queries.ts` and
+never fetch.
 
 Two consequences that shape almost every feature below:
 

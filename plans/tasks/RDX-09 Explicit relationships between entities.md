@@ -1,5 +1,5 @@
 ---
-status: todo
+status: done
 blockedBy: []
 ---
 
@@ -9,22 +9,22 @@ and Dave is Rachel's father", as well as "Dave is born in Lagos".
 
 ## Notes
 
-Two things need defining: the relationship itself, and the label for one or both
-directions. The daughter/father example is the general case — the label differs
-per direction and both are worth showing. "Born in" is the degenerate case where
-only the forward direction has a natural label.
+A relationship needs a category, while its labels may describe either, both, or
+neither direction. The daughter/father example uses both labels; "born in" uses
+only the forward label; a neutral association can rely on its category alone.
 
-That points at a reusable relationship *type* (forward label, optional reverse
-label) plus instances that connect two entities, rather than free text typed per
-pair. Same shape of user-definable vocabulary as [[RDX-03 Tag groups]], though
-neither blocks the other.
+The final design separates a reusable relationship *category* from the
+instance-specific labels. `Family` is a category; `daughter of`, `brother of`,
+and `adopted uncle of` belong to individual edges. Both directional labels are
+optional, and previously used labels are autocomplete suggestions rather than
+canonical dropdown entries.
 
 Two affordances:
 
 - Create a relationship from scratch, from either entity's detail page.
 - **Promote** an implicit relationship to an explicit one — the pair is already
   on screen in the related-entities sidebar, so this should be a single action
-  there that just asks which relationship type applies.
+  there that asks which category applies and optionally accepts labels.
 
 ### Suppressing the implicit one
 
@@ -49,8 +49,18 @@ Open questions:
 
 - Can a relationship connect a noun to a session, or only noun-to-noun? The
   implicit system already spans both.
-- Do relationship types live per-campaign (like templates) or per-user?
+- Do relationship categories live per-campaign (like templates) or per-user?
 - Does an explicit relationship need its own `isSecret` handling, or does it
   inherit visibility from the two entities it connects? Inheriting is simpler and
   probably right — a relationship to a hidden entity should vanish for READ_ONLY
   users along with the entity itself.
+
+## Resolution
+
+Implemented for nouns and sessions. Relationship categories are campaign-scoped
+and group the sidebar; optional forward and reverse labels live on each edge.
+Existing labels in the selected category appear as autocomplete suggestions.
+Relationships inherit visibility from both endpoints and have no separate
+`isSecret` flag. ADMINs can create a relationship directly or promote an
+implicit match, and a declared edge symmetrically suppresses the corresponding
+implicit match.
