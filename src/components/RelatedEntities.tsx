@@ -20,7 +20,7 @@ import {
 } from "@/components/ui/tooltip";
 import {
 	BundleMutationError,
-	type BundleRelationshipType,
+	type BundleRelationshipCategory,
 	patchAddRelationship,
 	patchRemoveRelationship,
 	useBundleMutation,
@@ -38,7 +38,8 @@ interface Props {
 	related: CandidateEntity[];
 	explicit: ExplicitRelationship[];
 	candidates: CandidateEntity[];
-	types: BundleRelationshipType[];
+	categories: BundleRelationshipCategory[];
+	labelSuggestions: { categoryId: string; label: string }[];
 	canEdit: boolean;
 }
 
@@ -47,15 +48,15 @@ type CreateVars = {
 	id: string;
 	source: Props["current"];
 	target: Props["current"];
-	type:
+	category:
 		| { kind: "existing"; id: string }
 		| {
 				kind: "new";
 				id: string;
 				name: string;
-				forwardLabel: string;
-				reverseLabel?: string;
 		  };
+	forwardLabel?: string;
+	reverseLabel?: string;
 };
 
 const TYPE_LABELS: Record<EntityType, string> = {
@@ -135,15 +136,16 @@ export function RelatedEntities({
 	related,
 	explicit,
 	candidates,
-	types,
+	categories,
+	labelSuggestions,
 	canEdit,
 }: Props) {
 	const available = candidates.filter((c) => c.id !== current.id);
 	const [open, setOpen] = useState(false);
 	const [lockedTarget, setLockedTarget] = useState(false);
 	const [targetId, setTargetId] = useState("");
-	const [typeId, setTypeId] = useState(types[0]?.id ?? "new");
-	const [typeName, setTypeName] = useState("");
+	const [categoryId, setCategoryId] = useState(categories[0]?.id ?? "new");
+	const [categoryName, setCategoryName] = useState("");
 	const [forwardLabel, setForwardLabel] = useState("");
 	const [reverseLabel, setReverseLabel] = useState("");
 	const [error, setError] = useState("");
@@ -157,7 +159,9 @@ export function RelatedEntities({
 				bundle,
 				{
 					id: data.id,
-					relationshipTypeId: data.type.id,
+					relationshipCategoryId: data.category.id,
+					forwardLabel: data.forwardLabel ?? null,
+					reverseLabel: data.reverseLabel ?? null,
 					sourceNounId: data.source.kind === "noun" ? data.source.id : null,
 					sourceSessionId:
 						data.source.kind === "session" ? data.source.id : null,
@@ -166,13 +170,11 @@ export function RelatedEntities({
 						data.target.kind === "session" ? data.target.id : null,
 					createdAt: now,
 				},
-				data.type.kind === "new"
+				data.category.kind === "new"
 					? {
-							id: data.type.id,
+							id: data.category.id,
 							campaignId,
-							name: data.type.name,
-							forwardLabel: data.type.forwardLabel,
-							reverseLabel: data.type.reverseLabel ?? null,
+							name: data.category.name,
 							createdAt: now,
 						}
 					: undefined,
@@ -190,8 +192,8 @@ export function RelatedEntities({
 	function showDialog(target?: CandidateEntity) {
 		setTargetId(target?.id ?? available[0]?.id ?? "");
 		setLockedTarget(Boolean(target));
-		setTypeId(types[0]?.id ?? "new");
-		setTypeName("");
+		setCategoryId(categories[0]?.id ?? "new");
+		setCategoryName("");
 		setForwardLabel("");
 		setReverseLabel("");
 		setError("");
@@ -201,10 +203,10 @@ export function RelatedEntities({
 	async function submit(event: FormEvent) {
 		event.preventDefault();
 		const target = available.find((c) => c.id === targetId);
-		const selectedType = types.find((t) => t.id === typeId);
+		const selectedCategory = categories.find((c) => c.id === categoryId);
 		if (!target) return setError("Choose an entity.");
-		if (!selectedType && (!typeName.trim() || !forwardLabel.trim()))
-			return setError("Name and forward label are required for a new type.");
+		if (!selectedCategory && !categoryName.trim())
+			return setError("Name is required for a new category.");
 		try {
 			const relationshipId = crypto.randomUUID();
 			await create.mutateAsync({
@@ -215,18 +217,18 @@ export function RelatedEntities({
 					kind: target.entityType === "SESSION" ? "session" : "noun",
 					id: target.id,
 				},
-				type: selectedType
+				category: selectedCategory
 					? {
 							kind: "existing",
-							id: selectedType.id,
+							id: selectedCategory.id,
 						}
 					: {
 							kind: "new",
 							id: crypto.randomUUID(),
-							name: typeName.trim(),
-							forwardLabel: forwardLabel.trim(),
-							reverseLabel: reverseLabel.trim() || undefined,
+							name: categoryName.trim(),
 						},
+				forwardLabel: forwardLabel.trim() || undefined,
+				reverseLabel: reverseLabel.trim() || undefined,
 			});
 			setOpen(false);
 		} catch (e) {
@@ -242,6 +244,30 @@ export function RelatedEntities({
 		type,
 		items: related.filter((e) => e.entityType === type),
 	})).filter((g) => g.items.length);
+	const explicitGroups = Array.from(
+		explicit.reduce((byCategory, relationship) => {
+			const group = byCategory.get(relationship.categoryId);
+			if (group) group.items.push(relationship);
+			else
+				byCategory.set(relationship.categoryId, {
+					id: relationship.categoryId,
+					name: relationship.categoryName,
+					items: [relationship],
+				});
+			return byCategory;
+		}, new Map<
+			string,
+			{ id: string; name: string; items: ExplicitRelationship[] }
+		>()),
+	).map(([, group]) => group);
+	explicitGroups.sort((a, b) => a.name.localeCompare(b.name));
+	const suggestedLabels = Array.from(
+		new Set(
+			labelSuggestions
+				.filter((suggestion) => suggestion.categoryId === categoryId)
+				.map((suggestion) => suggestion.label),
+		),
+	).sort((a, b) => a.localeCompare(b));
 	if (available.length === 0 && explicit.length === 0 && related.length === 0)
 		return null;
 	if (!canEdit && explicit.length === 0 && related.length === 0) return null;
@@ -264,17 +290,19 @@ export function RelatedEntities({
 						</Button>
 					)}
 				</div>
-				{explicit.length > 0 && (
-					<section className="mb-5">
+				{explicitGroups.map((group) => (
+					<section key={group.id} className="mb-5">
 						<h3 className="mb-2 text-[10px] font-semibold tracking-[0.15em] uppercase text-[var(--sea-ink-soft)]">
-							Declared
+							{group.name}
 						</h3>
 						<ul className="space-y-2">
-							{explicit.map((r) => (
+							{group.items.map((r) => (
 								<li key={r.id} className="group">
-									<p className="text-[10px] text-[var(--sea-ink-soft)]">
-										{r.label}
-									</p>
+									{r.label && (
+										<p className="text-[10px] text-[var(--sea-ink-soft)]">
+											{r.label}
+										</p>
+									)}
 									<div className="flex items-center gap-1">
 										<EntityLink campaignId={campaignId} entity={r.target} />
 										{canEdit && (
@@ -292,8 +320,13 @@ export function RelatedEntities({
 							))}
 						</ul>
 					</section>
-				)}
+				))}
 				<div className="space-y-5">
+					{groups.length > 0 && explicitGroups.length > 0 && (
+						<h3 className="text-[10px] font-semibold tracking-[0.15em] uppercase text-[var(--sea-ink-soft)]">
+							Inferred
+						</h3>
+					)}
 					{groups.map(({ type, items }) => (
 						<section key={type}>
 							<h3 className="mb-2 text-[10px] font-semibold tracking-[0.15em] uppercase text-[var(--sea-ink-soft)]">
@@ -350,67 +383,71 @@ export function RelatedEntities({
 								</select>
 							</label>
 							<label className="grid gap-1">
-								Type
+								Category
 								<select
-									aria-label="Relationship type"
-									value={typeId}
-									onChange={(e) => setTypeId(e.target.value)}
+									aria-label="Relationship category"
+									value={categoryId}
+									onChange={(e) => setCategoryId(e.target.value)}
 									className="h-8 rounded-lg border bg-white px-2"
 								>
-									{types.map((t) => (
-										<option key={t.id} value={t.id}>
-											{t.name} — {t.forwardLabel}
-											{t.reverseLabel ? ` / ${t.reverseLabel}` : ""}
+									{categories.map((category) => (
+										<option key={category.id} value={category.id}>
+											{category.name}
 										</option>
 									))}
-									<option value="new">New type…</option>
+									<option value="new">New category…</option>
 								</select>
 							</label>
-							{typeId === "new" && (
-								<div className="space-y-3">
-									<label
-										htmlFor="relationship-type-name"
-										className="grid gap-1"
-									>
-										Type name
-										<Input
-											id="relationship-type-name"
-											aria-label="Type name"
-											maxLength={80}
-											value={typeName}
-											onChange={(e) => setTypeName(e.target.value)}
-										/>
-									</label>
-									<label
-										htmlFor="relationship-forward-label"
-										className="grid gap-1"
-									>
-										Forward label
-										<Input
-											id="relationship-forward-label"
-											aria-label="Forward label"
-											maxLength={80}
-											placeholder="e.g. daughter of"
-											value={forwardLabel}
-											onChange={(e) => setForwardLabel(e.target.value)}
-										/>
-									</label>
-									<label
-										htmlFor="relationship-reverse-label"
-										className="grid gap-1"
-									>
-										Reverse label (optional)
-										<Input
-											id="relationship-reverse-label"
-											aria-label="Reverse label"
-											maxLength={80}
-											placeholder="e.g. father of"
-											value={reverseLabel}
-											onChange={(e) => setReverseLabel(e.target.value)}
-										/>
-									</label>
-								</div>
+							{categoryId === "new" && (
+								<label
+									htmlFor="relationship-category-name"
+									className="grid gap-1"
+								>
+									Category name
+									<Input
+										id="relationship-category-name"
+										aria-label="Category name"
+										maxLength={80}
+										value={categoryName}
+										onChange={(e) => setCategoryName(e.target.value)}
+									/>
+								</label>
 							)}
+							<label
+								htmlFor="relationship-forward-label"
+								className="grid gap-1"
+							>
+								Forward label (optional)
+								<Input
+									id="relationship-forward-label"
+									aria-label="Forward label"
+									maxLength={80}
+									list="relationship-label-suggestions"
+									placeholder="e.g. daughter of"
+									value={forwardLabel}
+									onChange={(e) => setForwardLabel(e.target.value)}
+								/>
+							</label>
+							<label
+								htmlFor="relationship-reverse-label"
+								className="grid gap-1"
+							>
+								Reverse label (optional)
+								<Input
+									id="relationship-reverse-label"
+									aria-label="Reverse label"
+									maxLength={80}
+									list="relationship-label-suggestions"
+									placeholder="e.g. father of"
+									value={reverseLabel}
+									onChange={(e) => setReverseLabel(e.target.value)}
+								/>
+							</label>
+							<datalist id="relationship-label-suggestions">
+								{suggestedLabels.map((label) => (
+									<option key={label} value={label} />
+								))}
+							</datalist>
 							{error && (
 								<p role="alert" className="text-destructive">
 									{error}

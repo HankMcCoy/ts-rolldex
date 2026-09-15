@@ -163,7 +163,8 @@ function NounPage() {
 						related={related}
 						explicit={explicit}
 						candidates={relationshipOptions.candidates}
-						types={relationshipOptions.types}
+						categories={relationshipOptions.categories}
+						labelSuggestions={relationshipOptions.labelSuggestions}
 						canEdit={isAdmin}
 					/>
 				</div>

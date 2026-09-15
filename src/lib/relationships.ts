@@ -16,9 +16,9 @@ export type RelatedEntity = Omit<CandidateEntity, "text" | "linkedEntityIds">;
 
 export interface ExplicitRelationship {
 	id: string;
-	typeId: string;
-	typeName: string;
-	label: string;
+	categoryId: string;
+	categoryName: string;
+	label: string | null;
 	target: RelatedEntity;
 }
 

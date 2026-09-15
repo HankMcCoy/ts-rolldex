@@ -12,7 +12,7 @@ import {
 	maps,
 	members,
 	nouns,
-	relationshipTypes,
+	relationshipCategories,
 	tags,
 	users,
 } from "@/db/schema/index";
@@ -96,7 +96,7 @@ export const getCampaignBundle = createServerFn()
 			allTemplates,
 			allTags,
 			allEntityTags,
-			allRelationshipTypes,
+			allRelationshipCategories,
 			allRelationships,
 		] = await Promise.all([
 			db.query.nouns.findMany({
@@ -157,14 +157,16 @@ export const getCampaignBundle = createServerFn()
 				.from(entityTags)
 				.innerJoin(tags, eq(entityTags.tagId, tags.id))
 				.where(eq(tags.campaignId, data.campaignId)),
-			db.query.relationshipTypes.findMany({
-				where: eq(relationshipTypes.campaignId, data.campaignId),
+			db.query.relationshipCategories.findMany({
+				where: eq(relationshipCategories.campaignId, data.campaignId),
 				orderBy: (t, { asc }) => asc(t.name),
 			}),
 			db
 				.select({
 					id: entityRelationships.id,
-					relationshipTypeId: entityRelationships.relationshipTypeId,
+					relationshipCategoryId: entityRelationships.relationshipCategoryId,
+					forwardLabel: entityRelationships.forwardLabel,
+					reverseLabel: entityRelationships.reverseLabel,
 					sourceNounId: entityRelationships.sourceNounId,
 					sourceSessionId: entityRelationships.sourceSessionId,
 					targetNounId: entityRelationships.targetNounId,
@@ -173,10 +175,13 @@ export const getCampaignBundle = createServerFn()
 				})
 				.from(entityRelationships)
 				.innerJoin(
-					relationshipTypes,
-					eq(entityRelationships.relationshipTypeId, relationshipTypes.id),
+					relationshipCategories,
+					eq(
+						entityRelationships.relationshipCategoryId,
+						relationshipCategories.id,
+					),
 				)
-				.where(eq(relationshipTypes.campaignId, data.campaignId)),
+				.where(eq(relationshipCategories.campaignId, data.campaignId)),
 		]);
 
 		// Drop pins on hidden maps and pins targeting hidden entities.
@@ -234,12 +239,14 @@ export const getCampaignBundle = createServerFn()
 					);
 			return sourceVisible && targetVisible;
 		});
-		const visibleRelationshipTypeIds = new Set(
-			visibleRelationships.map((r) => r.relationshipTypeId),
+		const visibleRelationshipCategoryIds = new Set(
+			visibleRelationships.map((r) => r.relationshipCategoryId),
 		);
-		const visibleRelationshipTypes = isReadOnly
-			? allRelationshipTypes.filter((t) => visibleRelationshipTypeIds.has(t.id))
-			: allRelationshipTypes;
+		const visibleRelationshipCategories = isReadOnly
+			? allRelationshipCategories.filter((category) =>
+					visibleRelationshipCategoryIds.has(category.id),
+				)
+			: allRelationshipCategories;
 
 		// Single normalized shape so the client doesn't have to branch on access
 		// level when rendering members. READ_ONLY just gets email=null and pending
@@ -299,7 +306,7 @@ export const getCampaignBundle = createServerFn()
 			})),
 			mapPins: visiblePins,
 			tags: visibleTags,
-			relationshipTypes: visibleRelationshipTypes,
+			relationshipCategories: visibleRelationshipCategories,
 			relationships: visibleRelationships,
 			members: memberList,
 			templates: allTemplates,

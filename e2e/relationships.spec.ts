@@ -67,12 +67,13 @@ test("declared relationships are directional and replace implicit matches (RDX-0
 		.getByRole("button", { name: "Declare relationship with Dave" })
 		.click();
 	await expect(page.getByLabel("Relationship target")).toBeDisabled();
-	await page.getByLabel("Type name").fill("Family");
+	await page.getByLabel("Category name").fill("Family");
 	await page.getByLabel("Forward label").fill("daughter of");
 	await page.getByLabel("Reverse label").fill("father of");
 	await page.getByRole("button", { name: "Save relationship" }).click();
 
 	await expect(page.getByRole("dialog")).not.toBeVisible();
+	await expect(related.getByText("Family", { exact: true })).toBeVisible();
 	await expect(related.getByText("daughter of", { exact: true })).toBeVisible();
 	await expect(
 		related.getByRole("button", { name: "Declare relationship with Dave" }),
@@ -85,27 +86,37 @@ test("declared relationships are directional and replace implicit matches (RDX-0
 		related.getByRole("button", { name: "Declare relationship with Rachel" }),
 	).not.toBeVisible();
 
-	// The ordinary Add action can define another type from scratch. A type with
-	// no reverse label uses its neutral name when viewed from the target.
+	// Labels are stored on the edge. Existing labels in the selected category
+	// are autocomplete suggestions, not canonical dropdown entries.
 	await related.getByRole("button", { name: "Add relationship" }).click();
 	await page.getByLabel("Relationship target").selectOption(lagos.id);
-	await expect(page.getByLabel("Relationship type")).toContainText("Family");
-	await page.getByLabel("Relationship type").selectOption("new");
-	await page.getByLabel("Type name").fill("Birthplace");
+	await expect(page.getByLabel("Relationship category")).toContainText(
+		"Family",
+	);
+	await page
+		.getByLabel("Relationship category")
+		.selectOption({ label: "Family" });
+	await expect(
+		page.locator('#relationship-label-suggestions option[value="daughter of"]'),
+	).toHaveCount(1);
+	await page.getByLabel("Relationship category").selectOption("new");
+	await page.getByLabel("Category name").fill("Origins");
 	await page.getByLabel("Forward label").fill("born in");
 	await page.getByRole("button", { name: "Save relationship" }).click();
 	await expect(related.getByText("born in", { exact: true })).toBeVisible();
 	await expect(related.getByRole("link", { name: "Lagos" })).toBeVisible();
 
 	await page.goto(lagos.url);
-	await expect(related.getByText("Birthplace", { exact: true })).toBeVisible();
+	const origins = related.locator("section").filter({ hasText: "Origins" });
+	await expect(origins.getByRole("link", { name: "Dave" })).toBeVisible();
+	await expect(origins.getByText("born in", { exact: true })).not.toBeVisible();
 	await expect(related.getByRole("link", { name: "Dave" })).toBeVisible();
 
 	// Nouns and game sessions share the same relationship model.
 	await related.getByRole("button", { name: "Add relationship" }).click();
 	await page.getByLabel("Relationship target").selectOption(arrival.id);
-	await page.getByLabel("Relationship type").selectOption("new");
-	await page.getByLabel("Type name").fill("Chronicle");
+	await page.getByLabel("Relationship category").selectOption("new");
+	await page.getByLabel("Category name").fill("Chronicle");
 	await page.getByLabel("Forward label").fill("featured in");
 	await page.getByLabel("Reverse label").fill("features");
 	await page.getByRole("button", { name: "Save relationship" }).click();
@@ -117,6 +128,49 @@ test("declared relationships are directional and replace implicit matches (RDX-0
 	await page.goto(arrival.url);
 	await expect(related.getByText("features", { exact: true })).toBeVisible();
 	await expect(related.getByRole("link", { name: "Lagos" })).toBeVisible();
+
+	// Both labels may be omitted. Category alone is enough to make a symmetric
+	// connection, and an exact duplicate is rejected without preventing another
+	// distinct relationship between the same pair and category.
+	await related.getByRole("button", { name: "Add relationship" }).click();
+	await page.getByLabel("Relationship target").selectOption(rachel.id);
+	await page.getByLabel("Relationship category").selectOption("new");
+	await page.getByLabel("Category name").fill("Associates");
+	await page.getByRole("button", { name: "Save relationship" }).click();
+	const associates = related
+		.locator("section")
+		.filter({ hasText: "Associates" });
+	await expect(associates.getByRole("link", { name: "Rachel" })).toHaveCount(1);
+
+	await related.getByRole("button", { name: "Add relationship" }).click();
+	await page.getByLabel("Relationship target").selectOption(rachel.id);
+	await page
+		.getByLabel("Relationship category")
+		.selectOption({ label: "Associates" });
+	await page.getByRole("button", { name: "Save relationship" }).click();
+	await expect(page.getByRole("alert")).toHaveText(
+		"That relationship already exists.",
+	);
+	await page.getByLabel("Forward label").fill("knows about");
+	await page.getByRole("button", { name: "Save relationship" }).click();
+	await expect(associates.getByRole("link", { name: "Rachel" })).toHaveCount(2);
+	await expect(
+		associates.getByText("knows about", { exact: true }),
+	).toBeVisible();
+
+	await page.goto(rachel.url);
+	await expect(
+		associates.getByRole("link", { name: "Arrival in Lagos" }),
+	).toHaveCount(2);
+	await related.getByRole("button", { name: "Add relationship" }).click();
+	await page.getByLabel("Relationship target").selectOption(arrival.id);
+	await page
+		.getByLabel("Relationship category")
+		.selectOption({ label: "Associates" });
+	await page.getByRole("button", { name: "Save relationship" }).click();
+	await expect(page.getByRole("alert")).toHaveText(
+		"That relationship already exists.",
+	);
 
 	// Removing the declared family edge makes the text-derived match available
 	// again on both pages.

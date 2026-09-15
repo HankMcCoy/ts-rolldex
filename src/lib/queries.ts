@@ -38,8 +38,8 @@ export type BundleMember = CampaignBundle["members"][number];
 export type BundleTemplate = CampaignBundle["templates"][number];
 export type BundleTag = CampaignBundle["tags"][number];
 export type BundleRelationship = CampaignBundle["relationships"][number];
-export type BundleRelationshipType =
-	CampaignBundle["relationshipTypes"][number];
+export type BundleRelationshipCategory =
+	CampaignBundle["relationshipCategories"][number];
 
 export const bundleKey = (campaignId: string) =>
 	["campaign-bundle", campaignId] as const;
@@ -254,13 +254,18 @@ function relationshipsFor(
 	b: CampaignBundle,
 	id: string,
 ): ExplicitRelationship[] {
-	const types = new Map(b.relationshipTypes.map((t) => [t.id, t]));
+	const categories = new Map(b.relationshipCategories.map((c) => [c.id, c]));
 	const candidates = new Map(buildCandidates(b).map((c) => [c.id, c]));
 	return b.relationships.flatMap((r) => {
-		const type = types.get(r.relationshipTypeId);
+		const category = categories.get(r.relationshipCategoryId);
 		const sourceId = r.sourceNounId ?? r.sourceSessionId;
 		const targetId = r.targetNounId ?? r.targetSessionId;
-		if (!type || !sourceId || !targetId || (sourceId !== id && targetId !== id))
+		if (
+			!category ||
+			!sourceId ||
+			!targetId ||
+			(sourceId !== id && targetId !== id)
+		)
 			return [];
 		const fromSource = sourceId === id;
 		const target = candidates.get(fromSource ? targetId : sourceId);
@@ -273,11 +278,9 @@ function relationshipsFor(
 		return [
 			{
 				id: r.id,
-				typeId: type.id,
-				typeName: type.name,
-				label: fromSource
-					? type.forwardLabel
-					: (type.reverseLabel ?? type.name),
+				categoryId: category.id,
+				categoryName: category.name,
+				label: fromSource ? r.forwardLabel : r.reverseLabel,
 				target: visibleTarget,
 			},
 		];
@@ -291,7 +294,15 @@ export function useRelationshipOptions(campaignId: string) {
 			({ text: _text, linkedEntityIds: _linkedEntityIds, ...candidate }) =>
 				candidate,
 		),
-		types: b.relationshipTypes,
+		categories: b.relationshipCategories,
+		labelSuggestions: b.relationships.flatMap((relationship) =>
+			[relationship.forwardLabel, relationship.reverseLabel]
+				.filter((label): label is string => Boolean(label))
+				.map((label) => ({
+					categoryId: relationship.relationshipCategoryId,
+					label,
+				})),
+		),
 	};
 }
 
@@ -760,17 +771,18 @@ export function patchRemoveMember(
 export function patchAddRelationship(
 	bundle: CampaignBundle,
 	relationship: BundleRelationship,
-	type?: BundleRelationshipType,
+	category?: BundleRelationshipCategory,
 ): CampaignBundle {
 	return {
 		...bundle,
 		relationships: [...bundle.relationships, relationship],
-		relationshipTypes:
-			type && !bundle.relationshipTypes.some((t) => t.id === type.id)
-				? [...bundle.relationshipTypes, type].sort((a, b) =>
+		relationshipCategories:
+			category &&
+			!bundle.relationshipCategories.some((c) => c.id === category.id)
+				? [...bundle.relationshipCategories, category].sort((a, b) =>
 						a.name.localeCompare(b.name),
 					)
-				: bundle.relationshipTypes,
+				: bundle.relationshipCategories,
 	};
 }
 

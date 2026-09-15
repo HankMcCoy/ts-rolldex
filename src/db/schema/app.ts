@@ -223,25 +223,19 @@ export const entityTags = pgTable(
 	],
 );
 
-/**
- * Campaign-owned vocabulary for declared connections. A type has a readable
- * name for the picker plus the label each endpoint should see; the reverse
- * label is optional for one-way relationships such as "born in".
- */
-export const relationshipTypes = pgTable(
-	"relationship_types",
+/** Campaign-owned groups used to organise declared connections. */
+export const relationshipCategories = pgTable(
+	"relationship_categories",
 	{
 		id: idColumn(),
 		campaignId: text("campaign_id")
 			.notNull()
 			.references(() => campaigns.id, { onDelete: "cascade" }),
 		name: text("name").notNull(),
-		forwardLabel: text("forward_label").notNull(),
-		reverseLabel: text("reverse_label"),
 		createdAt: timestamp("created_at").notNull().defaultNow(),
 	},
 	(t) => [
-		uniqueIndex("relationship_types_campaign_name_unique").on(
+		uniqueIndex("relationship_categories_campaign_name_unique").on(
 			t.campaignId,
 			t.name,
 		),
@@ -258,9 +252,11 @@ export const entityRelationships = pgTable(
 	"entity_relationships",
 	{
 		id: idColumn(),
-		relationshipTypeId: text("relationship_type_id")
+		relationshipCategoryId: text("relationship_category_id")
 			.notNull()
-			.references(() => relationshipTypes.id, { onDelete: "cascade" }),
+			.references(() => relationshipCategories.id, { onDelete: "cascade" }),
+		forwardLabel: text("forward_label"),
+		reverseLabel: text("reverse_label"),
 		sourceNounId: text("source_noun_id").references(() => nouns.id, {
 			onDelete: "cascade",
 		}),
@@ -343,7 +339,7 @@ export const campaignsRelations = relations(campaigns, ({ one, many }) => ({
 	maps: many(maps),
 	templates: many(campaignTemplates),
 	tags: many(tags),
-	relationshipTypes: many(relationshipTypes),
+	relationshipCategories: many(relationshipCategories),
 }));
 
 export const campaignTemplatesRelations = relations(
@@ -421,11 +417,11 @@ export const entityTagsRelations = relations(entityTags, ({ one }) => ({
 	}),
 }));
 
-export const relationshipTypesRelations = relations(
-	relationshipTypes,
+export const relationshipCategoriesRelations = relations(
+	relationshipCategories,
 	({ one, many }) => ({
 		campaign: one(campaigns, {
-			fields: [relationshipTypes.campaignId],
+			fields: [relationshipCategories.campaignId],
 			references: [campaigns.id],
 		}),
 		relationships: many(entityRelationships),
@@ -435,9 +431,9 @@ export const relationshipTypesRelations = relations(
 export const entityRelationshipsRelations = relations(
 	entityRelationships,
 	({ one }) => ({
-		type: one(relationshipTypes, {
-			fields: [entityRelationships.relationshipTypeId],
-			references: [relationshipTypes.id],
+		category: one(relationshipCategories, {
+			fields: [entityRelationships.relationshipCategoryId],
+			references: [relationshipCategories.id],
 		}),
 		sourceNoun: one(nouns, {
 			fields: [entityRelationships.sourceNounId],

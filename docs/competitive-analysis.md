@@ -215,7 +215,7 @@ Rolldex's column is what actually ships today, per `docs/features/`.
 | Filter lists by tag | ✅ AND, in the URL | ✅ | ✅ | ✅ | ✅ | ✅ |
 | User-definable entity types | ❌ 5 hard enum, `RDX-04` | ✅ | ✅ ~20 | ✅ free-form | — | ✅ |
 | Custom fields / attributes | ❌ | ✅ | ✅ | ✅ | — | ✅ |
-| **Explicit typed relationships** | ✅ reusable directional types | ✅ | ✅ | ✅ | — | ✅ |
+| **Explicit typed relationships** | ✅ categories + per-edge labels | ✅ | ✅ | ✅ | — | ✅ |
 | Implicit / mention-based relations | ✅ **distinctive** | — | — | partial (auto-link) | — | partial |
 | Relationship graph view | ❌ | ✅ webs | ✅ (paid) | ✅ boards | — | ✅ |
 | Inline `@mention` entity links | ✅ ID-backed, rename-safe | ✅ | ✅ | ✅ auto-link | ✅ | ✅ |

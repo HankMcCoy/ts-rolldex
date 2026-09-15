@@ -6,7 +6,7 @@ import {
 	entityRelationships,
 	gameSessions,
 	nouns,
-	relationshipTypes,
+	relationshipCategories,
 } from "@/db/schema";
 import { requireCampaignAccess, requireSession } from "@/lib/access";
 import { err, ok } from "@/lib/result";
@@ -16,7 +16,7 @@ const targetSchema = z.object({
 	id: z.string(),
 });
 
-const relationshipTypeSchema = z.discriminatedUnion("kind", [
+const relationshipCategorySchema = z.discriminatedUnion("kind", [
 	z.object({
 		kind: z.literal("existing"),
 		id: z.string().uuid(),
@@ -25,10 +25,10 @@ const relationshipTypeSchema = z.discriminatedUnion("kind", [
 		kind: z.literal("new"),
 		id: z.string().uuid().optional(),
 		name: z.string().trim().min(1).max(80),
-		forwardLabel: z.string().trim().min(1).max(80),
-		reverseLabel: z.string().trim().max(80).optional(),
 	}),
 ]);
+
+const optionalLabel = z.string().trim().max(80).optional();
 
 export const createRelationship = createServerFn({ method: "POST" })
 	.inputValidator(
@@ -37,7 +37,9 @@ export const createRelationship = createServerFn({ method: "POST" })
 			id: z.string().uuid().optional(),
 			source: targetSchema,
 			target: targetSchema,
-			type: relationshipTypeSchema,
+			category: relationshipCategorySchema,
+			forwardLabel: optionalLabel,
+			reverseLabel: optionalLabel,
 		}),
 	)
 	.handler(async ({ data }) => {
@@ -66,41 +68,43 @@ export const createRelationship = createServerFn({ method: "POST" })
 					});
 		if (!(await exists(data.source)) || !(await exists(data.target)))
 			return err("Both relationship endpoints must belong to this campaign.");
-		let type =
-			data.type.kind === "existing"
-				? await db.query.relationshipTypes.findFirst({
+		let category =
+			data.category.kind === "existing"
+				? await db.query.relationshipCategories.findFirst({
 						where: and(
-							eq(relationshipTypes.id, data.type.id),
-							eq(relationshipTypes.campaignId, data.campaignId),
+							eq(relationshipCategories.id, data.category.id),
+							eq(relationshipCategories.campaignId, data.campaignId),
 						),
 					})
 				: undefined;
-		if (data.type.kind === "existing" && !type)
-			return err("That relationship type does not belong to this campaign.");
-		if (data.type.kind === "new") {
-			const named = await db.query.relationshipTypes.findFirst({
+		if (data.category.kind === "existing" && !category)
+			return err(
+				"That relationship category does not belong to this campaign.",
+			);
+		if (data.category.kind === "new") {
+			const named = await db.query.relationshipCategories.findFirst({
 				where: and(
-					eq(relationshipTypes.campaignId, data.campaignId),
-					eq(relationshipTypes.name, data.type.name),
+					eq(relationshipCategories.campaignId, data.campaignId),
+					eq(relationshipCategories.name, data.category.name),
 				),
 				columns: { id: true },
 			});
 			if (named)
-				return err("A relationship type with that name already exists.");
-			[type] = await db
-				.insert(relationshipTypes)
+				return err("A relationship category with that name already exists.");
+			[category] = await db
+				.insert(relationshipCategories)
 				.values({
-					...(data.type.id ? { id: data.type.id } : {}),
+					...(data.category.id ? { id: data.category.id } : {}),
 					campaignId: data.campaignId,
-					name: data.type.name,
-					forwardLabel: data.type.forwardLabel,
-					reverseLabel: data.type.reverseLabel || null,
+					name: data.category.name,
 				})
 				.returning();
 		}
-		if (!type) return err("Relationship type not found.");
+		if (!category) return err("Relationship category not found.");
+		const forwardLabel = data.forwardLabel || null;
+		const reverseLabel = data.reverseLabel || null;
 		const existing = await db.query.entityRelationships.findMany({
-			where: eq(entityRelationships.relationshipTypeId, type.id),
+			where: eq(entityRelationships.relationshipCategoryId, category.id),
 		});
 		const sourceMatches = (
 			r: typeof entityRelationships.$inferSelect,
@@ -119,8 +123,14 @@ export const createRelationship = createServerFn({ method: "POST" })
 		if (
 			existing.some(
 				(r) =>
-					(sourceMatches(r, data.source) && targetMatches(r, data.target)) ||
-					(sourceMatches(r, data.target) && targetMatches(r, data.source)),
+					(sourceMatches(r, data.source) &&
+						targetMatches(r, data.target) &&
+						r.forwardLabel === forwardLabel &&
+						r.reverseLabel === reverseLabel) ||
+					(sourceMatches(r, data.target) &&
+						targetMatches(r, data.source) &&
+						r.forwardLabel === reverseLabel &&
+						r.reverseLabel === forwardLabel),
 			)
 		)
 			return err("That relationship already exists.");
@@ -128,14 +138,16 @@ export const createRelationship = createServerFn({ method: "POST" })
 			.insert(entityRelationships)
 			.values({
 				...(data.id ? { id: data.id } : {}),
-				relationshipTypeId: type.id,
+				relationshipCategoryId: category.id,
+				forwardLabel,
+				reverseLabel,
 				sourceNounId: data.source.kind === "noun" ? data.source.id : null,
 				sourceSessionId: data.source.kind === "session" ? data.source.id : null,
 				targetNounId: data.target.kind === "noun" ? data.target.id : null,
 				targetSessionId: data.target.kind === "session" ? data.target.id : null,
 			})
 			.returning();
-		return ok({ relationship, type });
+		return ok({ relationship, category });
 	});
 
 export const deleteRelationship = createServerFn({ method: "POST" })
@@ -147,9 +159,9 @@ export const deleteRelationship = createServerFn({ method: "POST" })
 		await requireCampaignAccess(data.campaignId, user, "ADMIN");
 		const relationship = await db.query.entityRelationships.findFirst({
 			where: eq(entityRelationships.id, data.relationshipId),
-			with: { type: { columns: { campaignId: true } } },
+			with: { category: { columns: { campaignId: true } } },
 		});
-		if (relationship?.type?.campaignId === data.campaignId) {
+		if (relationship?.category?.campaignId === data.campaignId) {
 			await db
 				.delete(entityRelationships)
 				.where(eq(entityRelationships.id, data.relationshipId));

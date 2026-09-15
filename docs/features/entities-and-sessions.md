@@ -93,27 +93,36 @@ Details that matter:
 
 ## Related entities — declared relationships
 
-An ADMIN can declare a typed relationship between any two campaign entries,
+An ADMIN can declare a categorised relationship between any two campaign entries,
 including noun-to-session and session-to-session links. The detail-page sidebar
 supports both starting a relationship from scratch and promoting an implicit
 match with the adjacent plus action.
 
-Relationship types are reusable, campaign-owned vocabulary. Each type has:
+Relationship categories are reusable, campaign-owned groups such as `Family`,
+`Political`, or `Goals`. The optional directional labels live on each
+relationship instance instead:
 
-- a picker name, such as `Family`;
-- a forward label, such as `daughter of`;
-- an optional reverse label, such as `father of`.
+- a forward label can say `daughter of` or `is pursuing`;
+- a reverse label can independently say `father of` or be omitted;
+- both labels may be omitted for a neutral connection grouped only by category.
 
 The source page shows the forward label and the target page shows the reverse
-label. If a type has no natural reverse label, the target page uses the neutral
-type name instead. This keeps one-way relationships such as `born in` visible
-from both endpoints without inventing a misleading inverse.
+label. An omitted label renders no substitute phrase; the entity still appears
+under the category on that endpoint. The creation form offers previous labels
+from the chosen category as autocomplete suggestions, but labels are not
+canonical vocabulary and never accumulate in a dropdown of their own.
 
-`relationship_types` stores the vocabulary and `entity_relationships` stores
-the edges. Both endpoints use noun/session XOR columns, mirroring `map_pins` and
-`entity_tags`. Writes live in `src/server/relationships.ts`; reads are part of
-`getCampaignBundle`, and `relationshipsFor` in `src/lib/queries.ts` resolves the
-label and opposite endpoint for the current detail page.
+`relationship_categories` stores the groups and `entity_relationships` stores
+the edges plus their labels. Both endpoints use noun/session XOR columns,
+mirroring `map_pins` and `entity_tags`. Writes live in
+`src/server/relationships.ts`; reads are part of `getCampaignBundle`, and
+`relationshipsFor` in `src/lib/queries.ts` resolves the category, directional
+label, and opposite endpoint for the current detail page.
+
+Multiple relationships may connect the same pair in the same category. Only an
+exact duplicate is rejected; entering the equivalent relationship from the
+opposite endpoint, with the directional labels swapped, is also an exact
+duplicate.
 
 A declared edge suppresses the implicit match for the same pair on **both**
 detail pages, regardless of whether the implicit signal came from a name
@@ -123,5 +132,6 @@ appear again.
 
 Relationships have no independent secret flag. Visibility is inherited from
 both endpoints: the bundle drops an edge unless the caller can see both entries.
-For READ_ONLY callers it also returns only relationship types used by visible
-edges, so labels attached exclusively to hidden content are not disclosed.
+For READ_ONLY callers it also returns only relationship categories used by
+visible edges, so category names and labels attached exclusively to hidden
+content are not disclosed.

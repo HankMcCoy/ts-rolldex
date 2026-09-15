@@ -185,10 +185,10 @@ tags            — free-form labels, campaign-scoped; unique per campaign on
                   long as something carries it (see docs/features/tags.md)
 entity_tags     — belong to a tag; reference exactly one of nounId or sessionId
                   (DB CHECK enforces XOR), mirroring map_pins
-relationship_types — campaign-owned reusable labels with a forward label and
-                  optional reverse label
-entity_relationships — typed edges whose source and target each reference
-                  exactly one noun or session (DB CHECKs enforce both XORs)
+relationship_categories — campaign-owned groups for declared relationships
+entity_relationships — categorised edges with optional forward/reverse labels;
+                  source and target each reference exactly one noun or session
+                  (DB CHECKs enforce both XORs)
 ```
 
 Date columns are all-or-none and end-requires-start (DB CHECKs in `app.ts`).
