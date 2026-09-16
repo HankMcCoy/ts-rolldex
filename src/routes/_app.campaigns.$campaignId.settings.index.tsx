@@ -11,7 +11,7 @@ export const Route = createFileRoute("/_app/campaigns/$campaignId/settings/")({
 function SettingsPage() {
 	const { campaignId } = Route.useParams();
 	const { campaign } = useCampaign(campaignId);
-	const { accessLevel, memberCount, templateCount } =
+	const { accessLevel, memberCount, templateCount, tagGroupCount } =
 		useSettingsSummary(campaignId);
 
 	const breadcrumbs = [
@@ -31,6 +31,13 @@ function SettingsPage() {
 	}
 
 	const cards = [
+		{
+			title: "Tag groups",
+			description:
+				"Define groups of tags, with one choice per group on each entity or session.",
+			to: "/campaigns/$campaignId/settings/tag-groups" as const,
+			hint: `${tagGroupCount} group${tagGroupCount === 1 ? "" : "s"}`,
+		},
 		{
 			title: "Calendar",
 			description:

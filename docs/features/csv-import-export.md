@@ -13,14 +13,17 @@ sessions separately — pick a kind, then import or export.
 Date columns are `dateYear`, `dateMonth`, `dateDay`, `endDateYear`,
 `endDateMonth`, `endDateDay`.
 
-> **Tags are not a column.** Neither import nor export handles them, so an
+> **Ordinary tags are not a column.** Neither import nor export handles them, so an
 > export/import round-trip silently drops an entity's tags. Closing that is
-> `RDX-14`. See [tags.md](tags.md).
+> `RDX-14`. The required type tag is preserved by the `type` column.
+> See [tags.md](tags.md).
 
 Two gotchas for anyone hand-editing a file:
 
 - The noun type column is called **`type`** in CSV but `nounType` in the
-  schema. Values are upper-cased before validation, so `person` works.
+  bundle. Values are matched case-insensitively against the campaign’s Type
+  group, preserving its spelling. Add custom types in Settings → Tag groups
+  before importing; unknown types are errors in both preview and server validation.
 - **`dateMonth` is a 0-based index**, matching the schema and the date pickers.
   January is `0`. This is deliberate but reliably surprises people.
 
@@ -61,8 +64,10 @@ the preview. They re-run `validateRowDates` against a freshly loaded calendar
 bad row, naming it by row number.
 
 - Capped at `MAX_ROWS = 2000` per call.
-- Single bulk insert with `.onConflictDoNothing({ target: [campaignId, name] })`,
-  so a file that partially overlaps existing data still imports the rest.
+- Bulk inserts use `.onConflictDoNothing({ target: [campaignId, name] })`,
+  so a file that partially overlaps existing data still imports the rest. Noun
+  imports write the required type assignments for only the inserted rows in
+  the same transaction; skipped entities keep their original types.
 - Returns `{ inserted, skipped }` computed from the returned ids, which the UI
   renders as "n imported, m skipped".
 

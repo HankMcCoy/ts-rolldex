@@ -6,6 +6,7 @@ export interface CandidateEntity {
 	id: string;
 	name: string;
 	entityType: EntityType;
+	kind: "noun" | "session";
 	imageUrl: string | null;
 	summary?: string; // shown in hover preview
 	text?: string; // summary + notes, used for reverse-direction lookup — stripped on return

@@ -1,5 +1,5 @@
 ---
-status: todo
+status: done
 blockedBy:
   - "[[RDX-03 Tag groups]]"
 ---
@@ -20,3 +20,16 @@ fallback during the transition or is dropped outright.
 
 Mutual exclusivity within the group is what preserves today's behaviour — a noun
 has exactly one type — so it can't ship before [[RDX-03 Tag groups]] enforces that.
+
+## Resolution
+
+Types now live in the campaign's required `isEntityType` tag group. The migration
+seeds the five legacy choices and assigns every existing noun before dropping
+the enum column. Names colliding with existing vocabulary are disambiguated
+without changing those tags' assignments. New campaigns seed the same group.
+
+Custom types are available in forms, list filters, related entities, maps,
+timeline, Quick Find and CSV. Saves/imports require one valid campaign type and
+persist it atomically with the noun. The required group cannot be deleted or
+emptied; in-use types must be reassigned before removal. See
+`docs/features/entities-and-sessions.md` for the full rules.

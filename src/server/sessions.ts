@@ -7,7 +7,12 @@ import { requireCampaignAccess, requireSession } from "@/lib/access";
 import { applyDateRefinements, dateFields } from "@/lib/date-schema";
 import { err } from "@/lib/result";
 import { resolveDateColumns } from "@/server/date-resolver";
-import { applyEntityTags, pruneOrphanTags, tagRefsField } from "@/server/tags";
+import {
+	applyEntityTags,
+	pruneOrphanTags,
+	tagRefsField,
+	validateEntityTagGroups,
+} from "@/server/tags";
 import { withUniqueName } from "@/server/unique-name";
 
 const SESSION_NAME_CONFLICT =
@@ -32,6 +37,13 @@ export const createSession = createServerFn({ method: "POST" })
 	.handler(async ({ data }) => {
 		const { user } = await requireSession();
 		await requireCampaignAccess(data.campaignId, user, "ADMIN");
+
+		const tagError = await validateEntityTagGroups(
+			data.campaignId,
+			data.tags,
+			"session",
+		);
+		if (tagError) return err(tagError);
 
 		const dateResult = await resolveDateColumns(data.campaignId, data);
 		if (!dateResult.ok) return err(dateResult.error);
@@ -89,6 +101,13 @@ export const updateSession = createServerFn({ method: "POST" })
 	.handler(async ({ data }) => {
 		const { user } = await requireSession();
 		await requireCampaignAccess(data.campaignId, user, "ADMIN");
+
+		const tagError = await validateEntityTagGroups(
+			data.campaignId,
+			data.tags,
+			"session",
+		);
+		if (tagError) return err(tagError);
 
 		const dateResult = await resolveDateColumns(data.campaignId, data);
 		if (!dateResult.ok) return err(dateResult.error);

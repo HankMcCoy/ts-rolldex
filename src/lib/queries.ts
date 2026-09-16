@@ -114,7 +114,9 @@ export function useNouns(
 ) {
 	const b = useBundle(campaignId);
 	const byType = filter?.type
-		? b.nouns.filter((n) => n.nounType === filter.type)
+		? b.nouns.filter(
+				(n) => tagKey(n.nounType) === tagKey(filter.type as string),
+			)
 		: b.nouns;
 	return filter?.tags?.length
 		? filterByTagNames(byType, b.tags, filter.tags)
@@ -146,7 +148,7 @@ export function useNounTagOptions(campaignId: string, type?: NounType) {
 	const b = useBundle(campaignId);
 	return tagsInUse(
 		b,
-		type ? b.nouns.filter((n) => n.nounType === type) : b.nouns,
+		type ? b.nouns.filter((n) => tagKey(n.nounType) === tagKey(type)) : b.nouns,
 	);
 }
 
@@ -226,7 +228,8 @@ function buildCandidates(b: CampaignBundle): CandidateEntity[] {
 			return {
 				id: n.id,
 				name: n.name,
-				entityType: n.nounType as CandidateEntity["entityType"],
+				entityType: n.nounType,
+				kind: "noun" as const,
 				imageUrl: n.imageUrl,
 				summary: n.summary,
 				text,
@@ -241,6 +244,7 @@ function buildCandidates(b: CampaignBundle): CandidateEntity[] {
 				id: s.id,
 				name: s.name,
 				entityType: "SESSION" as const,
+				kind: "session" as const,
 				imageUrl: null,
 				summary: s.summary,
 				text,
@@ -491,6 +495,7 @@ export function useSettingsSummary(campaignId: string) {
 		accessLevel: b.accessLevel,
 		memberCount: b.members.filter((m) => m.role !== "DM").length,
 		templateCount: b.templates.length,
+		tagGroupCount: b.tagGroups.length,
 	};
 }
 
@@ -813,8 +818,8 @@ export function patchSyncTags(
 	const merged = [...bundle.tags];
 	for (const tag of tags) {
 		if (byKey.has(tagKey(tag.name))) continue;
-		byKey.set(tagKey(tag.name), tag);
-		merged.push(tag);
+		byKey.set(tagKey(tag.name), { ...tag, groupId: null });
+		merged.push({ ...tag, groupId: null });
 	}
 
 	const used = new Set([
@@ -823,7 +828,7 @@ export function patchSyncTags(
 	]);
 	return {
 		...bundle,
-		tags: sortTagsByName(merged.filter((t) => used.has(t.id))),
+		tags: sortTagsByName(merged.filter((t) => t.groupId || used.has(t.id))),
 	};
 }
 
@@ -832,4 +837,73 @@ export function patchUpdateCampaign(
 	updater: (c: CampaignBundle["campaign"]) => CampaignBundle["campaign"],
 ): CampaignBundle {
 	return { ...bundle, campaign: updater(bundle.campaign) };
+}
+
+export function useTagGroups(campaignId: string) {
+	return useBundle(campaignId).tagGroups;
+}
+
+export function patchSaveTagGroup(
+	bundle: CampaignBundle,
+	group: { id: string; name: string },
+	refs: TagRef[],
+): CampaignBundle {
+	const keys = new Set(refs.map((t) => tagKey(t.name)));
+	const existingKeys = new Set(bundle.tags.map((t) => tagKey(t.name)));
+	const next = {
+		...bundle,
+		tagGroups: sortTagsByName([
+			...bundle.tagGroups.filter((g) => g.id !== group.id),
+			{
+				...group,
+				isEntityType:
+					bundle.tagGroups.find((g) => g.id === group.id)?.isEntityType ??
+					false,
+			},
+		]),
+		tags: bundle.tags
+			.map((t) => ({
+				...t,
+				groupId: keys.has(tagKey(t.name))
+					? group.id
+					: t.groupId === group.id
+						? null
+						: t.groupId,
+			}))
+			.concat(
+				refs
+					.filter((t) => !existingKeys.has(tagKey(t.name)))
+					.map((t) => ({ ...t, groupId: group.id })),
+			),
+	};
+	return patchSyncTags(next, []);
+}
+
+export function patchRemoveTagGroup(
+	bundle: CampaignBundle,
+	id: string,
+): CampaignBundle {
+	return patchSyncTags(
+		{
+			...bundle,
+			tagGroups: bundle.tagGroups.filter((g) => g.id !== id),
+			tags: bundle.tags.map((t) =>
+				t.groupId === id ? { ...t, groupId: null } : t,
+			),
+		},
+		[],
+	);
+}
+
+export function useNounTypes(campaignId: string) {
+	const b = useBundle(campaignId);
+	const id = b.tagGroups.find((g) => g.isEntityType)?.id;
+	return b.tags.filter((t) => t.groupId === id);
+}
+
+/** Type has its own required field; exclude it from ordinary tag pickers. */
+export function useOrdinaryTags(campaignId: string) {
+	const b = useBundle(campaignId);
+	const id = b.tagGroups.find((g) => g.isEntityType)?.id;
+	return b.tags.filter((t) => t.groupId !== id);
 }

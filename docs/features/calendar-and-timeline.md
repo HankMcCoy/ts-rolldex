@@ -70,7 +70,8 @@ name. An optional `limit` truncates — the dashboard passes 5, the
 
 Sessions get `nounType: null` and `imageUrl: null` in the entry, and render
 with the dedicated `SESSION` avatar; the `?? "EVENT"` fallback in the timeline
-and dashboard is defensive only, since `nounType` is `NOT NULL` on nouns.
+and dashboard is defensive only, since the bundle derives a required type name for every noun. Date fields
+are available in forms for every entity type, including custom types.
 
 Because it derives from the already-filtered bundle, secret entries simply
 aren't there for READ_ONLY viewers — no extra check needed.

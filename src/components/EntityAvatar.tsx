@@ -19,18 +19,26 @@ const ICON_FOR_TYPE: Record<
 	THING: Package,
 	FACTION: Users,
 	EVENT: Calendar,
-	SESSION: ScrollText,
 };
 
 interface Props {
 	entityType: EntityType;
+	isSession?: boolean;
 	imageUrl: string | null;
 	name: string;
 	className?: string;
 }
 
-export function EntityAvatar({ entityType, imageUrl, name, className }: Props) {
-	const Icon = ICON_FOR_TYPE[entityType];
+export function EntityAvatar({
+	entityType,
+	imageUrl,
+	name,
+	className,
+	isSession = false,
+}: Props) {
+	const Icon = isSession
+		? ScrollText
+		: (ICON_FOR_TYPE[entityType.toUpperCase()] ?? Package);
 	return (
 		<div
 			className={cn(

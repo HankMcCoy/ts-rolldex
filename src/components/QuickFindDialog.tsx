@@ -12,7 +12,7 @@ import {
 	CommandList,
 	CommandSeparator,
 } from "@/components/ui/command";
-import { NOUN_TYPE_LABELS, type NounType } from "@/lib/noun-types";
+import { type NounType, nounTypeLabel } from "@/lib/noun-types";
 import { useNouns, useSessions } from "@/lib/queries";
 
 interface Props {
@@ -138,7 +138,7 @@ export function QuickFindDialog({ campaignId, accessLevel }: Props) {
 									/>
 									<span className="flex-1 truncate">{n.name}</span>
 									<span className="text-xs text-muted-foreground">
-										{NOUN_TYPE_LABELS[n.nounType]}
+										{nounTypeLabel(n.nounType)}
 									</span>
 								</CommandItem>
 							))}
@@ -156,6 +156,7 @@ export function QuickFindDialog({ campaignId, accessLevel }: Props) {
 								>
 									<EntityAvatar
 										entityType="SESSION"
+										isSession
 										imageUrl={null}
 										name={s.name}
 										className="size-6 rounded-md"

@@ -21,7 +21,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { applyDateRefinements, dateFields } from "@/lib/date-schema";
 import { zodResolver } from "@/lib/form-resolver";
 import { useSaveShortcut } from "@/lib/keyboard";
-import { NOUN_TYPE_LABELS, NOUN_TYPES, nounTypeSchema } from "@/lib/noun-types";
+import { nounTypeSchema } from "@/lib/noun-types";
 import {
 	BundleMutationError,
 	patchAddNoun,
@@ -29,6 +29,9 @@ import {
 	useBundleMutation,
 	useCampaign,
 	useEntityLinkTargets,
+	useNounTypes,
+	useOrdinaryTags,
+	useTagGroups,
 	useTags,
 } from "@/lib/queries";
 import { MAX_TAGS_PER_ENTITY, resolveTagRefs, type TagRef } from "@/lib/tags";
@@ -62,6 +65,9 @@ function NewNounPage() {
 	const { campaignId } = Route.useParams();
 	const { campaign, accessLevel, templates } = useCampaign(campaignId);
 	const campaignTags = useTags(campaignId);
+	const nounTypes = useNounTypes(campaignId);
+	const ordinaryTags = useOrdinaryTags(campaignId);
+	const tagGroups = useTagGroups(campaignId).filter((g) => !g.isEntityType);
 	const entityLinks = useEntityLinkTargets(campaignId);
 	const { type, name } = Route.useSearch();
 	const navigate = useNavigate();
@@ -106,7 +112,12 @@ function NewNounPage() {
 		resolver: zodResolver(schema),
 		defaultValues: {
 			name: name ?? "",
-			nounType: type ?? "PERSON",
+			nounType:
+				nounTypes.find((t) => t.name.toLowerCase() === type?.toLowerCase())
+					?.name ??
+				nounTypes.find((t) => t.name === "Person")?.name ??
+				nounTypes[0]?.name ??
+				"",
 			summary: "",
 			notes: "",
 			privateNotes: "",
@@ -123,7 +134,15 @@ function NewNounPage() {
 
 	async function onSubmit(values: Values) {
 		const id = crypto.randomUUID();
-		const tagRefs = resolveTagRefs(campaignTags, values.tags);
+		const selectedType = nounTypes.find((t) => t.name === values.nounType);
+		if (!selectedType) {
+			form.setError("nounType", { message: "Choose an existing type." });
+			return;
+		}
+		const tagRefs = [
+			...resolveTagRefs(campaignTags, values.tags),
+			selectedType,
+		];
 		try {
 			await createMutation.mutateAsync({ id, tagRefs, ...values });
 		} catch (e) {
@@ -197,9 +216,9 @@ function NewNounPage() {
 												{...field}
 												className="h-8 w-full min-w-0 rounded-lg border border-input bg-white/90 px-2.5 py-1 text-base outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 md:text-sm"
 											>
-												{NOUN_TYPES.map((t) => (
-													<option key={t} value={t}>
-														{NOUN_TYPE_LABELS[t]}
+												{nounTypes.map((t) => (
+													<option key={t.id} value={t.name}>
+														{t.name}
 													</option>
 												))}
 											</select>
@@ -209,9 +228,7 @@ function NewNounPage() {
 								)}
 							/>
 						</div>
-						{form.watch("nounType") === "EVENT" && (
-							<EventDateFields form={form} calendar={campaign.calendar} />
-						)}
+						<EventDateFields form={form} calendar={campaign.calendar} />
 						<FormField
 							control={form.control}
 							name="summary"
@@ -236,7 +253,9 @@ function NewNounPage() {
 											value={field.value}
 											onChange={field.onChange}
 											onBlur={field.onBlur}
-											suggestions={campaignTags.map((t) => t.name)}
+											suggestions={ordinaryTags.map((t) => t.name)}
+											tags={ordinaryTags}
+											groups={tagGroups}
 										/>
 									</FormControl>
 									<FormMessage />

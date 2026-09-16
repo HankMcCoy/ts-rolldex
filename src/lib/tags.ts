@@ -34,7 +34,10 @@ export function tagKey(name: string): string {
  * the first spelling of each key. Order is preserved so the user's chip order
  * survives a round-trip until the server re-sorts by name.
  */
-export function normalizeTagNames(names: string[]): string[] {
+export function normalizeTagNames(
+	names: string[],
+	limit = MAX_TAGS_PER_ENTITY,
+): string[] {
 	const seen = new Set<string>();
 	const out: string[] = [];
 	for (const raw of names) {
@@ -45,7 +48,7 @@ export function normalizeTagNames(names: string[]): string[] {
 		seen.add(key);
 		out.push(name);
 	}
-	return out.slice(0, MAX_TAGS_PER_ENTITY);
+	return out.slice(0, limit);
 }
 
 /**
@@ -120,4 +123,20 @@ export function filterByTagNames<T extends { tagIds: string[] }>(
 	}
 
 	return rows.filter((row) => ids.every((id) => row.tagIds.includes(id)));
+}
+
+/** Selecting a grouped tag replaces the previous selection from that group. */
+export function selectTagName(
+	value: string[],
+	name: string,
+	tags: readonly (TagRef & { groupId: string | null })[],
+): string[] {
+	const groupByName = new Map(tags.map((t) => [tagKey(t.name), t.groupId]));
+	const groupId = groupByName.get(tagKey(name));
+	const remaining = value.filter(
+		(n) =>
+			tagKey(n) !== tagKey(name) &&
+			(!groupId || groupByName.get(tagKey(n)) !== groupId),
+	);
+	return remaining.length >= MAX_TAGS_PER_ENTITY ? value : [...remaining, name];
 }

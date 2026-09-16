@@ -17,7 +17,13 @@ import {
 	serializeNounsToCsv,
 	serializeSessionsToCsv,
 } from "@/lib/csv";
-import { bundleKey, useCampaign, useNouns, useSessions } from "@/lib/queries";
+import {
+	bundleKey,
+	useCampaign,
+	useNouns,
+	useNounTypes,
+	useSessions,
+} from "@/lib/queries";
 import { importNouns, importSessions } from "@/server/import-csv";
 
 export const Route = createFileRoute(
@@ -31,6 +37,7 @@ function ImportExportPage() {
 	const { campaignId } = Route.useParams();
 	const { campaign, accessLevel } = useCampaign(campaignId);
 	const allNouns = useNouns(campaignId);
+	const nounTypes = useNounTypes(campaignId);
 	const allSessions = useSessions(campaignId);
 	const queryClient = useQueryClient();
 	const runImportNouns = useServerFn(importNouns);
@@ -53,8 +60,14 @@ function ImportExportPage() {
 
 	const preview: ImportPreview<ImportKind> | null = useMemo(() => {
 		if (!csv) return null;
-		return buildImportPreview(kind, csv, existing, campaign.calendar);
-	}, [csv, kind, existing, campaign.calendar]);
+		return buildImportPreview(
+			kind,
+			csv,
+			existing,
+			campaign.calendar,
+			nounTypes.map((t) => t.name),
+		);
+	}, [csv, kind, existing, campaign.calendar, nounTypes]);
 
 	const breadcrumbs = [
 		{
@@ -250,7 +263,7 @@ function ImportExportPage() {
 									<span className="font-medium text-[var(--sea-ink)]">
 										type
 									</span>{" "}
-									must be one of: PERSON, PLACE, THING, FACTION, EVENT
+									must match a name in the campaign’s Type group
 									(case-insensitive).
 								</p>
 							)}

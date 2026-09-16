@@ -28,18 +28,46 @@ create and update, so a blank summary fails validation rather than defaulting.
 
 | | Nouns | Sessions |
 |---|---|---|
-| Type | `nounType`: PERSON / PLACE / THING / FACTION / EVENT (a hard `pgEnum`) | none |
+| Type | Exactly one tag from the campaign’s required Type group | none |
 | Image | `imageKey` → R2 | none |
 | Bundle order | `name` ascending | `createdAt` **descending** (newest first) |
 | Optimistic insert | `patchAddNoun` appends then re-sorts by name | `patchAddSession` prepends |
 
-`nounType` is a Postgres enum, surfaced through `src/lib/noun-types.ts`
-(`NOUN_TYPES`, `NOUN_TYPE_LABELS`, `nounTypeSchema`). It drives list grouping,
-the `/nouns?type=` filter, breadcrumbs, `EntityAvatar` icons, and CSV
-import/export.
+## User-defined entity types
 
-> Making the type user-definable is `RDX-04`, which is the riskiest item in
-> `plans/` precisely because the enum is threaded through all of the above.
+Each campaign has one tag group marked `isEntityType`. New campaigns seed it
+as **Type** with Person, Place, Thing, Faction, and Event. DMs can add custom
+types such as Quest through Settings → Tag groups. The group may be renamed;
+its role is identified by the flag, not its name.
+
+An entity's type is an `entity_tags` assignment, with no enum column or second
+persisted copy. `getCampaignBundle` derives `nounType` (the tag's current name)
+from that assignment for presentation. `useNounTypes` supplies the Type field
+and list filters. Existing uppercase `?type=PERSON` links still work because
+matching is case-insensitive. CSV uses names from the destination campaign's
+Type group, including custom names.
+
+Every noun save requires an existing campaign type, rejects conflicting type
+tags, and saves fields plus assignments in one transaction. Import also writes
+rows and their type assignments atomically. The required type is additional to
+the 25 ordinary-tag limit. It has its own form field and is excluded from the
+ordinary tag picker. Sessions cannot carry type-group tags.
+
+The Type group cannot be deleted or emptied. Removing an in-use type requires
+reassigning its entities first. An already-assigned ordinary tag cannot be moved
+into this group, since that would create a second type or type a session.
+
+The RDX-04 migration creates a type group in every existing campaign and maps
+all legacy enum values before dropping the enum. A pre-existing group named
+Type is preserved and the required group gets a distinct name. A pre-existing
+tag whose name collides with a default type is renamed with a `(tag N)` suffix;
+its ID, group, and assignments stay intact. This avoids reclassifying unrelated
+entities that happened to carry that free-form tag.
+
+Built-in type names retain familiar avatar icons; custom types get a generic
+icon. Related-entity sections use the actual type names, while noun/session
+routing uses a separate resource kind so a custom name cannot change its route.
+Date fields are available to every type, including custom types.
 
 ## Routes
 

@@ -8,7 +8,7 @@ import { RelatedEntities } from "@/components/RelatedEntities";
 import { TagList } from "@/components/TagList";
 import { Button } from "@/components/ui/button";
 import { useEditShortcut } from "@/lib/keyboard";
-import { NOUN_TYPE_LABELS } from "@/lib/noun-types";
+import { nounTypeLabel } from "@/lib/noun-types";
 import {
 	useBundleMutation,
 	useCampaign,
@@ -44,7 +44,7 @@ function NounPage() {
 	});
 
 	const isAdmin = accessLevel === "ADMIN";
-	const typeLabel = NOUN_TYPE_LABELS[noun.nounType];
+	const typeLabel = nounTypeLabel(noun.nounType);
 
 	useEditShortcut(
 		() =>
@@ -74,7 +74,7 @@ function NounPage() {
 					params: { campaignId: campaign.id },
 				},
 				{
-					label: `${typeLabel}s`,
+					label: typeLabel,
 					to: "/campaigns/$campaignId/nouns",
 					params: { campaignId: campaign.id },
 					search: { type: noun.nounType },

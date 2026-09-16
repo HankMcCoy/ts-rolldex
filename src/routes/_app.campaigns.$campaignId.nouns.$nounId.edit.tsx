@@ -26,7 +26,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { applyDateRefinements, dateFields } from "@/lib/date-schema";
 import { zodResolver } from "@/lib/form-resolver";
 import { useSaveShortcut } from "@/lib/keyboard";
-import { NOUN_TYPE_LABELS, NOUN_TYPES, nounTypeSchema } from "@/lib/noun-types";
+import { nounTypeLabel, nounTypeSchema } from "@/lib/noun-types";
 import {
 	BundleMutationError,
 	bundleKey,
@@ -36,6 +36,9 @@ import {
 	useCampaign,
 	useEntityLinkTargets,
 	useNoun,
+	useNounTypes,
+	useOrdinaryTags,
+	useTagGroups,
 	useTags,
 } from "@/lib/queries";
 import { MAX_TAGS_PER_ENTITY, resolveTagRefs, type TagRef } from "@/lib/tags";
@@ -79,6 +82,9 @@ function EditNounPage() {
 	const { campaign, templates } = useCampaign(campaignId);
 	const { noun, accessLevel, tags } = useNoun(campaignId, nounId);
 	const campaignTags = useTags(campaignId);
+	const nounTypes = useNounTypes(campaignId);
+	const ordinaryTags = useOrdinaryTags(campaignId);
+	const tagGroups = useTagGroups(campaignId).filter((g) => !g.isEntityType);
 	const entityLinks = useEntityLinkTargets(campaignId);
 	const navigate = useNavigate();
 	const queryClient = useQueryClient();
@@ -135,7 +141,9 @@ function EditNounPage() {
 			notes: noun.notes,
 			privateNotes: noun.privateNotes,
 			isSecret: noun.isSecret,
-			tags: tags.map((t) => t.name),
+			tags: tags
+				.filter((t) => ordinaryTags.some((o) => o.id === t.id))
+				.map((t) => t.name),
 			dateYear: noun.dateYear ?? undefined,
 			dateMonth: noun.dateMonth ?? undefined,
 			dateDay: noun.dateDay ?? undefined,
@@ -145,7 +153,7 @@ function EditNounPage() {
 		},
 	});
 
-	const typeLabel = NOUN_TYPE_LABELS[noun.nounType];
+	const typeLabel = nounTypeLabel(noun.nounType);
 	const breadcrumbs = [
 		{
 			label: campaign.name,
@@ -153,7 +161,7 @@ function EditNounPage() {
 			params: { campaignId: campaign.id },
 		},
 		{
-			label: `${typeLabel}s`,
+			label: typeLabel,
 			to: "/campaigns/$campaignId/nouns" as const,
 			params: { campaignId: campaign.id },
 			search: { type: noun.nounType },
@@ -207,7 +215,15 @@ function EditNounPage() {
 	}
 
 	async function onSubmit(values: Values) {
-		const tagRefs = resolveTagRefs(campaignTags, values.tags);
+		const selectedType = nounTypes.find((t) => t.name === values.nounType);
+		if (!selectedType) {
+			form.setError("nounType", { message: "Choose an existing type." });
+			return;
+		}
+		const tagRefs = [
+			...resolveTagRefs(campaignTags, values.tags),
+			selectedType,
+		];
 		try {
 			await updateMutation.mutateAsync({ ...values, tagRefs });
 		} catch (e) {
@@ -268,9 +284,9 @@ function EditNounPage() {
 													{...field}
 													className="h-8 w-full min-w-0 rounded-lg border border-input bg-white/90 px-2.5 py-1 text-base outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 md:text-sm"
 												>
-													{NOUN_TYPES.map((t) => (
-														<option key={t} value={t}>
-															{NOUN_TYPE_LABELS[t]}
+													{nounTypes.map((t) => (
+														<option key={t.id} value={t.name}>
+															{t.name}
 														</option>
 													))}
 												</select>
@@ -336,9 +352,7 @@ function EditNounPage() {
 								)}
 							</div>
 						</div>
-						{form.watch("nounType") === "EVENT" && (
-							<EventDateFields form={form} calendar={campaign.calendar} />
-						)}
+						<EventDateFields form={form} calendar={campaign.calendar} />
 						<FormField
 							control={form.control}
 							name="tags"
@@ -350,7 +364,9 @@ function EditNounPage() {
 											value={field.value}
 											onChange={field.onChange}
 											onBlur={field.onBlur}
-											suggestions={campaignTags.map((t) => t.name)}
+											suggestions={ordinaryTags.map((t) => t.name)}
+											tags={ordinaryTags}
+											groups={tagGroups}
 										/>
 									</FormControl>
 									<FormMessage />

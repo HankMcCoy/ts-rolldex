@@ -18,7 +18,7 @@ invariants.
 | In-world dates, calendars, the timeline | `calendar-and-timeline.md` |
 | Maps, pins, `MapView` | `maps-and-pins.md` |
 | The Tiptap editor, callouts, tables, the renderer | `markdown-notes.md` |
-| Tags on nouns or sessions | `tags.md` |
+| Tags on nouns or sessions, tag groups | `tags.md` |
 | Slash-menu templates | `templates.md` |
 | Cmd-K, Cmd-E, Cmd-S | `quick-find-and-shortcuts.md` |
 | CSV import or export | `csv-import-export.md` |
@@ -168,7 +168,7 @@ The sessions table is named `game_sessions` (Drizzle variable `gameSessions`). N
 campaigns       — owned by a user (createdById); name unique per owner
                   embeds a per-campaign `calendar` (jsonb): array of months with
                   names + day counts. Defaults to Earth Gregorian.
-nouns           — belong to a campaign; type: PERSON | PLACE | THING | FACTION | EVENT
+nouns           — belong to a campaign; exactly one tag from the required Type group
                   isSecret hides from READ_ONLY users; privateNotes stripped for READ_ONLY
                   optional imageKey (R2 storage); optional date / endDate triplet
                   (year, monthIndex, day) for timeline placement
@@ -181,8 +181,10 @@ map_pins        — belong to a map; reference exactly one of nounId or sessionI
 campaign_templates — markdown blocks surfaced in the editor's slash menu;
                      ADMIN-only, stripped from the bundle for READ_ONLY users.
 tags            — free-form labels, campaign-scoped; unique per campaign on
-                  lower(name). No CRUD of their own: a tag lives exactly as
-                  long as something carries it (see docs/features/tags.md)
+                  lower(name). Optional groupId; ungrouped tags are pruned when
+                  unused, grouped tags persist (see docs/features/tags.md)
+tag_groups      — campaign-owned, named groups; at most one member tag per entity
+                  isEntityType designates the required noun type group (one per campaign)
 entity_tags     — belong to a tag; reference exactly one of nounId or sessionId
                   (DB CHECK enforces XOR), mirroring map_pins
 relationship_categories — campaign-owned groups for declared relationships

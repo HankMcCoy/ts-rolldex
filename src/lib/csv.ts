@@ -6,7 +6,13 @@ import {
 	toAbsoluteDay,
 	validateDateAgainstCalendar,
 } from "@/lib/calendar";
-import { type NounType, nounTypeSchema } from "@/lib/noun-types";
+import {
+	DEFAULT_NOUN_TYPES,
+	type NounType,
+	nounTypeSchema,
+} from "@/lib/noun-types";
+
+import { tagKey } from "@/lib/tags";
 
 export type ImportKind = "nouns" | "sessions";
 
@@ -242,6 +248,9 @@ export function buildImportPreview<K extends ImportKind>(
 	csv: string,
 	existing: ExistingNames,
 	calendar: Calendar = EARTH_GREGORIAN_CALENDAR,
+	availableTypes: readonly string[] = DEFAULT_NOUN_TYPES.map((t) =>
+		t.toUpperCase(),
+	),
 ): ImportPreview<K> {
 	const parsed = Papa.parse<Record<string, string>>(csv, {
 		header: true,
@@ -298,11 +307,22 @@ export function buildImportPreview<K extends ImportKind>(
 			continue;
 		}
 
+		const matchedType = availableTypes.find(
+			(t) => tagKey(t) === tagKey(raw.type ?? ""),
+		);
+		if (kind === "nouns" && !matchedType) {
+			outcomes.push({
+				kind: "error",
+				rowNumber,
+				message: `Unknown type "${raw.type ?? ""}". Add it to this campaign's Type group before importing.`,
+			});
+			continue;
+		}
 		const candidate =
 			kind === "nouns"
 				? {
 						name: (raw.name ?? "").trim(),
-						nounType: (raw.type ?? "").trim().toUpperCase(),
+						nounType: matchedType,
 						summary: (raw.summary ?? "").trim(),
 						notes: raw.notes ?? "",
 						privateNotes: raw.privateNotes ?? "",

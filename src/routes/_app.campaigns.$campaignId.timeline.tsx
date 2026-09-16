@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { EntityAvatar } from "@/components/EntityAvatar";
 import { Page } from "@/components/Page";
 import { Badge } from "@/components/ui/badge";
-import { NOUN_TYPE_LABELS } from "@/lib/noun-types";
+import { nounTypeLabel } from "@/lib/noun-types";
 import { useCampaign, useTimeline } from "@/lib/queries";
 
 export const Route = createFileRoute("/_app/campaigns/$campaignId/timeline")({
@@ -37,7 +37,7 @@ function TimelinePage() {
 						const typeLabel =
 							entry.kind === "session"
 								? "Session"
-								: NOUN_TYPE_LABELS[entry.nounType ?? "EVENT"];
+								: nounTypeLabel(entry.nounType ?? "EVENT");
 						const dateText = entry.dateText;
 						const link =
 							entry.kind === "session" ? (
@@ -52,6 +52,7 @@ function TimelinePage() {
 									</div>
 									<EntityAvatar
 										entityType="SESSION"
+										isSession
 										imageUrl={null}
 										name={entry.name}
 									/>

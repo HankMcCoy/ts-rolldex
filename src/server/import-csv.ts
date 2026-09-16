@@ -2,7 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/db/index";
-import { campaigns, gameSessions, nouns } from "@/db/schema/index";
+import { campaigns, entityTags, gameSessions, nouns } from "@/db/schema/index";
 import { requireCampaignAccess, requireSession } from "@/lib/access";
 import {
 	type Calendar,
@@ -12,6 +12,9 @@ import {
 } from "@/lib/calendar";
 import { nounTypeSchema } from "@/lib/noun-types";
 import { err, ok } from "@/lib/result";
+
+import { tagKey } from "@/lib/tags";
+import { loadEntityTypes } from "@/server/entity-types";
 
 const MAX_ROWS = 2000;
 
@@ -144,36 +147,54 @@ export const importNouns = createServerFn({ method: "POST" })
 		if (data.rows.length === 0) return ok({ inserted: 0, skipped: 0 });
 
 		const calendar = await loadCalendar(data.campaignId);
+		const types = await loadEntityTypes(data.campaignId);
+		const byKey = new Map(types.map((t) => [tagKey(t.name), t.id]));
+		const typeForName = new Map<string, string>();
 		for (let i = 0; i < data.rows.length; i++) {
 			const v = validateRowDates(i + 2, data.rows[i], calendar);
 			if (!v.ok) return err(v.error);
+			const typeId = byKey.get(tagKey(data.rows[i].nounType));
+			if (!typeId)
+				return err(
+					`Row ${i + 2}: unknown entity type. Add it to this campaign's Type group first.`,
+				);
+			if (!typeForName.has(data.rows[i].name))
+				typeForName.set(data.rows[i].name, typeId);
 		}
 
-		const inserted = await db
-			.insert(nouns)
-			.values(
-				data.rows.map((r) => ({
-					campaignId: data.campaignId,
-					name: r.name,
-					nounType: r.nounType,
-					summary: r.summary,
-					notes: r.notes,
-					privateNotes: r.privateNotes,
-					isSecret: r.isSecret,
-					dateYear: r.dateYear,
-					dateMonth: r.dateMonth,
-					dateDay: r.dateDay,
-					endDateYear: r.endDateYear,
-					endDateMonth: r.endDateMonth,
-					endDateDay: r.endDateDay,
-				})),
-			)
-			.onConflictDoNothing({ target: [nouns.campaignId, nouns.name] })
-			.returning({ id: nouns.id });
+		return db.transaction(async (tx) => {
+			const inserted = await tx
+				.insert(nouns)
+				.values(
+					data.rows.map((r) => ({
+						campaignId: data.campaignId,
+						name: r.name,
+						summary: r.summary,
+						notes: r.notes,
+						privateNotes: r.privateNotes,
+						isSecret: r.isSecret,
+						dateYear: r.dateYear,
+						dateMonth: r.dateMonth,
+						dateDay: r.dateDay,
+						endDateYear: r.endDateYear,
+						endDateMonth: r.endDateMonth,
+						endDateDay: r.endDateDay,
+					})),
+				)
+				.onConflictDoNothing({ target: [nouns.campaignId, nouns.name] })
+				.returning({ id: nouns.id, name: nouns.name });
+			if (inserted.length)
+				await tx.insert(entityTags).values(
+					inserted.map((n) => ({
+						nounId: n.id,
+						tagId: typeForName.get(n.name) as string,
+					})),
+				);
 
-		return ok({
-			inserted: inserted.length,
-			skipped: data.rows.length - inserted.length,
+			return ok({
+				inserted: inserted.length,
+				skipped: data.rows.length - inserted.length,
+			});
 		});
 	});
 
