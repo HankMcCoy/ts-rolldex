@@ -15,14 +15,6 @@ import { type Calendar, EARTH_GREGORIAN_CALENDAR } from "@/lib/calendar";
 import { users } from "./auth";
 import { idColumn } from "./columns";
 
-export const nounTypeEnum = pgEnum("noun_type", [
-	"PERSON",
-	"PLACE",
-	"THING",
-	"FACTION",
-	"EVENT",
-]);
-
 export const memberTypeEnum = pgEnum("member_type", ["READ_ONLY"]);
 
 export const campaigns = pgTable(
@@ -54,7 +46,6 @@ export const nouns = pgTable(
 			.notNull()
 			.references(() => campaigns.id, { onDelete: "cascade" }),
 		name: text("name").notNull(),
-		nounType: nounTypeEnum("noun_type").notNull(),
 		summary: text("summary").notNull().default(""),
 		notes: text("notes").notNull().default(""),
 		privateNotes: text("private_notes").notNull().default(""),
@@ -166,14 +157,29 @@ export const mapPins = pgTable(
 	],
 );
 
-/**
- * Free-form labels, scoped to a campaign. Tags have no lifecycle of their own:
- * one exists exactly as long as at least one noun or session carries it, and
- * `pruneOrphanTags` (`src/server/tags.ts`) deletes it once the last assignment
- * goes. That keeps the picker's suggestion list free of typos without needing
- * a management screen. Names are unique per campaign case-insensitively, so
- * "Villain" and "villain" can never both appear as chips.
- */
+/** Campaign-owned, mutually exclusive tag vocabularies. */
+export const tagGroups = pgTable(
+	"tag_groups",
+	{
+		id: idColumn(),
+		campaignId: text("campaign_id")
+			.notNull()
+			.references(() => campaigns.id, { onDelete: "cascade" }),
+		name: text("name").notNull(),
+		isEntityType: boolean("is_entity_type").notNull().default(false),
+	},
+	(t) => [
+		uniqueIndex("tag_groups_entity_type_unique")
+			.on(t.campaignId)
+			.where(sql`${t.isEntityType}`),
+		uniqueIndex("tag_groups_campaign_name_unique").on(
+			t.campaignId,
+			sql`lower(${t.name})`,
+		),
+	],
+);
+
+/** Ungrouped tags are pruned when unused; grouped tags persist. */
 export const tags = pgTable(
 	"tags",
 	{
@@ -181,6 +187,9 @@ export const tags = pgTable(
 		campaignId: text("campaign_id")
 			.notNull()
 			.references(() => campaigns.id, { onDelete: "cascade" }),
+		groupId: text("group_id").references(() => tagGroups.id, {
+			onDelete: "set null",
+		}),
 		name: text("name").notNull(),
 		createdAt: timestamp("created_at").notNull().defaultNow(),
 	},
@@ -339,6 +348,7 @@ export const campaignsRelations = relations(campaigns, ({ one, many }) => ({
 	maps: many(maps),
 	templates: many(campaignTemplates),
 	tags: many(tags),
+	tagGroups: many(tagGroups),
 	relationshipCategories: many(relationshipCategories),
 }));
 
@@ -401,6 +411,7 @@ export const gameSessionsRelations = relations(
 );
 
 export const tagsRelations = relations(tags, ({ one, many }) => ({
+	group: one(tagGroups, { fields: [tags.groupId], references: [tagGroups.id] }),
 	campaign: one(campaigns, {
 		fields: [tags.campaignId],
 		references: [campaigns.id],
@@ -467,4 +478,12 @@ export const membersRelations = relations(members, ({ one }) => ({
 		fields: [members.userId],
 		references: [users.id],
 	}),
+}));
+
+export const tagGroupsRelations = relations(tagGroups, ({ one, many }) => ({
+	campaign: one(campaigns, {
+		fields: [tagGroups.campaignId],
+		references: [campaigns.id],
+	}),
+	tags: many(tags),
 }));

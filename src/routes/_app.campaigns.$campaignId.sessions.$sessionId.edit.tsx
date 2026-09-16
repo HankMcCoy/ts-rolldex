@@ -27,8 +27,9 @@ import {
 	useBundleMutation,
 	useCampaign,
 	useEntityLinkTargets,
+	useOrdinaryTags,
 	useSession,
-	useTags,
+	useTagGroups,
 } from "@/lib/queries";
 import { MAX_TAGS_PER_ENTITY, resolveTagRefs, type TagRef } from "@/lib/tags";
 import { updateSession } from "@/server/sessions";
@@ -70,7 +71,8 @@ function EditSessionPage() {
 	const { campaignId, sessionId } = Route.useParams();
 	const { campaign, templates } = useCampaign(campaignId);
 	const { session, accessLevel, tags } = useSession(campaignId, sessionId);
-	const campaignTags = useTags(campaignId);
+	const campaignTags = useOrdinaryTags(campaignId);
+	const tagGroups = useTagGroups(campaignId).filter((g) => !g.isEntityType);
 	const entityLinks = useEntityLinkTargets(campaignId);
 	const navigate = useNavigate();
 
@@ -220,6 +222,8 @@ function EditSessionPage() {
 											onChange={field.onChange}
 											onBlur={field.onBlur}
 											suggestions={campaignTags.map((t) => t.name)}
+											tags={campaignTags}
+											groups={tagGroups}
 										/>
 									</FormControl>
 									<FormMessage />

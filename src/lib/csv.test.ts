@@ -315,3 +315,37 @@ describe("csvFilename", () => {
 		expect(csvFilename("???", "nouns")).toBe("campaign-nouns.csv");
 	});
 });
+
+describe("campaign-defined CSV types", () => {
+	it("matches custom type names case-insensitively and preserves spelling through export", () => {
+		const preview = buildImportPreview(
+			"nouns",
+			"name,type,summary\nFind the crown,side quest,Recover it\n",
+			emptyExisting,
+			undefined,
+			["Person", "Side Quest"],
+		);
+		const { ok, errors } = partitionPreview(preview);
+		expect(errors).toHaveLength(0);
+		expect(ok[0].data.nounType).toBe("Side Quest");
+		const exported = serializeNounsToCsv(ok.map((r) => r.data));
+		const restored = partitionPreview(
+			buildImportPreview("nouns", exported, emptyExisting, undefined, [
+				"Side Quest",
+			]),
+		);
+		expect(restored.ok[0].data).toEqual(ok[0].data);
+	});
+	it("rejects a legacy type when it is not in the destination campaign", () => {
+		const result = partitionPreview(
+			buildImportPreview(
+				"nouns",
+				"name,type,summary\nA,PERSON,B\n",
+				emptyExisting,
+				undefined,
+				["Quest"],
+			),
+		);
+		expect(result.errors[0].message).toMatch(/Unknown type/);
+	});
+});

@@ -13,6 +13,7 @@ import {
 	members,
 	nouns,
 	relationshipCategories,
+	tagGroups,
 	tags,
 	users,
 } from "@/db/schema/index";
@@ -23,6 +24,7 @@ import {
 } from "@/lib/access";
 import { EARTH_GREGORIAN_CALENDAR } from "@/lib/calendar";
 import { publicUrlFor } from "@/lib/storage";
+import { seedEntityTypes } from "@/server/entity-types";
 import { visibilityFilter } from "@/server/query-helpers";
 import { STARTER_TEMPLATES } from "@/server/template-seeds";
 import { withUniqueName } from "@/server/unique-name";
@@ -94,6 +96,7 @@ export const getCampaignBundle = createServerFn()
 			allPins,
 			allMembers,
 			allTemplates,
+			allTagGroups,
 			allTags,
 			allEntityTags,
 			allRelationshipCategories,
@@ -143,9 +146,14 @@ export const getCampaignBundle = createServerFn()
 						orderBy: (t, { asc }) => asc(t.name),
 					})
 				: Promise.resolve([] as (typeof campaignTemplates.$inferSelect)[]),
+			db.query.tagGroups.findMany({
+				where: eq(tagGroups.campaignId, data.campaignId),
+				columns: { id: true, name: true, isEntityType: true },
+				orderBy: (g, { asc }) => asc(g.name),
+			}),
 			db.query.tags.findMany({
 				where: eq(tags.campaignId, data.campaignId),
-				columns: { id: true, name: true },
+				columns: { id: true, name: true, groupId: true },
 				orderBy: (t, { asc }) => asc(t.name),
 			}),
 			db
@@ -226,6 +234,20 @@ export const getCampaignBundle = createServerFn()
 			? allTags.filter((t) => usedTagIds.has(t.id))
 			: allTags;
 		const visibleTagIds = new Set(visibleTags.map((t) => t.id));
+		const typeGroupId = allTagGroups.find((g) => g.isEntityType)?.id;
+		const typeById = new Map(
+			allTags
+				.filter((t) => t.groupId === typeGroupId)
+				.map((t) => [t.id, t.name]),
+		);
+		const nounTypeFor = (id: string) => {
+			const assigned = allEntityTags.filter(
+				(t) => t.nounId === id && typeById.has(t.tagId),
+			);
+			if (assigned.length !== 1)
+				throw new Error("An entity must have exactly one type.");
+			return typeById.get(assigned[0].tagId) as string;
+		};
 		const visibleRelationships = allRelationships.filter((r) => {
 			const sourceVisible = r.sourceNounId
 				? visibleNounIds.has(r.sourceNounId)
@@ -288,6 +310,7 @@ export const getCampaignBundle = createServerFn()
 			accessLevel,
 			nouns: allNouns.map((n) => ({
 				...n,
+				nounType: nounTypeFor(n.id),
 				imageUrl: n.imageKey ? publicUrlFor(n.imageKey) : null,
 				privateNotes: isReadOnly ? "" : n.privateNotes,
 				tagIds: tagIdsFor("nounId", n.id, visibleTagIds),
@@ -306,6 +329,11 @@ export const getCampaignBundle = createServerFn()
 			})),
 			mapPins: visiblePins,
 			tags: visibleTags,
+			tagGroups: isReadOnly
+				? allTagGroups.filter((g) =>
+						visibleTags.some((t) => t.groupId === g.id),
+					)
+				: allTagGroups,
 			relationshipCategories: visibleRelationshipCategories,
 			relationships: visibleRelationships,
 			members: memberList,
@@ -333,30 +361,32 @@ export const createCampaign = createServerFn({ method: "POST" })
 					),
 					columns: { id: true },
 				}),
-			async () => {
-				const [campaign] = await db
-					.insert(campaigns)
-					.values({
-						name: data.name,
-						summary: data.summary,
-						calendar: EARTH_GREGORIAN_CALENDAR,
-						createdById: user.id,
-					})
-					.returning();
+			async () =>
+				db.transaction(async (tx) => {
+					const [campaign] = await tx
+						.insert(campaigns)
+						.values({
+							name: data.name,
+							summary: data.summary,
+							calendar: EARTH_GREGORIAN_CALENDAR,
+							createdById: user.id,
+						})
+						.returning();
 
-				if (STARTER_TEMPLATES.length > 0) {
-					await db.insert(campaignTemplates).values(
-						STARTER_TEMPLATES.map((t) => ({
-							campaignId: campaign.id,
-							name: t.name,
-							body: t.body,
-							wrapInStatBlock: t.wrapInStatBlock,
-						})),
-					);
-				}
+					if (STARTER_TEMPLATES.length > 0) {
+						await tx.insert(campaignTemplates).values(
+							STARTER_TEMPLATES.map((t) => ({
+								campaignId: campaign.id,
+								name: t.name,
+								body: t.body,
+								wrapInStatBlock: t.wrapInStatBlock,
+							})),
+						);
+					}
 
-				return campaign;
-			},
+					await seedEntityTypes(tx, campaign.id);
+					return campaign;
+				}),
 		);
 	});
 

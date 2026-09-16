@@ -6,11 +6,12 @@ import { TagFilterBar } from "@/components/TagFilterBar";
 import { TagList } from "@/components/TagList";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { NOUN_TYPE_LABELS, NOUN_TYPES, nounTypeSchema } from "@/lib/noun-types";
+import { nounTypeLabel, nounTypeSchema } from "@/lib/noun-types";
 import {
 	useCampaign,
 	useNouns,
 	useNounTagOptions,
+	useNounTypes,
 	useTags,
 } from "@/lib/queries";
 import { tagFilterSchema, toggleTagName } from "@/lib/tags";
@@ -22,7 +23,7 @@ export const Route = createFileRoute("/_app/campaigns/$campaignId/nouns/")({
 	}),
 	head: ({ match }) => {
 		const { type, tags } = match.search;
-		const label = type ? `${NOUN_TYPE_LABELS[type]}s` : "All entities";
+		const label = type ? nounTypeLabel(type) : "All entities";
 		const filter = tags?.length ? ` tagged ${tags.join(" + ")}` : "";
 		return { meta: [{ title: `${label}${filter} - Rolldex` }] };
 	},
@@ -34,13 +35,14 @@ function NounsPage() {
 	const { campaign, accessLevel } = useCampaign(campaignId);
 	const { type, tags } = Route.useSearch();
 	const activeTags = tags ?? [];
+	const nounTypes = useNounTypes(campaignId);
 	const nouns = useNouns(campaignId, { type, tags: activeTags });
 	const tagOptions = useNounTagOptions(campaignId, type);
 	const tagsById = new Map(useTags(campaignId).map((t) => [t.id, t]));
 	const navigate = Route.useNavigate();
 
 	const isAdmin = accessLevel === "ADMIN";
-	const label = type ? `${NOUN_TYPE_LABELS[type]}s` : "All entities";
+	const label = type ? nounTypeLabel(type) : "All entities";
 
 	// The filter lives in the URL so the view is linkable, but replace: true
 	// keeps a session of chip-toggling out of the back-button history.
@@ -85,19 +87,23 @@ function NounsPage() {
 						All
 					</Link>
 				</Button>
-				{NOUN_TYPES.map((t) => (
+				{nounTypes.map((t) => (
 					<Button
-						key={t}
-						variant={type === t ? "default" : "outline"}
+						key={t.id}
+						variant={
+							type?.toLowerCase() === t.name.toLowerCase()
+								? "default"
+								: "outline"
+						}
 						size="sm"
 						asChild
 					>
 						<Link
 							to="/campaigns/$campaignId/nouns"
 							params={{ campaignId: campaign.id }}
-							search={(prev) => ({ ...prev, type: t })}
+							search={(prev) => ({ ...prev, type: t.name })}
 						>
-							{NOUN_TYPE_LABELS[t]}s
+							{t.name}
 						</Link>
 					</Button>
 				))}
@@ -147,7 +153,7 @@ function NounsPage() {
 								<div className="flex shrink-0 items-center gap-2">
 									{noun.isSecret && <Badge variant="secondary">Secret</Badge>}
 									<Badge variant="outline">
-										{NOUN_TYPE_LABELS[noun.nounType]}
+										{nounTypeLabel(noun.nounType)}
 									</Badge>
 								</div>
 							</Link>

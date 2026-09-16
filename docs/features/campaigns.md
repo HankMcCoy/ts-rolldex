@@ -23,7 +23,8 @@ There is no ownership transfer and no second admin — see
 `createCampaign` (`src/server/campaigns.ts`) inserts the row and then seeds
 `STARTER_TEMPLATES` (`src/server/template-seeds.ts`) into
 `campaign_templates`. Today that's a single "Adversary" stat block. A campaign
-therefore never starts with an empty slash menu.
+therefore never starts with an empty slash menu. The same transaction seeds
+the required Type group with Person, Place, Thing, Faction, and Event.
 
 ## Routes
 
@@ -57,10 +58,11 @@ members. Right column: **all entities**.
 
 ## Settings hub
 
-Four cards, each ADMIN-gated (`useSettingsSummary` supplies the counts):
+Five cards, each ADMIN-gated (`useSettingsSummary` supplies the counts):
 
 - **Calendar** → months of the in-world year
 - **Templates** → slash-menu blocks
+- **Tag groups** → named, mutually exclusive tag choices
 - **Members** → invites
 - **Import / Export** → CSV
 

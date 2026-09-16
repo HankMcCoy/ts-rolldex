@@ -22,7 +22,7 @@ import {
 	TooltipProvider,
 	TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { NOUN_TYPE_LABELS, type NounType } from "@/lib/noun-types";
+import { type NounType, nounTypeLabel } from "@/lib/noun-types";
 
 export interface MapPin {
 	id: string;
@@ -391,9 +391,7 @@ function PinPopover({
 		}
 	}
 
-	const targetLabel = pin.noun
-		? NOUN_TYPE_LABELS[pin.noun.nounType]
-		: "Session";
+	const targetLabel = pin.noun ? nounTypeLabel(pin.noun.nounType) : "Session";
 
 	return (
 		<div className="fixed inset-0 z-40 flex items-end justify-center bg-black/30 p-4 sm:items-center">
@@ -433,6 +431,7 @@ function PinPopover({
 					>
 						<EntityAvatar
 							entityType="SESSION"
+							isSession
 							imageUrl={null}
 							name={pin.session.name}
 						/>
@@ -587,7 +586,7 @@ function TargetPicker({
 									/>
 									<span className="flex-1 truncate">{n.name}</span>
 									<span className="text-xs text-[var(--sea-ink-soft)]">
-										{NOUN_TYPE_LABELS[n.nounType]}
+										{nounTypeLabel(n.nounType)}
 									</span>
 								</button>
 							))}
@@ -607,6 +606,7 @@ function TargetPicker({
 								>
 									<EntityAvatar
 										entityType="SESSION"
+										isSession
 										imageUrl={null}
 										name={s.name}
 										className="size-7"

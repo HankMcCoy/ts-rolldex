@@ -27,7 +27,6 @@ import {
 } from "@/lib/queries";
 import type {
 	CandidateEntity,
-	EntityType,
 	ExplicitRelationship,
 } from "@/lib/relationships";
 import { createRelationship, deleteRelationship } from "@/server/relationships";
@@ -59,23 +58,6 @@ type CreateVars = {
 	reverseLabel?: string;
 };
 
-const TYPE_LABELS: Record<EntityType, string> = {
-	PERSON: "People",
-	PLACE: "Places",
-	THING: "Things",
-	FACTION: "Factions",
-	EVENT: "Events",
-	SESSION: "Sessions",
-};
-const TYPE_ORDER: EntityType[] = [
-	"PERSON",
-	"PLACE",
-	"THING",
-	"FACTION",
-	"EVENT",
-	"SESSION",
-];
-
 function EntityLink({
 	campaignId,
 	entity,
@@ -86,7 +68,7 @@ function EntityLink({
 	showSummary?: boolean;
 }) {
 	const link =
-		entity.entityType === "SESSION" ? (
+		entity.kind === "session" ? (
 			<Link
 				to="/campaigns/$campaignId/sessions/$sessionId"
 				params={{ campaignId, sessionId: entity.id }}
@@ -94,6 +76,7 @@ function EntityLink({
 			>
 				<EntityAvatar
 					entityType="SESSION"
+					isSession
 					imageUrl={null}
 					name={entity.name}
 					className="size-6 rounded-md"
@@ -214,7 +197,7 @@ export function RelatedEntities({
 				id: relationshipId,
 				source: current,
 				target: {
-					kind: target.entityType === "SESSION" ? "session" : "noun",
+					kind: target.kind,
 					id: target.id,
 				},
 				category: selectedCategory
@@ -240,10 +223,13 @@ export function RelatedEntities({
 		}
 	}
 
-	const groups = TYPE_ORDER.map((type) => ({
+	const groupKey = (e: CandidateEntity) =>
+		e.kind === "session" ? "session" : `noun:${e.entityType}`;
+	const groups = [...new Set(related.map(groupKey))].sort().map((type) => ({
 		type,
-		items: related.filter((e) => e.entityType === type),
-	})).filter((g) => g.items.length);
+		label: type === "session" ? "Sessions" : type.slice(5),
+		items: related.filter((e) => groupKey(e) === type),
+	}));
 	const explicitGroups = Array.from(
 		explicit.reduce((byCategory, relationship) => {
 			const group = byCategory.get(relationship.categoryId);
@@ -322,10 +308,10 @@ export function RelatedEntities({
 					</section>
 				))}
 				<div className="space-y-5">
-					{groups.map(({ type, items }) => (
+					{groups.map(({ type, label, items }) => (
 						<section key={type}>
 							<h3 className="mb-2 text-[10px] font-semibold tracking-[0.15em] uppercase text-[var(--sea-ink-soft)]">
-								{TYPE_LABELS[type]}
+								{label}
 							</h3>
 							<ul className="space-y-1.5">
 								{items.map((e) => (

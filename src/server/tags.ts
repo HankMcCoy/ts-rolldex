@@ -1,7 +1,7 @@
-import { and, eq, notExists, sql } from "drizzle-orm";
+import { and, eq, isNull, notExists, sql } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/db/index";
-import { entityTags, tags } from "@/db/schema/index";
+import { entityTags, tagGroups, tags } from "@/db/schema/index";
 import {
 	MAX_TAGS_PER_ENTITY,
 	normalizeTagNames,
@@ -27,6 +27,15 @@ export const tagRefsField = z
 	.max(MAX_TAGS_PER_ENTITY)
 	.default([]);
 
+export const nounTagRefsField = z
+	.array(tagRefsField.unwrap().element)
+	.max(MAX_TAGS_PER_ENTITY + 1)
+	.default([]);
+
+type TagDatabase =
+	| typeof db
+	| Parameters<Parameters<typeof db.transaction>[0]>[0];
+
 type TagTarget = { nounId: string } | { sessionId: string };
 
 const targetColumn = (target: TagTarget) =>
@@ -43,11 +52,15 @@ const targetId = (target: TagTarget) =>
 async function resolveTags(
 	campaignId: string,
 	refs: TagRef[],
+	connection: TagDatabase = db,
 ): Promise<TagRef[]> {
-	const names = normalizeTagNames(refs.map((r) => r.name));
+	const names = normalizeTagNames(
+		refs.map((r) => r.name),
+		MAX_TAGS_PER_ENTITY + 1,
+	);
 	if (names.length === 0) return [];
 
-	const existing = await db.query.tags.findMany({
+	const existing = await connection.query.tags.findMany({
 		where: eq(tags.campaignId, campaignId),
 		columns: { id: true, name: true },
 	});
@@ -60,7 +73,7 @@ async function resolveTags(
 	const proposedIds = new Map(refs.map((r) => [tagKey(r.name), r.id] as const));
 	const missing = names.filter((n) => !byKey.has(tagKey(n)));
 	if (missing.length > 0) {
-		await db
+		await connection
 			.insert(tags)
 			.values(
 				missing.map((name) => ({
@@ -71,7 +84,7 @@ async function resolveTags(
 			)
 			.onConflictDoNothing();
 
-		const refreshed = await db.query.tags.findMany({
+		const refreshed = await connection.query.tags.findMany({
 			where: eq(tags.campaignId, campaignId),
 			columns: { id: true, name: true },
 		});
@@ -88,18 +101,22 @@ async function resolveTags(
 }
 
 /**
- * Deletes campaign tags nothing carries any more. Tags have no CRUD surface of
- * their own — they exist because an entity uses them — so every write that can
+ * Deletes ungrouped campaign tags nothing carries any more. Grouped tags
+ * persist as a configured vocabulary. Every write that can
  * drop the last assignment (a tag edit, a noun or session delete) ends here.
  */
-export async function pruneOrphanTags(campaignId: string): Promise<void> {
-	await db
+export async function pruneOrphanTags(
+	campaignId: string,
+	connection: TagDatabase = db,
+): Promise<void> {
+	await connection
 		.delete(tags)
 		.where(
 			and(
 				eq(tags.campaignId, campaignId),
+				isNull(tags.groupId),
 				notExists(
-					db
+					connection
 						.select({ one: sql`1` })
 						.from(entityTags)
 						.where(eq(entityTags.tagId, tags.id)),
@@ -120,12 +137,15 @@ export async function applyEntityTags(
 	campaignId: string,
 	target: TagTarget,
 	refs: TagRef[],
+	connection: TagDatabase = db,
 ): Promise<TagRef[]> {
-	const resolved = await resolveTags(campaignId, refs);
+	const resolved = await resolveTags(campaignId, refs, connection);
 
-	await db.delete(entityTags).where(eq(targetColumn(target), targetId(target)));
+	await connection
+		.delete(entityTags)
+		.where(eq(targetColumn(target), targetId(target)));
 	if (resolved.length > 0) {
-		await db.insert(entityTags).values(
+		await connection.insert(entityTags).values(
 			resolved.map((t) => ({
 				tagId: t.id,
 				nounId: "nounId" in target ? target.nounId : null,
@@ -134,6 +154,41 @@ export async function applyEntityTags(
 		);
 	}
 
-	await pruneOrphanTags(campaignId);
+	await pruneOrphanTags(campaignId, connection);
 	return sortTagsByName(resolved);
+}
+
+/** Run before any entity writes, so invalid selections cannot partially save. */
+export async function validateEntityTagGroups(
+	campaignId: string,
+	refs: TagRef[],
+	targetKind: "noun" | "session" = "noun",
+): Promise<string | null> {
+	const existing = await db.query.tags.findMany({
+		where: eq(tags.campaignId, campaignId),
+	});
+	const selected = new Set(
+		normalizeTagNames(
+			refs.map((t) => t.name),
+			MAX_TAGS_PER_ENTITY + 1,
+		).map(tagKey),
+	);
+	const typeGroup =
+		targetKind === "session"
+			? await db.query.tagGroups.findFirst({
+					where: and(
+						eq(tagGroups.campaignId, campaignId),
+						eq(tagGroups.isEntityType, true),
+					),
+				})
+			: undefined;
+	const seen = new Set<string>();
+	for (const tag of existing) {
+		if (!tag.groupId || !selected.has(tagKey(tag.name))) continue;
+		if (tag.groupId === typeGroup?.id)
+			return "Entity types cannot be applied to sessions.";
+		if (seen.has(tag.groupId)) return "Choose only one tag from each group.";
+		seen.add(tag.groupId);
+	}
+	return null;
 }

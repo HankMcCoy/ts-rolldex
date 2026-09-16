@@ -6,22 +6,47 @@ would leak the shape of one campaign into another.
 
 ## The lifecycle rule
 
-Tags have no CRUD surface of their own. There is no "manage tags" screen, no
-create step, and no delete button: **a tag exists exactly as long as at least
-one noun or session carries it.**
+Ungrouped tags exist exactly as long as at least one noun or session carries
+them. Typing a new name creates a tag on save; removing its last assignment
+prunes it. `pruneOrphanTags` runs after entity saves and deletes.
 
-- Typing a name that isn't in use yet creates the tag as part of saving the
-  entity.
-- Removing the last chip that referenced a tag deletes the tag row.
+**Grouped tags persist even when unused.** They are a vocabulary configured by
+the DM, so removing an assignment must not erase a choice from the group.
 
-That is what `pruneOrphanTags` (`src/server/tags.ts`) enforces, and it runs
-after every write that can drop the last assignment — a noun or session save,
-and a noun or session **delete** (where the join rows cascade away). The point
-is that a typo can't outlive the entity you typo'd it on and pollute the
-suggestion list forever.
+## Tag groups
 
-`RDX-03` (tag groups) introduces user-defined groups, which will almost
-certainly give tags an independent lifecycle. Expect this rule to change then.
+Campaign settings → **Tag groups** lets ADMINs create, rename, edit, and delete
+named groups. Settings shows a searchable list of expandable groups with nested
+tag rows. Create and rename groups in a dialog; add tags within a group and
+remove individual tags from its rows. Names are normalized and unique per campaign case-insensitively.
+The required entity Type group has additional rules described in
+[entities-and-sessions.md](entities-and-sessions.md).
+
+Each group owns up to 25 tags; an empty group is allowed. Enter new tag names
+or choose existing ungrouped tags. A tag belongs to at most one group and its
+name remains unique across the campaign, including other groups.
+
+An entity or session can carry **at most one tag from each group**. Selecting
+another tag from the same group replaces the previous chip. The picker labels
+grouped chips with the group name. Its menu opens with groups and ungrouped
+tags; opening a group shows all its choices, with the selected tag checked.
+Search matches tag and group names across the campaign. Arrow keys navigate
+choices; Right opens a group, Left (or Backspace in an empty input) goes back,
+and Escape returns to the group list before closing the picker. Clicking a
+selected choice removes it. Server-side validation
+resolves names against the campaign's tags and rejects conflicting submissions
+before writing entity fields, including submissions from stale forms.
+
+Saving a group rejects membership changes if any noun or session already
+carries multiple proposed members, including secret entities. The DM must
+resolve those assignments first; group edits never silently remove them.
+A tag owned by another group must first be removed from that group.
+
+Removing a tag from a group, or deleting a group, preserves its assignments
+and makes it ungrouped. Unused tags are then pruned. Group writes and cleanup
+run in a transaction, so a failed edit cannot leave a partially changed group.
+`src/server/tag-groups.ts` authorizes ADMIN writes; `tag-group-writes.ts`
+implements these rules.
 
 ## Identity is case-insensitive
 
@@ -38,7 +63,8 @@ the optimistic chips would differ from what the refetch brings back.
 ## Schema
 
 ```
-tags        — id, campaignId, name          (unique per campaign on lower(name))
+tag_groups  — id, campaignId, name, isEntityType          (unique per campaign on lower(name))
+tags        — id, campaignId, name, groupId          (unique per campaign on lower(name))
 entity_tags — id, tagId, nounId | sessionId (DB CHECK enforces XOR)
 ```
 
@@ -50,16 +76,17 @@ versa.
 
 ## In the bundle
 
-`getCampaignBundle` returns tags in two pieces:
+`getCampaignBundle` returns tags in three pieces:
 
-- `bundle.tags` — every tag in the campaign, `{ id, name }`, name-sorted.
+- `bundle.tags` — every tag in the campaign, `{ id, name, groupId }`, name-sorted.
+- `bundle.tagGroups` — `{ id, name, isEntityType }` groups, name-sorted.
 - `tagIds: string[]` on each noun and session, ordered to match `bundle.tags`.
 
 There is deliberately **no flat join array** on the client (unlike `mapPins`):
 a tag carries no payload, so ids on the row are all a caller needs, and the
 optimistic patchers stay simple.
 
-`useTags(campaignId)` returns the campaign list; `useNoun` / `useSession`
+`useTags(campaignId)` returns the campaign list; `useTagGroups` returns groups; `useNoun` / `useSession`
 return a resolved `tags` array alongside the row.
 
 ### What READ_ONLY sees
@@ -68,6 +95,8 @@ return a resolved `tags` array alongside the row.
 **visible** entity, and assignments to hidden entities are dropped. Without
 that, a tag applied only to secret nouns would leak its name through the
 suggestion list — the tag rows themselves have no `isSecret` of their own.
+Groups are likewise limited to those owning at least one visible tag; unused
+group vocabulary and tags carried only by secret entities stay hidden.
 
 ## Saving
 
@@ -88,7 +117,7 @@ Client side:
    each name with the existing tag's id, or a fresh UUID.
 3. The patcher writes `tagIds` on the entity, then `patchSyncTags`
    (`src/lib/queries.ts`) merges any new tags into `bundle.tags` and prunes
-   ones left with no carrier — the client-side mirror of `applyEntityTags` +
+   ungrouped ones left with no carrier — the client-side mirror of `applyEntityTags` +
    `pruneOrphanTags`.
 
 ## UI
@@ -97,8 +126,9 @@ Client side:
 press Enter or comma to add it, Backspace on an empty box to remove the last
 chip, arrow keys to walk the suggestion list. New and existing tags are entered
 identically — there is no "create tag" affordance to hunt for, because the
-server decides which is which. A half-typed name is committed on blur, so
-clicking Save doesn't silently drop it.
+server decides which is which. At the top level, a half-typed name is
+committed on blur, so clicking Save does not silently drop it. Inside a group,
+only that group's configured tags can be chosen; unmatched text is a search.
 
 The real `<input>` carries the id and ARIA wiring, so `FormControl`'s Slot and
 `<FormLabel htmlFor>` land on a focusable element (see `RDX-11`).
@@ -110,8 +140,10 @@ chips are inert, because each row is already wrapped in a `<Link>` and nesting
 anchors is invalid HTML — the list views put their toggles in `TagFilterBar`
 instead. That's what `TagList`'s optional `filterLink` prop selects between.
 
-Limits: `TAG_MAX_LENGTH` 40 characters, `MAX_TAGS_PER_ENTITY` 25, both in
-`src/lib/tags.ts` and enforced on the server by `tagRefsField`.
+Limits: `TAG_MAX_LENGTH` 40 characters, `MAX_TAGS_PER_ENTITY` 25 ordinary
+tags, both in `src/lib/tags.ts`. Nouns also carry one required type assignment;
+`nounTagRefsField` permits that additional entry. Server saves resolve and
+validate it against the campaign’s designated Type group.
 
 ## Filtering a list by tag
 
@@ -148,5 +180,5 @@ noun list's type buttons carry the tag filter across rather than dropping it.
 ## Not covered yet
 
 - **Tags in Quick Find** is `RDX-05`.
-- **CSV import/export ignores tags** — the column set in `src/lib/csv.ts` is
+- **CSV import/export ignores ordinary tags** — the column set in `src/lib/csv.ts` is
   unchanged, so a round-trip through export/import drops them. That's `RDX-14`.

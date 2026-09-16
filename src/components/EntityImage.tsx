@@ -19,7 +19,7 @@ interface Props {
 }
 
 export function EntityImage({ nounType, imageUrl, name, className }: Props) {
-	const Icon = ICON_FOR_TYPE[nounType];
+	const Icon = ICON_FOR_TYPE[nounType.toUpperCase()] ?? Package;
 	return (
 		<div
 			className={cn(

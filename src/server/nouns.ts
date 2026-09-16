@@ -9,8 +9,14 @@ import { nounTypeSchema } from "@/lib/noun-types";
 import { err } from "@/lib/result";
 import { deleteObject } from "@/lib/storage";
 import { resolveDateColumns } from "@/server/date-resolver";
+import { prepareNounTags } from "@/server/entity-types";
 import { performImageRemove, performImageUpload } from "@/server/image-uploads";
-import { applyEntityTags, pruneOrphanTags, tagRefsField } from "@/server/tags";
+import {
+	applyEntityTags,
+	nounTagRefsField,
+	pruneOrphanTags,
+	validateEntityTagGroups,
+} from "@/server/tags";
 import { withUniqueName } from "@/server/unique-name";
 
 const NOUN_NAME_CONFLICT =
@@ -32,7 +38,7 @@ export const createNoun = createServerFn({ method: "POST" })
 				notes: z.string().max(50_000),
 				privateNotes: z.string().max(50_000),
 				isSecret: z.boolean(),
-				tags: tagRefsField,
+				tags: nounTagRefsField,
 				...dateFields,
 			}),
 		),
@@ -40,6 +46,18 @@ export const createNoun = createServerFn({ method: "POST" })
 	.handler(async ({ data }) => {
 		const { user } = await requireSession();
 		await requireCampaignAccess(data.campaignId, user, "ADMIN");
+
+		const preparedTags = await prepareNounTags(
+			data.campaignId,
+			data.nounType,
+			data.tags,
+		);
+		if (!preparedTags.ok) return preparedTags;
+		const tagError = await validateEntityTagGroups(
+			data.campaignId,
+			preparedTags.value,
+		);
+		if (tagError) return err(tagError);
 
 		const dateResult = await resolveDateColumns(data.campaignId, data);
 		if (!dateResult.ok) return err(dateResult.error);
@@ -54,28 +72,29 @@ export const createNoun = createServerFn({ method: "POST" })
 					),
 					columns: { id: true },
 				}),
-			async () => {
-				const [noun] = await db
-					.insert(nouns)
-					.values({
-						...(data.id ? { id: data.id } : {}),
-						campaignId: data.campaignId,
-						name: data.name,
-						nounType: data.nounType,
-						summary: data.summary,
-						notes: data.notes,
-						privateNotes: data.privateNotes,
-						isSecret: data.isSecret,
-						...dateResult.cols,
-					})
-					.returning();
-				const tags = await applyEntityTags(
-					data.campaignId,
-					{ nounId: noun.id },
-					data.tags,
-				);
-				return { ...noun, tags };
-			},
+			async () =>
+				db.transaction(async (tx) => {
+					const [noun] = await tx
+						.insert(nouns)
+						.values({
+							...(data.id ? { id: data.id } : {}),
+							campaignId: data.campaignId,
+							name: data.name,
+							summary: data.summary,
+							notes: data.notes,
+							privateNotes: data.privateNotes,
+							isSecret: data.isSecret,
+							...dateResult.cols,
+						})
+						.returning();
+					const tags = await applyEntityTags(
+						data.campaignId,
+						{ nounId: noun.id },
+						preparedTags.value,
+						tx,
+					);
+					return { ...noun, tags };
+				}),
 		);
 	});
 
@@ -91,7 +110,7 @@ export const updateNoun = createServerFn({ method: "POST" })
 				notes: z.string().max(50_000),
 				privateNotes: z.string().max(50_000),
 				isSecret: z.boolean(),
-				tags: tagRefsField,
+				tags: nounTagRefsField,
 				...dateFields,
 			}),
 		),
@@ -99,6 +118,27 @@ export const updateNoun = createServerFn({ method: "POST" })
 	.handler(async ({ data }) => {
 		const { user } = await requireSession();
 		await requireCampaignAccess(data.campaignId, user, "ADMIN");
+
+		const existing = await db.query.nouns.findFirst({
+			where: and(
+				eq(nouns.id, data.nounId),
+				eq(nouns.campaignId, data.campaignId),
+			),
+			columns: { id: true },
+		});
+		if (!existing) return err("Entity not found.");
+
+		const preparedTags = await prepareNounTags(
+			data.campaignId,
+			data.nounType,
+			data.tags,
+		);
+		if (!preparedTags.ok) return preparedTags;
+		const tagError = await validateEntityTagGroups(
+			data.campaignId,
+			preparedTags.value,
+		);
+		if (tagError) return err(tagError);
 
 		const dateResult = await resolveDateColumns(data.campaignId, data);
 		if (!dateResult.ok) return err(dateResult.error);
@@ -114,33 +154,34 @@ export const updateNoun = createServerFn({ method: "POST" })
 					),
 					columns: { id: true },
 				}),
-			async () => {
-				const [noun] = await db
-					.update(nouns)
-					.set({
-						name: data.name,
-						nounType: data.nounType,
-						summary: data.summary,
-						notes: data.notes,
-						privateNotes: data.privateNotes,
-						isSecret: data.isSecret,
-						...dateResult.cols,
-						updatedAt: new Date(),
-					})
-					.where(
-						and(
-							eq(nouns.id, data.nounId),
-							eq(nouns.campaignId, data.campaignId),
-						),
-					)
-					.returning();
-				const tags = await applyEntityTags(
-					data.campaignId,
-					{ nounId: data.nounId },
-					data.tags,
-				);
-				return { ...noun, tags };
-			},
+			async () =>
+				db.transaction(async (tx) => {
+					const [noun] = await tx
+						.update(nouns)
+						.set({
+							name: data.name,
+							summary: data.summary,
+							notes: data.notes,
+							privateNotes: data.privateNotes,
+							isSecret: data.isSecret,
+							...dateResult.cols,
+							updatedAt: new Date(),
+						})
+						.where(
+							and(
+								eq(nouns.id, data.nounId),
+								eq(nouns.campaignId, data.campaignId),
+							),
+						)
+						.returning();
+					const tags = await applyEntityTags(
+						data.campaignId,
+						{ nounId: data.nounId },
+						preparedTags.value,
+						tx,
+					);
+					return { ...noun, tags };
+				}),
 		);
 	});
 

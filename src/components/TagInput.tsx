@@ -1,15 +1,15 @@
-import { X } from "lucide-react";
+import { ArrowLeft, Check, ChevronRight, Layers, Tag, X } from "lucide-react";
 import * as React from "react";
 import { Badge } from "@/components/ui/badge";
 import {
 	MAX_TAGS_PER_ENTITY,
 	normalizeTagName,
+	selectTagName,
 	TAG_MAX_LENGTH,
+	type TagRef,
 	tagKey,
 } from "@/lib/tags";
 import { cn } from "@/lib/utils";
-
-const MAX_SUGGESTIONS = 8;
 
 interface TagInputProps
 	extends Omit<React.ComponentProps<"input">, "value" | "onChange"> {
@@ -18,6 +18,8 @@ interface TagInputProps
 	onChange: (next: string[]) => void;
 	/** Every tag name already used in the campaign, for the suggestion list. */
 	suggestions: readonly string[];
+	tags?: readonly (TagRef & { groupId: string | null })[];
+	groups?: readonly TagRef[];
 }
 
 /**
@@ -33,6 +35,8 @@ export function TagInput({
 	value,
 	onChange,
 	suggestions,
+	tags = [],
+	groups = [],
 	className,
 	disabled,
 	placeholder,
@@ -40,27 +44,97 @@ export function TagInput({
 	onKeyDown,
 	...inputProps
 }: TagInputProps) {
+	const [groupId, setGroupId] = React.useState<string | null>(null);
 	const [draft, setDraft] = React.useState("");
 	const [activeIndex, setActiveIndex] = React.useState(-1);
 	const [open, setOpen] = React.useState(false);
 	const inputRef = React.useRef<HTMLInputElement>(null);
+	const listRef = React.useRef<HTMLDivElement>(null);
 	const listId = `${React.useId()}-tag-suggestions`;
 
 	const selected = new Set(value.map(tagKey));
 	const query = tagKey(draft);
-	const matches = suggestions
-		.filter((s) => !selected.has(tagKey(s)))
-		.filter((s) => query === "" || tagKey(s).includes(query))
-		.slice(0, MAX_SUGGESTIONS);
+
+	const tagByName = new Map(tags.map((t) => [tagKey(t.name), t]));
+	const currentGroup = groups.find((g) => g.id === groupId);
+	type Option = { kind: "group" | "tag"; id: string; name: string };
+	const matches: Option[] = currentGroup
+		? suggestions
+				.filter(
+					(name) =>
+						tagByName.get(tagKey(name))?.groupId === currentGroup.id &&
+						tagKey(name).includes(query),
+				)
+				.map((name) => ({ kind: "tag", id: tagKey(name), name }))
+		: query
+			? suggestions
+					.filter(
+						(name) =>
+							tagKey(name).includes(query) ||
+							tagKey(groupLabel(name) ?? "").includes(query),
+					)
+					.map((name) => ({ kind: "tag", id: tagKey(name), name }))
+			: [
+					...groups.map(
+						(g): Option => ({ kind: "group", id: g.id, name: g.name }),
+					),
+					...suggestions
+						.filter(
+							(name) =>
+								!tagByName.get(tagKey(name))?.groupId ||
+								!groups.some(
+									(g) => g.id === tagByName.get(tagKey(name))?.groupId,
+								),
+						)
+						.map((name): Option => ({ kind: "tag", id: tagKey(name), name })),
+				];
 	const atLimit = value.length >= MAX_TAGS_PER_ENTITY;
-	const showList = open && matches.length > 0;
+	const showList = open && (groups.length > 0 || matches.length > 0);
+	const activeOption = matches[activeIndex];
+	React.useEffect(() => {
+		if (activeIndex >= 0)
+			listRef.current
+				?.querySelector<HTMLElement>(`[id="${listId}-${activeIndex}"]`)
+				?.scrollIntoView?.({ block: "nearest" });
+	}, [activeIndex, listId]);
+
+	function browse(id: string | null) {
+		setGroupId(id);
+		setDraft("");
+		setActiveIndex(-1);
+		setOpen(true);
+		inputRef.current?.focus();
+	}
+	function choose(option: Option) {
+		if (option.kind === "group") {
+			browse(option.id);
+			return;
+		}
+		if (selected.has(tagKey(option.name)))
+			onChange(value.filter((n) => tagKey(n) !== tagKey(option.name)));
+		else add(option.name);
+		setDraft("");
+		setActiveIndex(-1);
+	}
 
 	function add(raw: string) {
 		const name = normalizeTagName(raw).slice(0, TAG_MAX_LENGTH);
 		setDraft("");
 		setActiveIndex(-1);
-		if (!name || atLimit || selected.has(tagKey(name))) return;
-		onChange([...value, name]);
+		if (!name || selected.has(tagKey(name))) return;
+		if (
+			currentGroup &&
+			!tags.some(
+				(t) => t.groupId === currentGroup.id && tagKey(t.name) === tagKey(name),
+			)
+		)
+			return;
+		onChange(selectTagName(value, name, tags));
+	}
+
+	function groupLabel(name: string) {
+		const groupId = tags.find((t) => tagKey(t.name) === tagKey(name))?.groupId;
+		return groups.find((g) => g.id === groupId)?.name;
 	}
 
 	function removeAt(index: number) {
@@ -76,12 +150,27 @@ export function TagInput({
 			// submits the form the way it does from any other field.
 			if (activeIndex < 0 && !draft.trim()) return;
 			event.preventDefault();
-			add(activeIndex >= 0 ? matches[activeIndex] : draft);
+			if (activeOption) choose(activeOption);
+			else add(draft);
 			return;
 		}
 		if (event.key === ",") {
 			event.preventDefault();
 			add(draft);
+			return;
+		}
+		if (
+			(event.key === "ArrowLeft" || event.key === "Backspace") &&
+			draft === "" &&
+			currentGroup
+		) {
+			event.preventDefault();
+			browse(null);
+			return;
+		}
+		if (event.key === "ArrowRight" && activeOption?.kind === "group") {
+			event.preventDefault();
+			browse(activeOption.id);
 			return;
 		}
 		if (event.key === "Backspace" && draft === "" && value.length > 0) {
@@ -102,7 +191,8 @@ export function TagInput({
 		}
 		if (event.key === "Escape" && open) {
 			event.preventDefault();
-			setOpen(false);
+			if (currentGroup) browse(null);
+			else setOpen(false);
 			setActiveIndex(-1);
 		}
 	}
@@ -118,6 +208,9 @@ export function TagInput({
 			>
 				{value.map((name, index) => (
 					<Badge key={tagKey(name)} variant="secondary" className="gap-1 pr-1">
+						{groupLabel(name) && (
+							<span className="opacity-60">{groupLabel(name)}:</span>
+						)}
 						{name}
 						<button
 							type="button"
@@ -138,7 +231,7 @@ export function TagInput({
 					aria-controls={listId}
 					aria-autocomplete="list"
 					aria-activedescendant={
-						activeIndex >= 0 ? `${listId}-${activeIndex}` : undefined
+						showList && activeOption ? `${listId}-${activeIndex}` : undefined
 					}
 					autoComplete="off"
 					disabled={disabled}
@@ -147,7 +240,9 @@ export function TagInput({
 					placeholder={
 						atLimit
 							? `Limit of ${MAX_TAGS_PER_ENTITY} tags reached`
-							: (placeholder ?? "Add a tag…")
+							: currentGroup
+								? `Choose ${currentGroup.name.toLowerCase()}…`
+								: (placeholder ?? "Search tags or groups…")
 					}
 					onChange={(event) => {
 						setDraft(event.target.value);
@@ -161,41 +256,109 @@ export function TagInput({
 						// user tabs away or clicks Save.
 						add(draft);
 						setOpen(false);
+						setGroupId(null);
+						setActiveIndex(-1);
 						onBlur?.(event);
 					}}
 					className="h-6 min-w-32 flex-1 bg-transparent text-base outline-none placeholder:text-muted-foreground md:text-sm"
 				/>
 			</div>
 			{showList && (
-				<div
-					id={listId}
-					role="listbox"
-					className="absolute z-20 mt-1 max-h-56 w-full overflow-auto rounded-lg border border-input bg-white p-1 shadow-md"
-				>
-					{matches.map((name, index) => (
-						// Options stay out of the tab order: the combobox input keeps focus
-						// and points at the highlighted one via aria-activedescendant.
-						<button
-							key={tagKey(name)}
-							id={`${listId}-${index}`}
-							type="button"
-							role="option"
-							tabIndex={-1}
-							aria-selected={index === activeIndex}
-							onMouseDown={(event) => event.preventDefault()}
-							onClick={() => {
-								add(name);
-								inputRef.current?.focus();
-							}}
-							onMouseEnter={() => setActiveIndex(index)}
-							className={cn(
-								"block w-full cursor-pointer rounded px-2 py-1 text-left text-sm",
-								index === activeIndex && "bg-muted",
-							)}
-						>
-							{name}
-						</button>
-					))}
+				<div className="absolute z-20 mt-1 w-full min-w-56 rounded-lg border border-input bg-popover p-1 shadow-md">
+					{currentGroup && (
+						<div className="mb-1 flex items-center gap-2 border-b px-1 pb-1">
+							<button
+								type="button"
+								aria-label="Back to all tags"
+								onMouseDown={(e) => e.preventDefault()}
+								onClick={() => browse(null)}
+								className="rounded p-1.5 hover:bg-muted"
+							>
+								<ArrowLeft className="size-3.5" />
+							</button>
+							<span className="text-sm font-medium">{currentGroup.name}</span>
+							<span className="ml-auto pr-2 text-xs text-muted-foreground">
+								Choose one
+							</span>
+						</div>
+					)}
+					<div
+						id={listId}
+						ref={listRef}
+						role="listbox"
+						aria-label={
+							currentGroup ? `${currentGroup.name} tags` : "Tags and groups"
+						}
+						aria-multiselectable="true"
+						className="max-h-60 overflow-auto"
+					>
+						{matches.length === 0 && (
+							<p className="px-2 py-3 text-sm text-muted-foreground">
+								{currentGroup
+									? "No matching tags in this group."
+									: "No matching tags."}
+							</p>
+						)}
+						{matches.map((option, index) => {
+							const checked =
+								option.kind === "tag" && selected.has(tagKey(option.name));
+							const groupSelection =
+								option.kind === "group"
+									? value.find(
+											(n) => tagByName.get(tagKey(n))?.groupId === option.id,
+										)
+									: undefined;
+							return (
+								<button
+									key={`${option.kind}-${option.id}`}
+									id={`${listId}-${index}`}
+									type="button"
+									role="option"
+									aria-label={
+										option.kind === "group"
+											? `${option.name} group`
+											: groupLabel(option.name)
+												? `${option.name} (${groupLabel(option.name)})`
+												: option.name
+									}
+									tabIndex={-1}
+									aria-selected={checked}
+									onMouseDown={(e) => e.preventDefault()}
+									onClick={() => {
+										choose(option);
+										inputRef.current?.focus();
+									}}
+									onMouseEnter={() => setActiveIndex(index)}
+									className={cn(
+										"flex w-full cursor-pointer items-center gap-2 rounded px-2 py-2 text-left text-sm",
+										index === activeIndex && "bg-muted",
+									)}
+								>
+									{option.kind === "group" ? (
+										<Layers className="size-3.5 shrink-0 text-muted-foreground" />
+									) : (
+										<Tag className="size-3.5 shrink-0 text-muted-foreground" />
+									)}
+									<span className="truncate">{option.name}</span>
+									{option.kind === "group" ? (
+										<>
+											<span className="ml-auto truncate text-xs text-muted-foreground">
+												{groupSelection}
+											</span>
+											<ChevronRight className="size-3.5 shrink-0 text-muted-foreground" />
+										</>
+									) : (
+										<>
+											<span className="ml-auto truncate text-xs text-muted-foreground">
+												{!currentGroup && groupLabel(option.name)}
+											</span>
+											{checked && <Check className="size-3.5 shrink-0" />}
+										</>
+									)}
+								</button>
+							);
+						})}
+					</div>
 				</div>
 			)}
 		</div>

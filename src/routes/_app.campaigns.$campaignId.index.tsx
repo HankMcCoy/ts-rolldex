@@ -5,7 +5,7 @@ import { Page } from "@/components/Page";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useEditShortcut } from "@/lib/keyboard";
-import { NOUN_TYPE_LABELS } from "@/lib/noun-types";
+import { nounTypeLabel } from "@/lib/noun-types";
 import { useCampaignDashboard } from "@/lib/queries";
 
 export const Route = createFileRoute("/_app/campaigns/$campaignId/")({
@@ -110,6 +110,7 @@ function CampaignDashboard() {
 										>
 											<EntityAvatar
 												entityType="SESSION"
+												isSession
 												imageUrl={null}
 												name={s.name}
 											/>
@@ -215,6 +216,7 @@ function CampaignDashboard() {
 											>
 												<EntityAvatar
 													entityType="SESSION"
+													isSession
 													imageUrl={null}
 													name={entry.name}
 												/>
@@ -356,7 +358,7 @@ function CampaignDashboard() {
 												<Badge variant="secondary">Secret</Badge>
 											)}
 											<Badge variant="outline">
-												{NOUN_TYPE_LABELS[noun.nounType]}
+												{nounTypeLabel(noun.nounType)}
 											</Badge>
 										</div>
 									</Link>

@@ -92,6 +92,7 @@ function SessionsPage() {
 							>
 								<EntityAvatar
 									entityType="SESSION"
+									isSession
 									imageUrl={null}
 									name={s.name}
 								/>

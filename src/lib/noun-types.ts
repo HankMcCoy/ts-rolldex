@@ -1,14 +1,21 @@
 import { z } from "zod";
-import { nounTypeEnum } from "@/db/schema/app";
+import { normalizeTagName, TAG_MAX_LENGTH, tagKey } from "@/lib/tags";
 
-export const nounTypeSchema = z.enum(nounTypeEnum.enumValues);
-export type NounType = z.infer<typeof nounTypeSchema>;
-export const NOUN_TYPES = nounTypeEnum.enumValues;
+/** Seed vocabulary only. Available types always come from the campaign bundle. */
+export const DEFAULT_NOUN_TYPES = [
+	"Person",
+	"Place",
+	"Thing",
+	"Faction",
+	"Event",
+] as const;
+export const nounTypeSchema = z
+	.string()
+	.transform(normalizeTagName)
+	.pipe(z.string().min(1).max(TAG_MAX_LENGTH));
+export type NounType = string;
 
-export const NOUN_TYPE_LABELS: Record<NounType, string> = {
-	PERSON: "Person",
-	PLACE: "Place",
-	THING: "Thing",
-	FACTION: "Faction",
-	EVENT: "Event",
-};
+/** Names are campaign-defined; legacy uppercase links still resolve by tagKey. */
+export function nounTypeLabel(name: string): string {
+	return DEFAULT_NOUN_TYPES.find((t) => tagKey(t) === tagKey(name)) ?? name;
+}

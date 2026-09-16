@@ -5,6 +5,7 @@ import {
 	normalizeTagName,
 	normalizeTagNames,
 	resolveTagRefs,
+	selectTagName,
 	TAG_MAX_LENGTH,
 	tagFilterSchema,
 	tagKey,
@@ -107,5 +108,27 @@ describe("tagFilterSchema", () => {
 
 	it("passes an absent filter through as undefined", () => {
 		expect(tagFilterSchema.parse(undefined)).toBeUndefined();
+	});
+});
+
+describe("selectTagName", () => {
+	const tags = [
+		{ id: "a", name: "Active", groupId: "status" },
+		{ id: "c", name: "Complete", groupId: "status" },
+		{ id: "p", name: "Person", groupId: "type" },
+	];
+	it("replaces only the same group, case-insensitively", () => {
+		expect(
+			selectTagName(["ACTIVE", "Person", "Free"], "complete", tags),
+		).toEqual(["Person", "Free", "complete"]);
+	});
+	it("allows replacement at the entity tag limit", () => {
+		const value = [
+			"Active",
+			...Array.from({ length: 24 }, (_, i) => `Tag ${i}`),
+		];
+		expect(selectTagName(value, "Complete", tags)).toHaveLength(25);
+		expect(selectTagName(value, "Complete", tags)).not.toContain("Active");
+		expect(selectTagName(value, "New", tags)).toEqual(value);
 	});
 });
